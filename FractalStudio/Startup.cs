@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -40,8 +40,11 @@ namespace FractalStudio
                 app.UseHsts();
             }
 
+            app.UseDefaultFiles();
+            app.UseStaticFiles();
             app.UseHttpsRedirection();
             app.UseMvc();
+
         }
     }
 }
