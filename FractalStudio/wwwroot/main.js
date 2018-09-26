@@ -75,8 +75,8 @@ __webpack_require__.r(__webpack_exports__);
 var styles_AppComponent = [_app_component_css_shim_ngstyle__WEBPACK_IMPORTED_MODULE_0__["styles"]];
 var RenderType_AppComponent = _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵcrt"]({ encapsulation: 0, styles: styles_AppComponent, data: {} });
 
-function View_AppComponent_0(_l) { return _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵvid"](0, [(_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](0, 0, null, null, 3, "div", [["style", "text-align:center"]], null, null, null, null, null)), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](1, 0, null, null, 1, "h1", [], null, null, null, null, null)), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵted"](2, null, [" Welcome to ", "! "])), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](3, 0, null, null, 0, "img", [["alt", "Angular Logo"], ["src", "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNTAgMjUwIj4KICAgIDxwYXRoIGZpbGw9IiNERDAwMzEiIGQ9Ik0xMjUgMzBMMzEuOSA2My4ybDE0LjIgMTIzLjFMMTI1IDIzMGw3OC45LTQzLjcgMTQuMi0xMjMuMXoiIC8+CiAgICA8cGF0aCBmaWxsPSIjQzMwMDJGIiBkPSJNMTI1IDMwdjIyLjItLjFWMjMwbDc4LjktNDMuNyAxNC4yLTEyMy4xTDEyNSAzMHoiIC8+CiAgICA8cGF0aCAgZmlsbD0iI0ZGRkZGRiIgZD0iTTEyNSA1Mi4xTDY2LjggMTgyLjZoMjEuN2wxMS43LTI5LjJoNDkuNGwxMS43IDI5LjJIMTgzTDEyNSA1Mi4xem0xNyA4My4zaC0zNGwxNy00MC45IDE3IDQwLjl6IiAvPgogIDwvc3ZnPg=="], ["width", "300"]], null, null, null, null, null)), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](4, 0, null, null, 1, "h2", [], null, null, null, null, null)), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵted"](-1, null, ["Map Service Section"])), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](6, 0, null, null, 1, "p", [], null, null, null, null, null)), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵted"](7, null, ["The result has ", " elements."])), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](8, 0, null, null, 1, "h2", [], null, null, null, null, null)), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵted"](-1, null, ["Here are some links to help you start: "])), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](10, 0, null, null, 12, "ul", [], null, null, null, null, null)), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](11, 0, null, null, 3, "li", [], null, null, null, null, null)), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](12, 0, null, null, 2, "h2", [], null, null, null, null, null)), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](13, 0, null, null, 1, "a", [["href", "https://angular.io/tutorial"], ["rel", "noopener"], ["target", "_blank"]], null, null, null, null, null)), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵted"](-1, null, ["Tour of Heroes"])), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](15, 0, null, null, 3, "li", [], null, null, null, null, null)), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](16, 0, null, null, 2, "h2", [], null, null, null, null, null)), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](17, 0, null, null, 1, "a", [["href", "https://github.com/angular/angular-cli/wiki"], ["rel", "noopener"], ["target", "_blank"]], null, null, null, null, null)), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵted"](-1, null, ["CLI Documentation"])), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](19, 0, null, null, 3, "li", [], null, null, null, null, null)), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](20, 0, null, null, 2, "h2", [], null, null, null, null, null)), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](21, 0, null, null, 1, "a", [["href", "https://blog.angular.io/"], ["rel", "noopener"], ["target", "_blank"]], null, null, null, null, null)), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵted"](-1, null, ["Angular blog"]))], null, function (_ck, _v) { var _co = _v.component; var currVal_0 = _co.title; _ck(_v, 2, 0, currVal_0); var currVal_1 = _co.rLen; _ck(_v, 7, 0, currVal_1); }); }
-function View_AppComponent_Host_0(_l) { return _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵvid"](0, [(_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](0, 0, null, null, 1, "app-root", [], null, null, null, View_AppComponent_0, RenderType_AppComponent)), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵdid"](1, 49152, null, 0, _app_component__WEBPACK_IMPORTED_MODULE_2__["AppComponent"], [_logger_service__WEBPACK_IMPORTED_MODULE_3__["Logger"]], null, null)], null, null); }
+function View_AppComponent_0(_l) { return _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵvid"](0, [_angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵqud"](402653184, 1, { canvasRef: 0 }), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](1, 0, null, null, 3, "div", [["style", "text-align:center"]], null, null, null, null, null)), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](2, 0, null, null, 1, "h1", [], null, null, null, null, null)), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵted"](3, null, [" Welcome to ", "! "])), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](4, 0, null, null, 0, "img", [["alt", "Angular Logo"], ["src", "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNTAgMjUwIj4KICAgIDxwYXRoIGZpbGw9IiNERDAwMzEiIGQ9Ik0xMjUgMzBMMzEuOSA2My4ybDE0LjIgMTIzLjFMMTI1IDIzMGw3OC45LTQzLjcgMTQuMi0xMjMuMXoiIC8+CiAgICA8cGF0aCBmaWxsPSIjQzMwMDJGIiBkPSJNMTI1IDMwdjIyLjItLjFWMjMwbDc4LjktNDMuNyAxNC4yLTEyMy4xTDEyNSAzMHoiIC8+CiAgICA8cGF0aCAgZmlsbD0iI0ZGRkZGRiIgZD0iTTEyNSA1Mi4xTDY2LjggMTgyLjZoMjEuN2wxMS43LTI5LjJoNDkuNGwxMS43IDI5LjJIMTgzTDEyNSA1Mi4xem0xNyA4My4zaC0zNGwxNy00MC45IDE3IDQwLjl6IiAvPgogIDwvc3ZnPg=="], ["width", "300"]], null, null, null, null, null)), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](5, 0, null, null, 1, "h2", [], null, null, null, null, null)), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵted"](-1, null, ["Map Service Section"])), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](7, 0, null, null, 1, "p", [], null, null, null, null, null)), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵted"](8, null, ["The result has ", " elements."])), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](9, 0, null, null, 1, "h2", [], null, null, null, null, null)), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵted"](-1, null, ["Map Output Section"])), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](11, 0, [[1, 0], ["myCanvas", 1]], null, 0, "canvas", [["height", "100"], ["width", "100"]], null, null, null, null, null)), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](12, 0, null, null, 1, "h2", [], null, null, null, null, null)), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵted"](-1, null, ["Here are some links to help you start: "])), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](14, 0, null, null, 12, "ul", [], null, null, null, null, null)), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](15, 0, null, null, 3, "li", [], null, null, null, null, null)), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](16, 0, null, null, 2, "h2", [], null, null, null, null, null)), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](17, 0, null, null, 1, "a", [["href", "https://angular.io/tutorial"], ["rel", "noopener"], ["target", "_blank"]], null, null, null, null, null)), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵted"](-1, null, ["Tour of Heroes"])), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](19, 0, null, null, 3, "li", [], null, null, null, null, null)), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](20, 0, null, null, 2, "h2", [], null, null, null, null, null)), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](21, 0, null, null, 1, "a", [["href", "https://github.com/angular/angular-cli/wiki"], ["rel", "noopener"], ["target", "_blank"]], null, null, null, null, null)), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵted"](-1, null, ["CLI Documentation"])), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](23, 0, null, null, 3, "li", [], null, null, null, null, null)), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](24, 0, null, null, 2, "h2", [], null, null, null, null, null)), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](25, 0, null, null, 1, "a", [["href", "https://blog.angular.io/"], ["rel", "noopener"], ["target", "_blank"]], null, null, null, null, null)), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵted"](-1, null, ["Angular blog"]))], null, function (_ck, _v) { var _co = _v.component; var currVal_0 = _co.title; _ck(_v, 3, 0, currVal_0); var currVal_1 = _co.rLen; _ck(_v, 8, 0, currVal_1); }); }
+function View_AppComponent_Host_0(_l) { return _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵvid"](0, [(_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](0, 0, null, null, 1, "app-root", [], null, null, null, View_AppComponent_0, RenderType_AppComponent)), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵdid"](1, 4833280, null, 0, _app_component__WEBPACK_IMPORTED_MODULE_2__["AppComponent"], [_logger_service__WEBPACK_IMPORTED_MODULE_3__["Logger"]], null, null)], function (_ck, _v) { _ck(_v, 1, 0); }, null); }
 var AppComponentNgFactory = _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵccf"]("app-root", _app_component__WEBPACK_IMPORTED_MODULE_2__["AppComponent"], View_AppComponent_Host_0, {}, {}, []);
 
 
@@ -93,24 +93,55 @@ var AppComponentNgFactory = _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵccf"](
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "AppComponent", function() { return AppComponent; });
-/* harmony import */ var _logger_service__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./logger.service */ "./src/app/logger.service.ts");
-/* harmony import */ var _mMap_m_map_service__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./mMap/m-map.service */ "./src/app/mMap/m-map.service.ts");
-/* harmony import */ var _mMapCommon_m_map_common__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./mMapCommon/m-map-common */ "./src/app/mMapCommon/m-map-common.ts");
+/* harmony import */ var _angular_core__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @angular/core */ "./node_modules/@angular/core/fesm5/core.js");
+/* harmony import */ var _logger_service__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./logger.service */ "./src/app/logger.service.ts");
+/* harmony import */ var _mMap_m_map_service__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./mMap/m-map.service */ "./src/app/mMap/m-map.service.ts");
+/* harmony import */ var _mMapCommon_m_map_common__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./mMapCommon/m-map-common */ "./src/app/mMapCommon/m-map-common.ts");
+
 
 
 
 var AppComponent = /** @class */ (function () {
-    //buf: Float64Array = new Float64Array(5);
     function AppComponent(logger) {
         this.logger = logger;
         this.title = 'FractalStudio';
+        this.viewInitialized = false;
         this.rLen = 10;
         logger.log('Hey, pretty cool.');
-        var mService = new _mMap_m_map_service__WEBPACK_IMPORTED_MODULE_1__["MMapService"]();
-        var result = mService.createTestMapWD();
-        var flags = _mMapCommon_m_map_common__WEBPACK_IMPORTED_MODULE_2__["MapWorkingData"].getFlagData(result);
-        this.rLen = flags.length;
+        var mService = new _mMap_m_map_service__WEBPACK_IMPORTED_MODULE_2__["MMapService"]();
+        this.result = mService.createTestMapWD();
+        this.alive = this.result.doInterations(10);
+        //var flags: boolean[] = MapWorkingData.getFlagData(result);
+        //this.rLen = flags.length;
     }
+    AppComponent.prototype.ngOnInit = function () {
+        console.log("We are inited.");
+    };
+    AppComponent.prototype.draw = function () {
+        var ctx = this.canvasRef.nativeElement.getContext('2d');
+        ctx.fillStyle = '#DD0031';
+        ctx.clearRect(0, 0, 100, 100);
+        console.log("Got ctx.");
+        var imgData = ctx.getImageData(0, 0, 100, 100);
+        console.log("Got image data.");
+        //let iDataData: Uint8ClampedArray = imgData.data;
+        this.result.updateImageData(imgData.data);
+        console.log("Updated buffer data.");
+        ctx.putImageData(imgData, 0, 0);
+        console.log("Updated canvas.");
+    };
+    AppComponent.prototype.ngOnChanges = function () {
+        if (!this.viewInitialized)
+            return;
+        this.draw();
+    };
+    AppComponent.prototype.ngAfterViewInit = function () {
+        if (!this.viewInitialized) {
+            this.viewInitialized = true;
+            console.log("About to draw from AfterViewInit.");
+            this.draw();
+        }
+    };
     return AppComponent;
 }());
 
@@ -227,30 +258,26 @@ var MMapService = /** @class */ (function () {
             debugger;
         }
         var result = new _mMapCommon_m_map_common__WEBPACK_IMPORTED_MODULE_0__["MapWorkingData"](cs, mi);
-        var alive = result.doInterations(10);
-        var flags = _mMapCommon_m_map_common__WEBPACK_IMPORTED_MODULE_0__["MapWorkingData"].getFlagData(result);
-        var fIndex = flags.findIndex(function (t) { return t === false; });
-        {
-            debugger;
-        }
-        //alive = false;
-        //for (var flag:boolean in flags) {
-        //  if (!flag) {
-        //    alive = true;
-        //    break;
-        //  }
-        //}
-        console.log("The flags has " + flags.length + " elements.");
-        if (alive) {
-            console.log("There is at least one point that is in the set.");
-        }
-        else {
-            console.log("There are no points in the set.");
-        }
         return result;
-    };
-    MMapService.prototype.performInterations = function (numIterations, workingData) {
-        return false;
+        //var alive = result.doInterations(10);
+        //var flags: boolean[] = MapWorkingData.getFlagData(result);
+        //const fIndex:number = flags.findIndex(t => t === false);
+        //{ debugger }
+        ////alive = false;
+        ////for (var flag:boolean in flags) {
+        ////  if (!flag) {
+        ////    alive = true;
+        ////    break;
+        ////  }
+        ////}
+        //console.log("The flags has " + flags.length + " elements.");
+        //if (alive) {
+        //  console.log("There is at least one point that is in the set.");
+        //}
+        //else {
+        //  console.log("There are no points in the set.");
+        //}
+        //return result;
     };
     MMapService.ngInjectableDef = _angular_core__WEBPACK_IMPORTED_MODULE_1__["defineInjectable"]({ factory: function MMapService_Factory() { return new MMapService(); }, token: MMapService, providedIn: "root" });
     return MMapService;
@@ -340,9 +367,12 @@ var MapWorkingData = /** @class */ (function () {
         }
         return result;
     };
+    //public getLinearIndex(x:number, y:number): number {
+    //  return x + y * this.canvasSize.width;
+    //}
     // Returns the index to use when accessing wAData, wBData, cnts or flags.
-    MapWorkingData.prototype.getLinearIndex = function (x, y) {
-        return x + y * this.canvasSize.width;
+    MapWorkingData.prototype.getLinearIndex = function (c) {
+        return c.x + c.y * this.canvasSize.width;
     };
     // Calculates z squared + c
     // a and b are the real and complex components of z
@@ -352,6 +382,10 @@ var MapWorkingData = /** @class */ (function () {
         var nb = 2 * a * b + cy;
         return { newA: na, newB: nb };
     };
+    MapWorkingData.prototype.getNextVal2 = function (z, c) {
+        var result = new Point(z.x * z.x - z.y * z.y + c.x, 2 * z.x * z.y + c.y);
+        return result;
+    };
     // Returns the square of the magnitude of a complex number where a is the real component and b is the complex component.
     MapWorkingData.prototype.getAbsSizeSquared = function (a, b) {
         //let na = a < 0 ? -1 * a : a;
@@ -360,6 +394,38 @@ var MapWorkingData = /** @class */ (function () {
         var result = a * a + b * b;
         return result;
     };
+    MapWorkingData.prototype.getAbsSizeSquared2 = function (z) {
+        var result = z.x * z.x + z.y * z.y;
+        return result;
+    };
+    //private iterateElementOLD(x: number, y: number): boolean {
+    //  let ptr = this.getLinearIndex(x, y);
+    //  if (this.flags[ptr]) {
+    //    // This point has been flagged, don't interate.
+    //    return true;
+    //  }
+    //  let ea = this.wAData[ptr];
+    //  let eb = this.wBData[ptr];
+    //  let cx = this.xVals[x];
+    //  let cy = this.yVals[y];
+    //  let newResult = this.getNextVal(ea, eb, cx, cy);
+    //  let na: number = newResult.newA;
+    //  let nb: number = newResult.newB;
+    //  this.wAData[ptr] = na;
+    //  this.wBData[ptr] = nb;
+    //  let aSize = this.getAbsSizeSquared(na, nb);
+    //  // Increment the number of times this point has been iterated.
+    //  this.cnts[ptr] = this.cnts[ptr] + 1;
+    //  if (aSize > 4) {
+    //    // This point is done.
+    //    this.flags[ptr] = 1;
+    //    return true; 
+    //  }
+    //  else {
+    //    // This point is still 'alive'.
+    //    return false;
+    //  }
+    //}
     // Takes the current value of z for a given coordinate,
     // calculates the next value
     // and updates the current value with this next value.
@@ -367,22 +433,19 @@ var MapWorkingData = /** @class */ (function () {
     //
     // If the magnitude of the new value is greater than 2 (the square of the magnitude > 4) then it sets the 'done' flag
     // Returns the (new) value of the 'done' flag for this coordinate.
-    MapWorkingData.prototype.iterateElement = function (x, y) {
-        var ptr = this.getLinearIndex(x, y);
+    MapWorkingData.prototype.iterateElement = function (mapCoordinate) {
+        var ptr = this.getLinearIndex(mapCoordinate);
         if (this.flags[ptr]) {
             // This point has been flagged, don't interate.
             return true;
         }
-        var ea = this.wAData[ptr];
-        var eb = this.wBData[ptr];
-        var cx = this.xVals[x];
-        var cy = this.yVals[y];
-        var newResult = this.getNextVal(ea, eb, cx, cy);
-        var na = newResult.newA;
-        var nb = newResult.newB;
-        this.wAData[ptr] = na;
-        this.wBData[ptr] = nb;
-        var aSize = this.getAbsSizeSquared(na, nb);
+        var z = new Point(this.wAData[ptr], this.wBData[ptr]);
+        var c = new Point(this.xVals[mapCoordinate.x], this.yVals[mapCoordinate.y]);
+        var newZ = this.getNextVal2(z, c);
+        // Store the new value back to our Working Data.
+        this.wAData[ptr] = newZ.x;
+        this.wBData[ptr] = newZ.y;
+        var aSize = this.getAbsSizeSquared2(newZ);
         // Increment the number of times this point has been iterated.
         this.cnts[ptr] = this.cnts[ptr] + 1;
         if (aSize > 4) {
@@ -403,7 +466,7 @@ var MapWorkingData = /** @class */ (function () {
         var j;
         for (i = 0; i < this.canvasSize.height; i++) {
             for (j = 0; j < this.canvasSize.width; j++) {
-                var pointIsDone = this.iterateElement(j, i);
+                var pointIsDone = this.iterateElement(new Point(j, i));
                 if (!pointIsDone)
                     result = true;
             }
@@ -417,6 +480,39 @@ var MapWorkingData = /** @class */ (function () {
             var alive = this.iterateAllElementsOnce();
         }
         return alive;
+    };
+    MapWorkingData.prototype.getImageData = function () {
+        var resultLen = 4 * this.elementCount;
+        var result = new Uint8ClampedArray(resultLen);
+        this.updateImageData(result);
+        return result;
+    };
+    MapWorkingData.prototype.updateImageData = function (imageData) {
+        if (imageData.length != 4 * this.elementCount) {
+            console.log("The imagedata data does not have the correct number of elements.");
+            return;
+        }
+        var i;
+        for (i = 0; i < this.elementCount; i++) {
+            var inTheSet = this.flags[i] === 0;
+            this.setPixelValueBinary(inTheSet, i * 4, imageData);
+        }
+    };
+    MapWorkingData.prototype.setPixelValueBinary = function (on, ptr, imageData) {
+        if (on) {
+            // Points within the set are drawn in black.
+            imageData[ptr] = 0;
+            imageData[ptr + 1] = 0;
+            imageData[ptr + 2] = 0;
+            imageData[ptr + 3] = 255;
+        }
+        else {
+            // Points outside the set are drawn in white.
+            imageData[ptr] = 255;
+            imageData[ptr + 1] = 255;
+            imageData[ptr + 2] = 255;
+            imageData[ptr + 3] = 255;
+        }
     };
     // Returns a 'regular' linear array of booleans from the flags TypedArray.
     MapWorkingData.getFlagData = function (mapWorkingData) {

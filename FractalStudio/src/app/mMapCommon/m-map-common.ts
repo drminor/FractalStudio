@@ -34,8 +34,11 @@ export interface IMapWorkingData {
   // Flag for each point. If set then the point has grown more than 2.
   flags: Uint8Array;
 
-  getLinearIndex(x: number, y: number): number;
+  //getLinearIndex(x: number, y: number): number;
+  getLinearIndex(c: IPoint): number;
   doInterations(iterationCnt: number): boolean;
+  getImageData(): Uint8ClampedArray;
+  updateImageData(imageData: Uint8ClampedArray): void;
 }
 
 export class Point implements IPoint {
@@ -117,9 +120,13 @@ export class MapWorkingData {
     return result;
   }
 
+  //public getLinearIndex(x:number, y:number): number {
+  //  return x + y * this.canvasSize.width;
+  //}
+
   // Returns the index to use when accessing wAData, wBData, cnts or flags.
-  public getLinearIndex(x: number, y: number): number {
-    return x + y * this.canvasSize.width;
+  public getLinearIndex(c:IPoint): number {
+    return c.x + c.y * this.canvasSize.width;
   }
 
   // Calculates z squared + c
@@ -132,6 +139,15 @@ export class MapWorkingData {
     return { newA: na, newB: nb };
   }
 
+  getNextVal2(z: IPoint, c: IPoint): IPoint {
+    const result: IPoint = new Point(
+      z.x * z.x - z.y * z.y + c.x,
+      2 * z.x * z.y + c.y
+    );
+
+    return result;
+  }
+
   // Returns the square of the magnitude of a complex number where a is the real component and b is the complex component.
   private getAbsSizeSquared(a: number, b: number): number {
     //let na = a < 0 ? -1 * a : a;
@@ -142,6 +158,49 @@ export class MapWorkingData {
     return result;
   }
 
+  private getAbsSizeSquared2(z: IPoint): number {
+    const result:number = z.x * z.x + z.y * z.y;
+    return result;
+  }
+
+
+  //private iterateElementOLD(x: number, y: number): boolean {
+  //  let ptr = this.getLinearIndex(x, y);
+
+  //  if (this.flags[ptr]) {
+  //    // This point has been flagged, don't interate.
+  //    return true;
+  //  }
+
+  //  let ea = this.wAData[ptr];
+  //  let eb = this.wBData[ptr];
+
+  //  let cx = this.xVals[x];
+  //  let cy = this.yVals[y];
+
+  //  let newResult = this.getNextVal(ea, eb, cx, cy);
+  //  let na: number = newResult.newA;
+  //  let nb: number = newResult.newB;
+
+  //  this.wAData[ptr] = na;
+  //  this.wBData[ptr] = nb;
+
+  //  let aSize = this.getAbsSizeSquared(na, nb);
+
+  //  // Increment the number of times this point has been iterated.
+  //  this.cnts[ptr] = this.cnts[ptr] + 1;
+
+  //  if (aSize > 4) {
+  //    // This point is done.
+  //    this.flags[ptr] = 1;
+  //    return true; 
+  //  }
+  //  else {
+  //    // This point is still 'alive'.
+  //    return false;
+  //  }
+  //}
+
   // Takes the current value of z for a given coordinate,
   // calculates the next value
   // and updates the current value with this next value.
@@ -149,28 +208,24 @@ export class MapWorkingData {
   //
   // If the magnitude of the new value is greater than 2 (the square of the magnitude > 4) then it sets the 'done' flag
   // Returns the (new) value of the 'done' flag for this coordinate.
-  private iterateElement(x: number, y: number): boolean {
-    let ptr = this.getLinearIndex(x, y);
+  private iterateElement(mapCoordinate:IPoint): boolean {
+    let ptr = this.getLinearIndex(mapCoordinate);
 
     if (this.flags[ptr]) {
       // This point has been flagged, don't interate.
       return true;
     }
 
-    let ea = this.wAData[ptr];
-    let eb = this.wBData[ptr];
+    const z:IPoint = new Point(this.wAData[ptr], this.wBData[ptr]);
+    const c: IPoint = new Point(this.xVals[mapCoordinate.x], this.yVals[mapCoordinate.y]);
 
-    let cx = this.xVals[x];
-    let cy = this.yVals[y];
+    const newZ = this.getNextVal2(z, c);
 
-    let newResult = this.getNextVal(ea, eb, cx, cy);
-    let na: number = newResult.newA;
-    let nb: number = newResult.newB;
+    // Store the new value back to our Working Data.
+    this.wAData[ptr] = newZ.x;
+    this.wBData[ptr] = newZ.y;
 
-    this.wAData[ptr] = na;
-    this.wBData[ptr] = nb;
-
-    let aSize = this.getAbsSizeSquared(na, nb);
+    let aSize = this.getAbsSizeSquared2(newZ);
 
     // Increment the number of times this point has been iterated.
     this.cnts[ptr] = this.cnts[ptr] + 1;
@@ -178,13 +233,14 @@ export class MapWorkingData {
     if (aSize > 4) {
       // This point is done.
       this.flags[ptr] = 1;
-      return true; 
+      return true;
     }
     else {
       // This point is still 'alive'.
       return false;
     }
   }
+
 
   // Updates each element by performing a single interation.
   // Returns true if at least one point is not done.
@@ -197,7 +253,7 @@ export class MapWorkingData {
 
     for (i = 0; i < this.canvasSize.height; i++) {
       for (j = 0; j < this.canvasSize.width; j++) {
-        var pointIsDone = this.iterateElement(j, i);
+        var pointIsDone = this.iterateElement(new Point(j, i));
         
         if (!pointIsDone) result = true;
       }
@@ -214,6 +270,45 @@ export class MapWorkingData {
       var alive = this.iterateAllElementsOnce();
     }
     return alive;
+  }
+
+  public getImageData(): Uint8ClampedArray {
+    const resultLen = 4 * this.elementCount;
+    const result: Uint8ClampedArray = new Uint8ClampedArray(resultLen);
+
+    this.updateImageData(result);
+    return result;
+  }
+
+  public updateImageData(imageData: Uint8ClampedArray): void {
+
+    if (imageData.length != 4 * this.elementCount) {
+      console.log("The imagedata data does not have the correct number of elements.");
+      return;
+    }
+
+    var i: number;
+
+    for (i = 0; i < this.elementCount; i++) {
+      const inTheSet: boolean = this.flags[i] === 0;
+      this.setPixelValueBinary(inTheSet, i * 4, imageData);
+    }
+  }
+  
+  private setPixelValueBinary(on: boolean, ptr: number, imageData: Uint8ClampedArray) {
+    if (on) {
+      // Points within the set are drawn in black.
+      imageData[ptr] = 0;
+      imageData[ptr + 1] = 0;
+      imageData[ptr + 2] = 0;
+      imageData[ptr + 3] = 255;
+    } else {
+      // Points outside the set are drawn in white.
+      imageData[ptr] = 255;
+      imageData[ptr + 1] = 255;
+      imageData[ptr + 2] = 255;
+      imageData[ptr + 3] = 255;
+    }
   }
 
   // Returns a 'regular' linear array of booleans from the flags TypedArray.
