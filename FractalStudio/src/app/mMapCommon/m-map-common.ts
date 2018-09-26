@@ -132,14 +132,7 @@ export class MapWorkingData {
   // Calculates z squared + c
   // a and b are the real and complex components of z
   // cx and cy are the real and complex components of c
-  getNextVal(a: number, b: number, cx: number, cy: number): { newA: number, newB: number } {
-    let na: number = a * a - b * b + cx;
-    let nb: number = 2 * a * b + cy;
-
-    return { newA: na, newB: nb };
-  }
-
-  getNextVal2(z: IPoint, c: IPoint): IPoint {
+  getNextVal(z: IPoint, c: IPoint): IPoint {
     const result: IPoint = new Point(
       z.x * z.x - z.y * z.y + c.x,
       2 * z.x * z.y + c.y
@@ -149,57 +142,10 @@ export class MapWorkingData {
   }
 
   // Returns the square of the magnitude of a complex number where a is the real component and b is the complex component.
-  private getAbsSizeSquared(a: number, b: number): number {
-    //let na = a < 0 ? -1 * a : a;
-    //let nb = b < 0 ? -1 * b : b;
-    //let result = na * na + nb * nb;
-
-    let result = a * a + b * b;
-    return result;
-  }
-
-  private getAbsSizeSquared2(z: IPoint): number {
+  private getAbsSizeSquared(z: IPoint): number {
     const result:number = z.x * z.x + z.y * z.y;
     return result;
   }
-
-
-  //private iterateElementOLD(x: number, y: number): boolean {
-  //  let ptr = this.getLinearIndex(x, y);
-
-  //  if (this.flags[ptr]) {
-  //    // This point has been flagged, don't interate.
-  //    return true;
-  //  }
-
-  //  let ea = this.wAData[ptr];
-  //  let eb = this.wBData[ptr];
-
-  //  let cx = this.xVals[x];
-  //  let cy = this.yVals[y];
-
-  //  let newResult = this.getNextVal(ea, eb, cx, cy);
-  //  let na: number = newResult.newA;
-  //  let nb: number = newResult.newB;
-
-  //  this.wAData[ptr] = na;
-  //  this.wBData[ptr] = nb;
-
-  //  let aSize = this.getAbsSizeSquared(na, nb);
-
-  //  // Increment the number of times this point has been iterated.
-  //  this.cnts[ptr] = this.cnts[ptr] + 1;
-
-  //  if (aSize > 4) {
-  //    // This point is done.
-  //    this.flags[ptr] = 1;
-  //    return true; 
-  //  }
-  //  else {
-  //    // This point is still 'alive'.
-  //    return false;
-  //  }
-  //}
 
   // Takes the current value of z for a given coordinate,
   // calculates the next value
@@ -219,13 +165,13 @@ export class MapWorkingData {
     const z:IPoint = new Point(this.wAData[ptr], this.wBData[ptr]);
     const c: IPoint = new Point(this.xVals[mapCoordinate.x], this.yVals[mapCoordinate.y]);
 
-    const newZ = this.getNextVal2(z, c);
+    const newZ = this.getNextVal(z, c);
 
     // Store the new value back to our Working Data.
     this.wAData[ptr] = newZ.x;
     this.wBData[ptr] = newZ.y;
 
-    let aSize = this.getAbsSizeSquared2(newZ);
+    let aSize = this.getAbsSizeSquared(newZ);
 
     // Increment the number of times this point has been iterated.
     this.cnts[ptr] = this.cnts[ptr] + 1;
@@ -240,7 +186,6 @@ export class MapWorkingData {
       return false;
     }
   }
-
 
   // Updates each element by performing a single interation.
   // Returns true if at least one point is not done.
