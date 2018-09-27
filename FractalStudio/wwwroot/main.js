@@ -60,8 +60,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "AppComponentNgFactory", function() { return AppComponentNgFactory; });
 /* harmony import */ var _app_component_css_shim_ngstyle__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./app.component.css.shim.ngstyle */ "./src/app/app.component.css.shim.ngstyle.js");
 /* harmony import */ var _angular_core__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @angular/core */ "./node_modules/@angular/core/fesm5/core.js");
-/* harmony import */ var _mMap_m_map_component_ngfactory__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./mMap/m-map.component.ngfactory */ "./src/app/mMap/m-map.component.ngfactory.js");
-/* harmony import */ var _mMap_m_map_component__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./mMap/m-map.component */ "./src/app/mMap/m-map.component.ts");
+/* harmony import */ var _mMap_m_map_display_component_ngfactory__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./mMap/m-map.display.component.ngfactory */ "./src/app/mMap/m-map.display.component.ngfactory.js");
+/* harmony import */ var _mMap_m_map_display_component__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./mMap/m-map.display.component */ "./src/app/mMap/m-map.display.component.ts");
 /* harmony import */ var _logger_service__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./logger.service */ "./src/app/logger.service.ts");
 /* harmony import */ var _mMap_m_map_service__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./mMap/m-map.service */ "./src/app/mMap/m-map.service.ts");
 /* harmony import */ var _app_component__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./app.component */ "./src/app/app.component.ts");
@@ -81,7 +81,7 @@ __webpack_require__.r(__webpack_exports__);
 var styles_AppComponent = [_app_component_css_shim_ngstyle__WEBPACK_IMPORTED_MODULE_0__["styles"]];
 var RenderType_AppComponent = _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵcrt"]({ encapsulation: 0, styles: styles_AppComponent, data: {} });
 
-function View_AppComponent_0(_l) { return _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵvid"](0, [(_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](0, 0, null, null, 1, "app-m-map", [], null, null, null, _mMap_m_map_component_ngfactory__WEBPACK_IMPORTED_MODULE_2__["View_MMapComponent_0"], _mMap_m_map_component_ngfactory__WEBPACK_IMPORTED_MODULE_2__["RenderType_MMapComponent"])), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵdid"](1, 4833280, null, 0, _mMap_m_map_component__WEBPACK_IMPORTED_MODULE_3__["MMapComponent"], [_logger_service__WEBPACK_IMPORTED_MODULE_4__["Logger"], _mMap_m_map_service__WEBPACK_IMPORTED_MODULE_5__["MMapService"]], null, null)], function (_ck, _v) { _ck(_v, 1, 0); }, null); }
+function View_AppComponent_0(_l) { return _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵvid"](0, [(_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](0, 0, null, null, 1, "h2", [], null, null, null, null, null)), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵted"](-1, null, ["Map Output Section"])), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](2, 0, null, null, 1, "app-m-map-display", [], null, null, null, _mMap_m_map_display_component_ngfactory__WEBPACK_IMPORTED_MODULE_2__["View_MMapDisplayComponent_0"], _mMap_m_map_display_component_ngfactory__WEBPACK_IMPORTED_MODULE_2__["RenderType_MMapDisplayComponent"])), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵdid"](3, 4833280, null, 0, _mMap_m_map_display_component__WEBPACK_IMPORTED_MODULE_3__["MMapDisplayComponent"], [_logger_service__WEBPACK_IMPORTED_MODULE_4__["Logger"], _mMap_m_map_service__WEBPACK_IMPORTED_MODULE_5__["MMapService"]], null, null)], function (_ck, _v) { _ck(_v, 3, 0); }, null); }
 function View_AppComponent_Host_0(_l) { return _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵvid"](0, [(_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](0, 0, null, null, 1, "app-root", [], null, null, null, View_AppComponent_0, RenderType_AppComponent)), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵdid"](1, 4833280, null, 0, _app_component__WEBPACK_IMPORTED_MODULE_6__["AppComponent"], [_logger_service__WEBPACK_IMPORTED_MODULE_4__["Logger"]], null, null)], function (_ck, _v) { _ck(_v, 1, 0); }, null); }
 var AppComponentNgFactory = _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵccf"]("app-root", _app_component__WEBPACK_IMPORTED_MODULE_6__["AppComponent"], View_AppComponent_Host_0, {}, {}, []);
 
@@ -103,47 +103,22 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _logger_service__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./logger.service */ "./src/app/logger.service.ts");
 
 
-//import { MMapService } from './mMap/m-map.service';
-//import { IMapWorkingData, MapWorkingData } from './mMapCommon/m-map-common';
 var AppComponent = /** @class */ (function () {
-    //private result: IMapWorkingData;
     function AppComponent(logger) {
         this.logger = logger;
         this.viewInitialized = false;
-        //this.rLen = 10;
-        //logger.log('Hey, pretty cool.');
-        //var mService = new MMapService();
-        //this.result = mService.createTestMapWD();
-        //this.alive = this.result.doInterations(10);
-        ////var flags: boolean[] = MapWorkingData.getFlagData(result);
-        ////this.rLen = flags.length;
     }
-    //draw(): void {
-    //  let ctx: CanvasRenderingContext2D = this.canvasRef.nativeElement.getContext('2d');
-    //  ctx.fillStyle = '#DD0031';
-    //  ctx.clearRect(0, 0, 100, 100);
-    //  console.log("Got ctx.");
-    //  let imgData: ImageData = ctx.getImageData(0, 0, 100, 100);
-    //  console.log("Got image data.");
-    //  //let iDataData: Uint8ClampedArray = imgData.data;
-    //  this.result.updateImageData(imgData.data);
-    //  console.log("Updated buffer data.");
-    //  ctx.putImageData(imgData, 0, 0);
-    //  console.log("Updated canvas.");
-    //}
     AppComponent.prototype.ngOnInit = function () {
         console.log("We are inited.");
     };
     AppComponent.prototype.ngOnChanges = function () {
         if (!this.viewInitialized)
             return;
-        //this.draw();
     };
     AppComponent.prototype.ngAfterViewInit = function () {
         if (!this.viewInitialized) {
             this.viewInitialized = true;
             console.log("About to draw from AfterViewInit.");
-            //this.draw();
         }
     };
     return AppComponent;
@@ -239,10 +214,10 @@ var Logger = /** @class */ (function () {
 
 /***/ }),
 
-/***/ "./src/app/mMap/m-map.component.css.shim.ngstyle.js":
-/*!**********************************************************!*\
-  !*** ./src/app/mMap/m-map.component.css.shim.ngstyle.js ***!
-  \**********************************************************/
+/***/ "./src/app/mMap/m-map.display.component.css.shim.ngstyle.js":
+/*!******************************************************************!*\
+  !*** ./src/app/mMap/m-map.display.component.css.shim.ngstyle.js ***!
+  \******************************************************************/
 /*! exports provided: styles */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
@@ -261,22 +236,22 @@ var styles = [""];
 
 /***/ }),
 
-/***/ "./src/app/mMap/m-map.component.ngfactory.js":
-/*!***************************************************!*\
-  !*** ./src/app/mMap/m-map.component.ngfactory.js ***!
-  \***************************************************/
-/*! exports provided: RenderType_MMapComponent, View_MMapComponent_0, View_MMapComponent_Host_0, MMapComponentNgFactory */
+/***/ "./src/app/mMap/m-map.display.component.ngfactory.js":
+/*!***********************************************************!*\
+  !*** ./src/app/mMap/m-map.display.component.ngfactory.js ***!
+  \***********************************************************/
+/*! exports provided: RenderType_MMapDisplayComponent, View_MMapDisplayComponent_0, View_MMapDisplayComponent_Host_0, MMapDisplayComponentNgFactory */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "RenderType_MMapComponent", function() { return RenderType_MMapComponent; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "View_MMapComponent_0", function() { return View_MMapComponent_0; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "View_MMapComponent_Host_0", function() { return View_MMapComponent_Host_0; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "MMapComponentNgFactory", function() { return MMapComponentNgFactory; });
-/* harmony import */ var _m_map_component_css_shim_ngstyle__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./m-map.component.css.shim.ngstyle */ "./src/app/mMap/m-map.component.css.shim.ngstyle.js");
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "RenderType_MMapDisplayComponent", function() { return RenderType_MMapDisplayComponent; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "View_MMapDisplayComponent_0", function() { return View_MMapDisplayComponent_0; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "View_MMapDisplayComponent_Host_0", function() { return View_MMapDisplayComponent_Host_0; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "MMapDisplayComponentNgFactory", function() { return MMapDisplayComponentNgFactory; });
+/* harmony import */ var _m_map_display_component_css_shim_ngstyle__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./m-map.display.component.css.shim.ngstyle */ "./src/app/mMap/m-map.display.component.css.shim.ngstyle.js");
 /* harmony import */ var _angular_core__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @angular/core */ "./node_modules/@angular/core/fesm5/core.js");
-/* harmony import */ var _m_map_component__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./m-map.component */ "./src/app/mMap/m-map.component.ts");
+/* harmony import */ var _m_map_display_component__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./m-map.display.component */ "./src/app/mMap/m-map.display.component.ts");
 /* harmony import */ var _logger_service__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../logger.service */ "./src/app/logger.service.ts");
 /* harmony import */ var _m_map_service__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./m-map.service */ "./src/app/mMap/m-map.service.ts");
 /**
@@ -290,49 +265,45 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
-var styles_MMapComponent = [_m_map_component_css_shim_ngstyle__WEBPACK_IMPORTED_MODULE_0__["styles"]];
-var RenderType_MMapComponent = _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵcrt"]({ encapsulation: 0, styles: styles_MMapComponent, data: {} });
+var styles_MMapDisplayComponent = [_m_map_display_component_css_shim_ngstyle__WEBPACK_IMPORTED_MODULE_0__["styles"]];
+var RenderType_MMapDisplayComponent = _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵcrt"]({ encapsulation: 0, styles: styles_MMapDisplayComponent, data: {} });
 
-function View_MMapComponent_0(_l) { return _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵvid"](0, [_angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵqud"](402653184, 1, { canvasRef: 0 }), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](1, 0, null, null, 1, "h2", [], null, null, null, null, null)), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵted"](-1, null, ["Map Output Section"])), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](3, 0, [[1, 0], ["myCanvas", 1]], null, 0, "canvas", [["height", "100"], ["width", "100"]], null, null, null, null, null))], null, null); }
-function View_MMapComponent_Host_0(_l) { return _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵvid"](0, [(_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](0, 0, null, null, 1, "app-m-map", [], null, null, null, View_MMapComponent_0, RenderType_MMapComponent)), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵdid"](1, 4833280, null, 0, _m_map_component__WEBPACK_IMPORTED_MODULE_2__["MMapComponent"], [_logger_service__WEBPACK_IMPORTED_MODULE_3__["Logger"], _m_map_service__WEBPACK_IMPORTED_MODULE_4__["MMapService"]], null, null)], function (_ck, _v) { _ck(_v, 1, 0); }, null); }
-var MMapComponentNgFactory = _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵccf"]("app-m-map", _m_map_component__WEBPACK_IMPORTED_MODULE_2__["MMapComponent"], View_MMapComponent_Host_0, {}, {}, []);
+function View_MMapDisplayComponent_0(_l) { return _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵvid"](0, [_angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵqud"](402653184, 1, { canvasRef: 0 }), (_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](1, 0, [[1, 0], ["myCanvas", 1]], null, 0, "canvas", [["height", "100"], ["width", "100"]], null, null, null, null, null))], null, null); }
+function View_MMapDisplayComponent_Host_0(_l) { return _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵvid"](0, [(_l()(), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵeld"](0, 0, null, null, 1, "app-m-map-display", [], null, null, null, View_MMapDisplayComponent_0, RenderType_MMapDisplayComponent)), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵdid"](1, 4833280, null, 0, _m_map_display_component__WEBPACK_IMPORTED_MODULE_2__["MMapDisplayComponent"], [_logger_service__WEBPACK_IMPORTED_MODULE_3__["Logger"], _m_map_service__WEBPACK_IMPORTED_MODULE_4__["MMapService"]], null, null)], function (_ck, _v) { _ck(_v, 1, 0); }, null); }
+var MMapDisplayComponentNgFactory = _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵccf"]("app-m-map-display", _m_map_display_component__WEBPACK_IMPORTED_MODULE_2__["MMapDisplayComponent"], View_MMapDisplayComponent_Host_0, {}, {}, []);
 
 
 
 /***/ }),
 
-/***/ "./src/app/mMap/m-map.component.ts":
-/*!*****************************************!*\
-  !*** ./src/app/mMap/m-map.component.ts ***!
-  \*****************************************/
-/*! exports provided: MMapComponent */
+/***/ "./src/app/mMap/m-map.display.component.ts":
+/*!*************************************************!*\
+  !*** ./src/app/mMap/m-map.display.component.ts ***!
+  \*************************************************/
+/*! exports provided: MMapDisplayComponent */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "MMapComponent", function() { return MMapComponent; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "MMapDisplayComponent", function() { return MMapDisplayComponent; });
 /* harmony import */ var _angular_core__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @angular/core */ "./node_modules/@angular/core/fesm5/core.js");
 /* harmony import */ var _logger_service__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../logger.service */ "./src/app/logger.service.ts");
-/* harmony import */ var _mMapCommon_m_map_common__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../mMapCommon/m-map-common */ "./src/app/mMapCommon/m-map-common.ts");
-/* harmony import */ var _m_map_service__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./m-map.service */ "./src/app/mMap/m-map.service.ts");
+/* harmony import */ var _m_map_service__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./m-map.service */ "./src/app/mMap/m-map.service.ts");
 
 
 
-
-var MMapComponent = /** @class */ (function () {
-    function MMapComponent(logger, mService) {
+var MMapDisplayComponent = /** @class */ (function () {
+    function MMapDisplayComponent(logger, mService) {
         this.logger = logger;
         this.mService = mService;
         this.viewInitialized = false;
         logger.log('Hey, this is the new Map Canvas Component.');
-        // TODO: Fix me
-        //this.mService = new MMapService();
         this.result = mService.createTestMapWD();
         this.alive = this.result.doInterations(10);
         //var flags: boolean[] = MapWorkingData.getFlagData(result);
         //this.rLen = flags.length;
     }
-    MMapComponent.prototype.draw = function () {
+    MMapDisplayComponent.prototype.draw = function () {
         var ctx = this.canvasRef.nativeElement.getContext('2d');
         ctx.fillStyle = '#DD0031';
         ctx.clearRect(0, 0, 100, 100);
@@ -345,22 +316,22 @@ var MMapComponent = /** @class */ (function () {
         ctx.putImageData(imgData, 0, 0);
         console.log("Updated canvas.");
     };
-    MMapComponent.prototype.ngOnInit = function () {
+    MMapDisplayComponent.prototype.ngOnInit = function () {
         console.log("We are inited.");
     };
-    MMapComponent.prototype.ngOnChanges = function () {
+    MMapDisplayComponent.prototype.ngOnChanges = function () {
         if (!this.viewInitialized)
             return;
         this.draw();
     };
-    MMapComponent.prototype.ngAfterViewInit = function () {
+    MMapDisplayComponent.prototype.ngAfterViewInit = function () {
         if (!this.viewInitialized) {
             this.viewInitialized = true;
             console.log("About to draw from AfterViewInit.");
             this.draw();
         }
     };
-    return MMapComponent;
+    return MMapDisplayComponent;
 }());
 
 

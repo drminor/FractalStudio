@@ -1,14 +1,14 @@
 import { Component, OnInit, AfterViewInit, ElementRef, ViewChild } from '@angular/core';
 import { Logger } from '../logger.service';
-import { IMapWorkingData, MapWorkingData } from '../mMapCommon/m-map-common';
+import { IMapWorkingData } from '../mMapCommon/m-map-common';
 import { MMapService } from './m-map.service';
 
 @Component({
-  selector: 'app-m-map',
-  templateUrl: './m-map.component.html',
-  styleUrls: ['./m-map.component.css']
+  selector: 'app-m-map-display',
+  templateUrl: './m-map.display.component.html',
+  styleUrls: ['./m-map.display.component.css']
 })
-export class MMapComponent implements AfterViewInit, OnInit {
+export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
   @ViewChild('myCanvas') canvasRef: ElementRef;
 
@@ -21,9 +21,6 @@ export class MMapComponent implements AfterViewInit, OnInit {
     this.viewInitialized = false;
 
     logger.log('Hey, this is the new Map Canvas Component.');
-
-    // TODO: Fix me
-    //this.mService = new MMapService();
 
     this.result = mService.createTestMapWD();
 
@@ -51,7 +48,6 @@ export class MMapComponent implements AfterViewInit, OnInit {
 
     ctx.putImageData(imgData, 0, 0);
     console.log("Updated canvas.");
-
   }
 
   ngOnInit(): void {

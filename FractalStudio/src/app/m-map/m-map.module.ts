@@ -1,7 +1,7 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
-import { MMapComponent } from './m-map.component';
+import { MMapDisplayComponent } from './m-map.display.component';
 import { MMapService } from './m-map.service';
 
 @NgModule({
@@ -9,9 +9,9 @@ import { MMapService } from './m-map.service';
     CommonModule
   ],
   declarations: [
-    MMapComponent
+    MMapDisplayComponent
   ],
-  exports: [MMapComponent],
+  exports: [MMapDisplayComponent],
   providers: [MMapService]
 })
 export class MMapModule { }

@@ -5,7 +5,7 @@ import { NgModule } from '@angular/core';
 import { AppComponent } from './app.component';
 import { Logger } from './logger.service';
 
-import { MMapModule } from './mMap/m-map.module';
+import { MMapModule } from './m-map/m-map.module';
 
 @NgModule({
   imports: [
