@@ -130,8 +130,6 @@ export class MapWorkingData {
   }
 
   // Calculates z squared + c
-  // a and b are the real and complex components of z
-  // cx and cy are the real and complex components of c
   getNextVal(z: IPoint, c: IPoint): IPoint {
     const result: IPoint = new Point(
       z.x * z.x - z.y * z.y + c.x,
@@ -155,7 +153,7 @@ export class MapWorkingData {
   // If the magnitude of the new value is greater than 2 (the square of the magnitude > 4) then it sets the 'done' flag
   // Returns the (new) value of the 'done' flag for this coordinate.
   private iterateElement(mapCoordinate:IPoint): boolean {
-    let ptr = this.getLinearIndex(mapCoordinate);
+    const ptr = this.getLinearIndex(mapCoordinate);
 
     if (this.flags[ptr]) {
       // This point has been flagged, don't interate.
@@ -171,7 +169,7 @@ export class MapWorkingData {
     this.wAData[ptr] = newZ.x;
     this.wBData[ptr] = newZ.y;
 
-    let aSize = this.getAbsSizeSquared(newZ);
+    const aSize = this.getAbsSizeSquared(newZ);
 
     // Increment the number of times this point has been iterated.
     this.cnts[ptr] = this.cnts[ptr] + 1;

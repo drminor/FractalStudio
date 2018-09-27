@@ -5,13 +5,15 @@ import { NgModule } from '@angular/core';
 import { AppComponent } from './app.component';
 import { Logger } from './logger.service';
 
+import { MMapModule } from './mMap/m-map.module';
+
 @NgModule({
-  declarations: [
-    AppComponent
-  ],
   imports: [
     BrowserModule,
-    //SampleModule
+    MMapModule
+  ],
+  declarations: [
+    AppComponent
   ],
   providers: [Logger],
   bootstrap: [AppComponent]
