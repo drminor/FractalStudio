@@ -9,18 +9,22 @@
 
   <ItemGroup>
     <Compile Remove="src\fractalMapLib\**" />
+    <Compile Remove="wwwroot\worker\**" />
     <Content Remove="src\fractalMapLib\**" />
+    <Content Remove="wwwroot\worker\**" />
     <EmbeddedResource Remove="src\fractalMapLib\**" />
+    <EmbeddedResource Remove="wwwroot\worker\**" />
     <None Remove="src\fractalMapLib\**" />
+    <None Remove="wwwroot\worker\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Remove="wwwroot\m-map-common.js" />
+    <Content Remove="wwwroot\m-map-common.js.map" />
   </ItemGroup>
 
   <ItemGroup>
     <None Remove="src\app\logger.service.ts" />
-    <None Remove="src\app\mMapCommon\m-map-common.ts" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="wwwroot\" />
   </ItemGroup>
 
   <ItemGroup>
@@ -29,7 +33,7 @@
 
   <ItemGroup>
     <TypeScriptCompile Include="src\app\logger.service.ts" />
-    <TypeScriptCompile Include="src\app\mMapCommon\m-map-common.ts" />
+    <TypeScriptCompile Include="src\app\m-map\m-map-common.ts" />
   </ItemGroup>
 
 </Project>

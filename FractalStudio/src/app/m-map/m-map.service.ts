@@ -1,6 +1,9 @@
 import { Injectable } from '@angular/core';
 
-import { IPoint, Point, ICanvasSize, CanvasSize, IMapInfo, MapInfo, IMapWorkingData, MapWorkingData } from '../mMapCommon/m-map-common';
+import {
+  IPoint, Point, ICanvasSize, CanvasSize,
+  IMapInfo, MapInfo, IMapWorkingData, MapWorkingData
+} from './m-map-common';
 
 @Injectable({
   providedIn: 'root'
@@ -8,6 +11,11 @@ import { IPoint, Point, ICanvasSize, CanvasSize, IMapInfo, MapInfo, IMapWorkingD
 export class MMapService {
 
   constructor() { }
+
+  public createMapWD(canvasSize: ICanvasSize, mapInfo: IMapInfo): IMapWorkingData {
+    const result: IMapWorkingData = new MapWorkingData(canvasSize, mapInfo);
+    return result;
+  }
 
   public createTestMapWD(): IMapWorkingData {
 
@@ -19,8 +27,7 @@ export class MMapService {
 
     const mi: IMapInfo = new MapInfo(bottomLeft, topRight, maxInterations);
 
-    { debugger }
-    let result: IMapWorkingData = new MapWorkingData(cs, mi);
+    const result: IMapWorkingData = new MapWorkingData(cs, mi);
     return result;
 
     

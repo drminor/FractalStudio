@@ -36,9 +36,14 @@ export interface IMapWorkingData {
 
   //getLinearIndex(x: number, y: number): number;
   getLinearIndex(c: IPoint): number;
-  doInterations(iterationCnt: number): boolean;
-  getImageData(): Uint8ClampedArray;
-  updateImageData(imageData: Uint8ClampedArray): void;
+  doInterationsForAll(iterCount: number): boolean;
+  doInterationsForLine(iterCount: number, y: number): boolean;
+
+  getImageData(): ImageData;
+  getImageDataForLine(y: number): ImageData;
+
+  updateImageData(imageData: ImageData): void;
+  updateImageDataForLine(imageData: ImageData, y: number): void;
 }
 
 export class Point implements IPoint {
@@ -63,7 +68,7 @@ export class CanvasSize implements ICanvasSize {
 
   isReasonableExtent(nVal:number, max:number): boolean {
     return isFinite(nVal) && nVal > 0 && nVal <= max && Math.floor(nVal) === nVal;
-  };
+  }
 }
 
 export class MapWorkingData {
@@ -83,6 +88,8 @@ export class MapWorkingData {
   public xVals: number[];
   public yVals: number[];
 
+  //public alive: boolean = true;
+
   constructor(public canvasSize: ICanvasSize, public mapInfo: IMapInfo) {
 
     this.elementCount = this.getNumberOfElementsForCanvas(this.canvasSize);
@@ -98,6 +105,9 @@ export class MapWorkingData {
 
     // Y coordinates get larger as one moves from the bottom of the map to the top.
     this.yVals = this.buildVals(this.canvasSize.height, this.mapInfo.bottomLeft.y, this.mapInfo.topRight.y);
+
+    // Assume that this map will contain at least on point in the set, until proven otherwise.
+    //this.alive = true;
   }
 
   // Calculate the number of elements in our single dimension data array needed to cover the
@@ -115,7 +125,7 @@ export class MapWorkingData {
 
     var i: number;
     for (i = 0; i < canvasExtent; i++) {
-      result[i] = start + (i * unitExtent);
+      result[i] = start + i * unitExtent;
     }
     return result;
   }
@@ -152,89 +162,151 @@ export class MapWorkingData {
   //
   // If the magnitude of the new value is greater than 2 (the square of the magnitude > 4) then it sets the 'done' flag
   // Returns the (new) value of the 'done' flag for this coordinate.
-  private iterateElement(mapCoordinate:IPoint): boolean {
+  private iterateElement(mapCoordinate:IPoint, iterCount:number): boolean {
     const ptr = this.getLinearIndex(mapCoordinate);
 
-    if (this.flags[ptr]) {
-      // This point has been flagged, don't interate.
+    if (this.flags[ptr] === 1) {
+      // This point has been flagged, don't iterate.
       return true;
     }
 
-    const z:IPoint = new Point(this.wAData[ptr], this.wBData[ptr]);
+    let z:IPoint = new Point(this.wAData[ptr], this.wBData[ptr]);
     const c: IPoint = new Point(this.xVals[mapCoordinate.x], this.yVals[mapCoordinate.y]);
 
-    const newZ = this.getNextVal(z, c);
+    let cntr: number;
+
+    for (cntr = 0; cntr < iterCount; cntr++) {
+      z = this.getNextVal(z, c);
+
+      if (this.getAbsSizeSquared(z) > 4) {
+        // This point is done.
+        this.flags[ptr] = 1;
+        break;
+      }
+    }
 
     // Store the new value back to our Working Data.
-    this.wAData[ptr] = newZ.x;
-    this.wBData[ptr] = newZ.y;
-
-    const aSize = this.getAbsSizeSquared(newZ);
+    this.wAData[ptr] = z.x;
+    this.wBData[ptr] = z.y;
 
     // Increment the number of times this point has been iterated.
-    this.cnts[ptr] = this.cnts[ptr] + 1;
+    this.cnts[ptr] = this.cnts[ptr] + cntr;
 
-    if (aSize > 4) {
-      // This point is done.
-      this.flags[ptr] = 1;
-      return true;
+    return this.flags[ptr] === 1;
+
+    //const aSize = this.getAbsSizeSquared(z);
+
+    //// Increment the number of times this point has been iterated.
+    //this.cnts[ptr] = this.cnts[ptr] + iterCount;
+
+    //if (aSize > 4) {
+    //  // This point is done.
+    //  this.flags[ptr] = 1;
+    //  return true;
+    //}
+    //else {
+    //  // This point is still 'alive'.
+    //  return false;
+    //}
+  }
+
+  // Updates each element for a given line by performing a single interation.
+  // Returns true if at least one point is not done.
+  public doInterationsForLine(iterCount: number, y: number): boolean {
+
+    let stillAlive: boolean = false; // Assume all done until one is found that is not done.
+
+    let x: number;
+
+    for (x = 0; x < this.canvasSize.width; x++) {
+      let pointIsDone = this.iterateElement(new Point(x, y), iterCount);
+      if (!pointIsDone) stillAlive = true;
     }
-    else {
-      // This point is still 'alive'.
-      return false;
-    }
+
+    return stillAlive;
   }
 
   // Updates each element by performing a single interation.
   // Returns true if at least one point is not done.
-  private iterateAllElementsOnce(): boolean {
+  public doInterationsForAll(iterCount: number): boolean {
 
-    var result: boolean = false; // Assume all done until one is found that is not done.
+    let stillAlive: boolean = false; // Assume all done until one is found that is not done.
 
-    var i: number;
-    var j: number;
+    let x: number;
+    let y: number;
 
-    for (i = 0; i < this.canvasSize.height; i++) {
-      for (j = 0; j < this.canvasSize.width; j++) {
-        var pointIsDone = this.iterateElement(new Point(j, i));
-        
-        if (!pointIsDone) result = true;
+    for (y = 0; y < this.canvasSize.height; y++) {
+      for (x = 0; x < this.canvasSize.width; x++) {
+        let pointIsDone = this.iterateElement(new Point(x, y),iterCount);
+        if (!pointIsDone) stillAlive = true;
       }
-
     }
-    return result;
+    return stillAlive;
   }
 
-  public doInterations(iterationCnt: number): boolean {
-    var i: number;
-    var alive: boolean = true;
+  //public doInterationsForAll_OLD(iterCount: number): boolean {
+  //  var i: number;
+  //  let stillAlive: boolean = true;
 
-    for (i = 0; i < iterationCnt && alive; i++) {
-      var alive = this.iterateAllElementsOnce();
-    }
-    return alive;
+  //  for (i = 0; i < iterCount && stillAlive; i++) {
+  //    stillAlive = this.iterateAllElements(iterCount);
+  //  }
+
+  //  // Store the value of whether we still alive in our public member for easy access.
+  //  this.alive = stillAlive;
+
+  //  return stillAlive;
+  //}
+
+  //public doInterationsForLine(iterCount: number, y: number): boolean {
+  //  return true;
+  //}
+
+
+  public getImageData(): ImageData {
+    const imageData = new ImageData(this.canvasSize.width, this.canvasSize.height);
+    this.updateImageData(imageData);
+    return imageData;
   }
 
-  public getImageData(): Uint8ClampedArray {
-    const resultLen = 4 * this.elementCount;
-    const result: Uint8ClampedArray = new Uint8ClampedArray(resultLen);
-
-    this.updateImageData(result);
-    return result;
+  public getImageDataForLine(y: number): ImageData {
+    const imageData = new ImageData(this.canvasSize.width, 1);
+    this.updateImageData(imageData);
+    return imageData;
   }
 
-  public updateImageData(imageData: Uint8ClampedArray): void {
+  public updateImageData(imageData: ImageData): void {
 
-    if (imageData.length != 4 * this.elementCount) {
+    let data: Uint8ClampedArray = imageData.data;
+    if (data.length !== 4 * this.elementCount) {
       console.log("The imagedata data does not have the correct number of elements.");
       return;
     }
 
-    var i: number;
+    let i: number = 0;
 
-    for (i = 0; i < this.elementCount; i++) {
+    for (; i < this.elementCount; i++) {
       const inTheSet: boolean = this.flags[i] === 0;
-      this.setPixelValueBinary(inTheSet, i * 4, imageData);
+      this.setPixelValueBinary(inTheSet, i * 4, data);
+    }
+  }
+
+  public updateImageDataForLine(imageData: ImageData, y: number): void {
+
+    let data: Uint8ClampedArray = imageData.data;
+    if (data.length !== 4 * this.canvasSize.width) {
+      console.log("The imagedata data does not have the correct number of elements.");
+      return;
+    }
+
+    let start: number = this.getLinearIndex(new Point(0, y));
+    let end: number = start + this.canvasSize.width;
+
+    let i: number;
+
+    for (i = start; i < end; i++) {
+      const inTheSet: boolean = this.flags[i] === 0;
+      this.setPixelValueBinary(inTheSet, i * 4, data);
     }
   }
   
@@ -261,7 +333,7 @@ export class MapWorkingData {
 
     var i: number;
     for (i = 0; i < result.length; i++) {
-      result[i] = mapWorkingData.flags[i] != 0;
+      result[i] = mapWorkingData.flags[i] !== 0;
     }
 
     return result;
