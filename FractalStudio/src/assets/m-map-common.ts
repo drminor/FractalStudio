@@ -1,4 +1,3 @@
-import { element } from "@angular/core/src/render3/instructions";
 
 const MAX_CANVAS_WIDTH: number = 5000;
 const MAX_CANVAS_HEIGHT: number = 5000;
@@ -43,16 +42,8 @@ export interface IMapWorkingData {
   getImageData(): ImageData;
   getImageDataForLine(y: number): ImageData;
 
-  //updateImageData(imageData: ImageData): void;
-  //updateImageDataForLine(imageData: ImageData, y: number): void;
-}
-
-export interface IWebWorkerMsg {
-  message: string;
-  lineNumber?: number;
-  imgData?: Uint8ClampedArray;
-
-  getImageData(cs: ICanvasSize): ImageData;
+  updateImageData(imageData: ImageData): void;
+  updateImageDataForLine(imageData: ImageData, y: number): void;
 }
 
 export class Point implements IPoint {
@@ -280,11 +271,11 @@ export class MapWorkingData {
 
   public getImageDataForLine(y: number): ImageData {
     const imageData = new ImageData(this.canvasSize.width, 1);
-    this.updateImageDataForLine(imageData, y);
+    this.updateImageData(imageData);
     return imageData;
   }
 
-  private updateImageData(imageData: ImageData): void {
+  public updateImageData(imageData: ImageData): void {
 
     let data: Uint8ClampedArray = imageData.data;
     if (data.length !== 4 * this.elementCount) {
@@ -300,7 +291,7 @@ export class MapWorkingData {
     }
   }
 
-  private updateImageDataForLine(imageData: ImageData, y: number): void {
+  public updateImageDataForLine(imageData: ImageData, y: number): void {
 
     let data: Uint8ClampedArray = imageData.data;
     if (data.length !== 4 * this.canvasSize.width) {
@@ -352,51 +343,32 @@ export class MapWorkingData {
 
 }
 
-
-
 /////////////////
 
-export class WebWorkerMsg implements IWebWorkerMsg {
+// Handles messages sent from the window that started this web worker.
+onmessage = function (e) {
 
-  constructor(public message: string, public lineNumber?: number, public imgData?: Uint8ClampedArray) { }
+  if (false) {
 
-  static FromEventData(data: any): IWebWorkerMsg {
-    let result = new WebWorkerMsg("");
+    let cs: ICanvasSize = new CanvasSize(10, 10);
 
-    result.message = data.mt || data as string;
-    result.lineNumber = data.lineNumber || -1;
-    result.imgData = data.img || null;
+    let bl: IPoint = new Point(-2, -1);
+    let tr: IPoint = new Point(1, 1);
+    let maxI: number = 1000;
 
-    return result;
+    let mi: IMapInfo = new MapInfo(bl, tr, maxI);
+
+    let x: IMapWorkingData = new MapWorkingData(cs, mi);
+
+    console.log('Worker created MapWorkingData with element count = ' + x.elementCount);
+
+
+    console.log('Message received from main script');
+    var workerResult = 'Result: ' + (e.data[0] * e.data[1]);
+    console.log('Posting message back to main script');
+    self.postMessage(workerResult, "*");
   }
-
-  static ForUpdateMap(lineNumber: number, imageData: ImageData): IWebWorkerMsg {
-    let result = new WebWorkerMsg("UpdatedMapData", lineNumber, imageData.data);
-    return result;
-  }
-
-  public getImageData(cs: ICanvasSize): ImageData {
-    let result: ImageData = null;
-
-    if (this.imgData) {
-      //let data = new Uint8ClampedArray(this.img);
-      let pixelCount = this.imgData.length / 4;
-      if (pixelCount !== cs.width * cs.height) {
-        console.log('The image data being returned is not the correct size for our canvas.');
-      }
-      //let elementsPerLine = pixelCount / lineCount;
-      //result = new ImageData(new Uint8ClampedArray(this.img), elementsPerLine, lineCount);
-      //result = new ImageData(this.imgData, elementsPerLine, lineCount);
-      result = new ImageData(this.imgData, cs.width, cs.height);
-
-    }
-
-    return result;
-  }
-
-
 }
-
 
 
 
