@@ -48,6 +48,8 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     let cw: number = this.canvasRef.nativeElement.width;
     let ch: number = this.canvasRef.nativeElement.height;
 
+    //console.log("Drawing on canvas with W = " + cw + " H = " + ch);
+
     if (cw !== this.canvasSize.width || ch !== this.canvasSize.height) {
       console.log('Draw detects that our canvas size has changed since intialization.')
     }
@@ -59,8 +61,6 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     if (imageData.height !== ch) {
       console.log('Draw is being called with ImageData whose heigth does not equal our canvas size.');
     }
-
-    //console.log("Drawing on canvas with W = " + cw + " H = " + ch);
 
     ctx.fillStyle = '#DD0031';
     ctx.clearRect(0, 0, cw, ch);
@@ -95,25 +95,21 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
       this.viewInitialized = true;
       console.log("Initializing the canvas size and building the Map Working Data here once because we are finally ready.");
 
+      // Get the size of our canvas.
       this.canvasSize = this.initMapDisplay();
-      console.log("W = " + this.canvasSize.width + " H = " + this.canvasSize.height);
-
-      this.initWebWorker();
+      console.log("The initial canvas size is W = " + this.canvasSize.width + " H = " + this.canvasSize.height);
 
       const topRight: IPoint = new Point(1, 1);
       const bottomLeft: IPoint = new Point(-2, -1);
-
       const maxInterations = 1000;
-
       const mi: IMapInfo = new MapInfo(bottomLeft, topRight, maxInterations);
 
-      let startRequestMsg = WebWorkerStartRequest.ForStart(this.canvasSize, mi);
-      this.workers[0].postMessage(startRequestMsg);
+      this.workers = new Array<Worker>(1);
+      
+      this.workers[0] = this.initWebWorker(this.canvasSize, mi);
 
       this.curIterationCount = 100;
       this.workers[0].postMessage('Iterate');
-
-      //this.progresslvy();
     }
   }
 
@@ -131,29 +127,36 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
     return result;
   }
-  
 
   //// Worker stuff
-  private initWebWorker(): void {
-    this.workers = new Array<Worker>(1);
+  private initWebWorker(canvasSize: ICanvasSize, mapInfo: IMapInfo): Worker {
+    let webWorker = new Worker('/assets/worker.js');
 
-    this.workers[0] = new Worker("/assets/worker.js");
-
-    this.workers[0].addEventListener("message", (evt) => {
+    webWorker.addEventListener("message", (evt) => {
       let plainMsg: IWebWorkerMessage = WebWorkerMessage.FromEventData(evt.data);
-      console.log('Received message from web worker[0], The message = ' + plainMsg.messageKind + '.');
+      console.log('Received message from a web worker, The message = ' + plainMsg.messageKind + '.');
 
       if (plainMsg.messageKind === 'UpdatedMapData') {
         let updatedMapDataMsg = WebWorkerMapUpdateResponse.FromEventData(evt.data);
         let imageData = updatedMapDataMsg.getImageData(this.canvasSize);
 
+        //let workerId: number = updatedMapDataMsg.workerId;
+        let workerId: number = 0;
+
         this.draw(imageData);
 
         if (this.curIterationCount-- > 0) {
-          this.workers[0].postMessage('Iterate');
+          this.workers[workerId].postMessage('Iterate');
         }
       }
     });
+
+    let startRequestMsg = WebWorkerStartRequest.ForStart(canvasSize, mapInfo);
+    webWorker.postMessage(startRequestMsg);
+
+    return webWorker;
+
+
   }
 
   // OLD STUFF

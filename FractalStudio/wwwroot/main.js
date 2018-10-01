@@ -222,18 +222,19 @@ var Logger = /** @class */ (function () {
 /*!***************************************!*\
   !*** ./src/app/m-map/m-map-common.ts ***!
   \***************************************/
-/*! exports provided: Point, MapInfo, CanvasSize, MapWorkingData, WebWorkerMessage, WebWorkerMapUpdateResponse, WebWorkerStartRequest */
+/*! exports provided: Point, CanvasSize, MapInfo, MapWorkingData, WebWorkerMessage, WebWorkerMapUpdateResponse, WebWorkerStartRequest, WebWorkerIterateRequest */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Point", function() { return Point; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "MapInfo", function() { return MapInfo; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "CanvasSize", function() { return CanvasSize; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "MapInfo", function() { return MapInfo; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "MapWorkingData", function() { return MapWorkingData; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "WebWorkerMessage", function() { return WebWorkerMessage; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "WebWorkerMapUpdateResponse", function() { return WebWorkerMapUpdateResponse; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "WebWorkerStartRequest", function() { return WebWorkerStartRequest; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "WebWorkerIterateRequest", function() { return WebWorkerIterateRequest; });
 var MAX_CANVAS_WIDTH = 5000;
 var MAX_CANVAS_HEIGHT = 5000;
 var Point = /** @class */ (function () {
@@ -242,15 +243,6 @@ var Point = /** @class */ (function () {
         this.y = y;
     }
     return Point;
-}());
-
-var MapInfo = /** @class */ (function () {
-    function MapInfo(bottomLeft, topRight, maxInterations) {
-        this.bottomLeft = bottomLeft;
-        this.topRight = topRight;
-        this.maxInterations = maxInterations;
-    }
-    return MapInfo;
 }());
 
 var CanvasSize = /** @class */ (function () {
@@ -268,6 +260,15 @@ var CanvasSize = /** @class */ (function () {
         return isFinite(nVal) && nVal > 0 && nVal <= max && Math.floor(nVal) === nVal;
     };
     return CanvasSize;
+}());
+
+var MapInfo = /** @class */ (function () {
+    function MapInfo(bottomLeft, topRight, maxInterations) {
+        this.bottomLeft = bottomLeft;
+        this.topRight = topRight;
+        this.maxInterations = maxInterations;
+    }
+    return MapInfo;
 }());
 
 var MapWorkingData = /** @class */ (function () {
@@ -500,6 +501,22 @@ var WebWorkerStartRequest = /** @class */ (function () {
     return WebWorkerStartRequest;
 }());
 
+var WebWorkerIterateRequest = /** @class */ (function () {
+    function WebWorkerIterateRequest(messageKind, iterateCount) {
+        this.messageKind = messageKind;
+        this.iterateCount = iterateCount;
+    }
+    WebWorkerIterateRequest.FromEventData = function (data) {
+        var result = new WebWorkerIterateRequest(data.messageKind, data.iterateCount);
+        return result;
+    };
+    WebWorkerIterateRequest.ForIterate = function (iterateCount) {
+        var result = new WebWorkerIterateRequest('Iterate', iterateCount);
+        return result;
+    };
+    return WebWorkerIterateRequest;
+}());
+
 /// Only used when the javascript produced from compiling this TypeScript is used to create worker.js
 //var mapWorkingData: IMapWorkingData = null;
 //// Handles messages sent from the window that started this web worker.
@@ -706,6 +723,7 @@ var MMapDisplayComponent = /** @class */ (function () {
         var ctx = this.canvasRef.nativeElement.getContext('2d');
         var cw = this.canvasRef.nativeElement.width;
         var ch = this.canvasRef.nativeElement.height;
+        //console.log("Drawing on canvas with W = " + cw + " H = " + ch);
         if (cw !== this.canvasSize.width || ch !== this.canvasSize.height) {
             console.log('Draw detects that our canvas size has changed since intialization.');
         }
@@ -715,7 +733,6 @@ var MMapDisplayComponent = /** @class */ (function () {
         if (imageData.height !== ch) {
             console.log('Draw is being called with ImageData whose heigth does not equal our canvas size.');
         }
-        //console.log("Drawing on canvas with W = " + cw + " H = " + ch);
         ctx.fillStyle = '#DD0031';
         ctx.clearRect(0, 0, cw, ch);
         //console.log("Got ctx.");
@@ -744,18 +761,17 @@ var MMapDisplayComponent = /** @class */ (function () {
         if (!this.viewInitialized) {
             this.viewInitialized = true;
             console.log("Initializing the canvas size and building the Map Working Data here once because we are finally ready.");
+            // Get the size of our canvas.
             this.canvasSize = this.initMapDisplay();
-            console.log("W = " + this.canvasSize.width + " H = " + this.canvasSize.height);
-            this.initWebWorker();
+            console.log("The initial canvas size is W = " + this.canvasSize.width + " H = " + this.canvasSize.height);
             var topRight = new _m_map_common__WEBPACK_IMPORTED_MODULE_2__["Point"](1, 1);
             var bottomLeft = new _m_map_common__WEBPACK_IMPORTED_MODULE_2__["Point"](-2, -1);
             var maxInterations = 1000;
             var mi = new _m_map_common__WEBPACK_IMPORTED_MODULE_2__["MapInfo"](bottomLeft, topRight, maxInterations);
-            var startRequestMsg = _m_map_common__WEBPACK_IMPORTED_MODULE_2__["WebWorkerStartRequest"].ForStart(this.canvasSize, mi);
-            this.workers[0].postMessage(startRequestMsg);
+            this.workers = new Array(1);
+            this.workers[0] = this.initWebWorker(this.canvasSize, mi);
             this.curIterationCount = 100;
             this.workers[0].postMessage('Iterate');
-            //this.progresslvy();
         }
     };
     MMapDisplayComponent.prototype.initMapDisplay = function () {
@@ -767,22 +783,26 @@ var MMapDisplayComponent = /** @class */ (function () {
         return result;
     };
     //// Worker stuff
-    MMapDisplayComponent.prototype.initWebWorker = function () {
+    MMapDisplayComponent.prototype.initWebWorker = function (canvasSize, mapInfo) {
         var _this = this;
-        this.workers = new Array(1);
-        this.workers[0] = new Worker("/assets/worker.js");
-        this.workers[0].addEventListener("message", function (evt) {
+        var webWorker = new Worker('/assets/worker.js');
+        webWorker.addEventListener("message", function (evt) {
             var plainMsg = _m_map_common__WEBPACK_IMPORTED_MODULE_2__["WebWorkerMessage"].FromEventData(evt.data);
-            console.log('Received message from web worker[0], The message = ' + plainMsg.messageKind + '.');
+            console.log('Received message from a web worker, The message = ' + plainMsg.messageKind + '.');
             if (plainMsg.messageKind === 'UpdatedMapData') {
                 var updatedMapDataMsg = _m_map_common__WEBPACK_IMPORTED_MODULE_2__["WebWorkerMapUpdateResponse"].FromEventData(evt.data);
                 var imageData = updatedMapDataMsg.getImageData(_this.canvasSize);
+                //let workerId: number = updatedMapDataMsg.workerId;
+                var workerId = 0;
                 _this.draw(imageData);
                 if (_this.curIterationCount-- > 0) {
-                    _this.workers[0].postMessage('Iterate');
+                    _this.workers[workerId].postMessage('Iterate');
                 }
             }
         });
+        var startRequestMsg = _m_map_common__WEBPACK_IMPORTED_MODULE_2__["WebWorkerStartRequest"].ForStart(canvasSize, mapInfo);
+        webWorker.postMessage(startRequestMsg);
+        return webWorker;
     };
     return MMapDisplayComponent;
 }());

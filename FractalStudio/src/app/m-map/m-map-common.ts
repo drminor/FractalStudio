@@ -51,11 +51,6 @@ export class Point implements IPoint {
   constructor(public x: number, public y: number) { }
 }
 
-export class MapInfo implements IMapInfo {
-  constructor(public bottomLeft: IPoint, public topRight: IPoint, public maxInterations: number) {
-  }
-}
-
 export class CanvasSize implements ICanvasSize {
 
   constructor(public width: number, public height: number) {
@@ -69,6 +64,11 @@ export class CanvasSize implements ICanvasSize {
 
   isReasonableExtent(nVal:number, max:number): boolean {
     return isFinite(nVal) && nVal > 0 && nVal <= max && Math.floor(nVal) === nVal;
+  }
+}
+
+export class MapInfo implements IMapInfo {
+  constructor(public bottomLeft: IPoint, public topRight: IPoint, public maxInterations: number) {
   }
 }
 
@@ -325,6 +325,10 @@ export interface IWebWorkerStartRequest extends IWebWorkerMessage {
   mapInfo: IMapInfo;
 }
 
+export interface IWebWorkerIterateRequest extends IWebWorkerMessage {
+  iterateCount: number;
+}
+
 export class WebWorkerMessage implements IWebWorkerMessage {
   constructor(public messageKind: string) { }
 
@@ -381,6 +385,20 @@ export class WebWorkerStartRequest implements IWebWorkerStartRequest {
 
   static ForStart(canvasSize: ICanvasSize, mapInfo: IMapInfo): IWebWorkerStartRequest {
     let result = new WebWorkerStartRequest('Start', canvasSize, mapInfo);
+    return result;
+  }
+}
+
+export class WebWorkerIterateRequest implements IWebWorkerIterateRequest {
+  constructor(public messageKind: string, public iterateCount: number) { }
+
+  static FromEventData(data: any): IWebWorkerIterateRequest {
+    let result = new WebWorkerIterateRequest(data.messageKind,  data.iterateCount);
+    return result;
+  }
+
+  static ForIterate(iterateCount: number): IWebWorkerIterateRequest {
+    let result = new WebWorkerIterateRequest('Iterate', iterateCount);
     return result;
   }
 }
