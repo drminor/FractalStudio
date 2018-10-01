@@ -329,7 +329,7 @@ export class WebWorkerMessage implements IWebWorkerMessage {
   constructor(public messageKind: string) { }
 
   static FromEventData(data: any): IWebWorkerMessage {
-    return new WebWorkerMessage(data.mt || data || 'no data');
+    return new WebWorkerMessage(data.messageKind || data || 'no data');
   }
 }
 
@@ -340,9 +340,9 @@ export class WebWorkerMapUpdateResponse implements IWebWorkerMapUpdateResponse {
   static FromEventData(data: any): IWebWorkerMapUpdateResponse {
     let result = new WebWorkerMapUpdateResponse("");
 
-    result.messageKind = data.mt || data as string;
+    result.messageKind = data.messageKind || data as string;
     result.lineNumber = data.lineNumber || -1;
-    result.imgData = data.img || null;
+    result.imgData = data.imgData || null;
 
     return result;
   }
@@ -372,7 +372,7 @@ export class WebWorkerStartRequest implements IWebWorkerStartRequest {
 
   static FromEventData(data: any): IWebWorkerStartRequest {
     let result = new WebWorkerStartRequest(
-      data.mt,
+      data.messageKind,
       data.canvasSize,
       data.mapInfo
     );
@@ -387,38 +387,38 @@ export class WebWorkerStartRequest implements IWebWorkerStartRequest {
 
 /// Only used when the javascript produced from compiling this TypeScript is used to create worker.js
 
-var mapWorkingData: IMapWorkingData = null;
+//var mapWorkingData: IMapWorkingData = null;
 
-// Handles messages sent from the window that started this web worker.
-onmessage = function (e) {
-  console.log('Worker received message: ' + e.data + '.');
-  let plainMsg: IWebWorkerMessage = WebWorkerMessage.FromEventData(e.data);
+//// Handles messages sent from the window that started this web worker.
+//onmessage = function (e) {
+//  console.log('Worker received message: ' + e.data + '.');
+//  let plainMsg: IWebWorkerMessage = WebWorkerMessage.FromEventData(e.data);
 
-  if (plainMsg.messageKind === 'Start') {
-    let startMsg = WebWorkerStartRequest.FromEventData(e.data);
+//  if (plainMsg.messageKind === 'Start') {
+//    let startMsg = WebWorkerStartRequest.FromEventData(e.data);
 
-    let mapWorkingData = new MapWorkingData(startMsg.canvasSize, startMsg.mapInfo);
-    console.log('Worker created MapWorkingData with element count = ' + mapWorkingData.elementCount);
+//    let mapWorkingData = new MapWorkingData(startMsg.canvasSize, startMsg.mapInfo);
+//    console.log('Worker created MapWorkingData with element count = ' + mapWorkingData.elementCount);
 
-    let responseMsg = new WebWorkerMessage('StartResponse');
-    console.log('Posting ' + responseMsg.messageKind + ' back to main script');
-    self.postMessage(responseMsg, "*");
-  }
-  else if (plainMsg.messageKind === 'Iterate') {
-    mapWorkingData.doInterationsForAll(1);
-    var imageData = mapWorkingData.getImageData();
-    let workerResult: IWebWorkerMapUpdateResponse =
-      WebWorkerMapUpdateResponse.ForUpdateMap(-1, imageData);
+//    let responseMsg = new WebWorkerMessage('StartResponse');
+//    console.log('Posting ' + responseMsg.messageKind + ' back to main script');
+//    self.postMessage(responseMsg, "*");
+//  }
+//  else if (plainMsg.messageKind === 'Iterate') {
+//    mapWorkingData.doInterationsForAll(1);
+//    var imageData = mapWorkingData.getImageData();
+//    let workerResult: IWebWorkerMapUpdateResponse =
+//      WebWorkerMapUpdateResponse.ForUpdateMap(-1, imageData);
 
-    console.log('Posting ' + workerResult.messageKind + ' back to main script');
-    self.postMessage(workerResult, "*", [imageData.data.buffer]);
-  }
-  else {
-    console.log('Received unknown message kind: ' + plainMsg.messageKind);
-  }
+//    console.log('Posting ' + workerResult.messageKind + ' back to main script');
+//    self.postMessage(workerResult, "*", [imageData.data.buffer]);
+//  }
+//  else {
+//    console.log('Received unknown message kind: ' + plainMsg.messageKind);
+//  }
 
 
-};
+//};
 
 
 

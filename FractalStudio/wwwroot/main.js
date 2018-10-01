@@ -447,7 +447,7 @@ var WebWorkerMessage = /** @class */ (function () {
         this.messageKind = messageKind;
     }
     WebWorkerMessage.FromEventData = function (data) {
-        return new WebWorkerMessage(data.mt || data || 'no data');
+        return new WebWorkerMessage(data.messageKind || data || 'no data');
     };
     return WebWorkerMessage;
 }());
@@ -460,9 +460,9 @@ var WebWorkerMapUpdateResponse = /** @class */ (function () {
     }
     WebWorkerMapUpdateResponse.FromEventData = function (data) {
         var result = new WebWorkerMapUpdateResponse("");
-        result.messageKind = data.mt || data;
+        result.messageKind = data.messageKind || data;
         result.lineNumber = data.lineNumber || -1;
-        result.imgData = data.img || null;
+        result.imgData = data.imgData || null;
         return result;
     };
     WebWorkerMapUpdateResponse.ForUpdateMap = function (lineNumber, imageData) {
@@ -490,7 +490,7 @@ var WebWorkerStartRequest = /** @class */ (function () {
         this.mapInfo = mapInfo;
     }
     WebWorkerStartRequest.FromEventData = function (data) {
-        var result = new WebWorkerStartRequest(data.mt, data.canvasSize, data.mapInfo);
+        var result = new WebWorkerStartRequest(data.messageKind, data.canvasSize, data.mapInfo);
         return result;
     };
     WebWorkerStartRequest.ForStart = function (canvasSize, mapInfo) {
@@ -501,30 +501,31 @@ var WebWorkerStartRequest = /** @class */ (function () {
 }());
 
 /// Only used when the javascript produced from compiling this TypeScript is used to create worker.js
-var mapWorkingData = null;
-// Handles messages sent from the window that started this web worker.
-onmessage = function (e) {
-    console.log('Worker received message: ' + e.data + '.');
-    var plainMsg = WebWorkerMessage.FromEventData(e.data);
-    if (plainMsg.messageKind === 'Start') {
-        var startMsg = WebWorkerStartRequest.FromEventData(e.data);
-        var mapWorkingData_1 = new MapWorkingData(startMsg.canvasSize, startMsg.mapInfo);
-        console.log('Worker created MapWorkingData with element count = ' + mapWorkingData_1.elementCount);
-        var responseMsg = new WebWorkerMessage('StartResponse');
-        console.log('Posting ' + responseMsg.messageKind + ' back to main script');
-        self.postMessage(responseMsg, "*");
-    }
-    else if (plainMsg.messageKind === 'Iterate') {
-        mapWorkingData.doInterationsForAll(1);
-        var imageData = mapWorkingData.getImageData();
-        var workerResult = WebWorkerMapUpdateResponse.ForUpdateMap(-1, imageData);
-        console.log('Posting ' + workerResult.messageKind + ' back to main script');
-        self.postMessage(workerResult, "*", [imageData.data.buffer]);
-    }
-    else {
-        console.log('Received unknown message kind: ' + plainMsg.messageKind);
-    }
-};
+//var mapWorkingData: IMapWorkingData = null;
+//// Handles messages sent from the window that started this web worker.
+//onmessage = function (e) {
+//  console.log('Worker received message: ' + e.data + '.');
+//  let plainMsg: IWebWorkerMessage = WebWorkerMessage.FromEventData(e.data);
+//  if (plainMsg.messageKind === 'Start') {
+//    let startMsg = WebWorkerStartRequest.FromEventData(e.data);
+//    let mapWorkingData = new MapWorkingData(startMsg.canvasSize, startMsg.mapInfo);
+//    console.log('Worker created MapWorkingData with element count = ' + mapWorkingData.elementCount);
+//    let responseMsg = new WebWorkerMessage('StartResponse');
+//    console.log('Posting ' + responseMsg.messageKind + ' back to main script');
+//    self.postMessage(responseMsg, "*");
+//  }
+//  else if (plainMsg.messageKind === 'Iterate') {
+//    mapWorkingData.doInterationsForAll(1);
+//    var imageData = mapWorkingData.getImageData();
+//    let workerResult: IWebWorkerMapUpdateResponse =
+//      WebWorkerMapUpdateResponse.ForUpdateMap(-1, imageData);
+//    console.log('Posting ' + workerResult.messageKind + ' back to main script');
+//    self.postMessage(workerResult, "*", [imageData.data.buffer]);
+//  }
+//  else {
+//    console.log('Received unknown message kind: ' + plainMsg.messageKind);
+//  }
+//};
 
 
 /***/ }),
