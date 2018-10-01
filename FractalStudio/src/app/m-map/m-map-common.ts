@@ -47,14 +47,6 @@ export interface IMapWorkingData {
   //updateImageDataForLine(imageData: ImageData, y: number): void;
 }
 
-export interface IWebWorkerMsg {
-  message: string;
-  lineNumber?: number;
-  imgData?: Uint8ClampedArray;
-
-  getImageData(cs: ICanvasSize): ImageData;
-}
-
 export class Point implements IPoint {
   constructor(public x: number, public y: number) { }
 }
@@ -80,7 +72,7 @@ export class CanvasSize implements ICanvasSize {
   }
 }
 
-export class MapWorkingData {
+export class MapWorkingData implements IMapWorkingData {
 
   public elementCount: number;
 
@@ -202,21 +194,6 @@ export class MapWorkingData {
     this.cnts[ptr] = this.cnts[ptr] + cntr;
 
     return this.flags[ptr] === 1;
-
-    //const aSize = this.getAbsSizeSquared(z);
-
-    //// Increment the number of times this point has been iterated.
-    //this.cnts[ptr] = this.cnts[ptr] + iterCount;
-
-    //if (aSize > 4) {
-    //  // This point is done.
-    //  this.flags[ptr] = 1;
-    //  return true;
-    //}
-    //else {
-    //  // This point is still 'alive'.
-    //  return false;
-    //}
   }
 
   // Updates each element for a given line by performing a single interation.
@@ -253,25 +230,6 @@ export class MapWorkingData {
     return stillAlive;
   }
 
-  //public doInterationsForAll_OLD(iterCount: number): boolean {
-  //  var i: number;
-  //  let stillAlive: boolean = true;
-
-  //  for (i = 0; i < iterCount && stillAlive; i++) {
-  //    stillAlive = this.iterateAllElements(iterCount);
-  //  }
-
-  //  // Store the value of whether we still alive in our public member for easy access.
-  //  this.alive = stillAlive;
-
-  //  return stillAlive;
-  //}
-
-  //public doInterationsForLine(iterCount: number, y: number): boolean {
-  //  return true;
-  //}
-
-
   public getImageData(): ImageData {
     const imageData = new ImageData(this.canvasSize.width, this.canvasSize.height);
     this.updateImageData(imageData);
@@ -285,7 +243,6 @@ export class MapWorkingData {
   }
 
   private updateImageData(imageData: ImageData): void {
-
     let data: Uint8ClampedArray = imageData.data;
     if (data.length !== 4 * this.elementCount) {
       console.log("The imagedata data does not have the correct number of elements.");
@@ -301,7 +258,6 @@ export class MapWorkingData {
   }
 
   private updateImageDataForLine(imageData: ImageData, y: number): void {
-
     let data: Uint8ClampedArray = imageData.data;
     if (data.length !== 4 * this.canvasSize.width) {
       console.log("The imagedata data does not have the correct number of elements.");
@@ -348,30 +304,51 @@ export class MapWorkingData {
     return result;
   }
 
-
-
 }
 
 
+// WebWorker Messages
 
-/////////////////
+export interface IWebWorkerMessage {
+  messageKind: string;
+}
 
-export class WebWorkerMsg implements IWebWorkerMsg {
+export interface IWebWorkerMapUpdateResponse extends IWebWorkerMessage {
+  lineNumber?: number;
+  imgData?: Uint8ClampedArray;
 
-  constructor(public message: string, public lineNumber?: number, public imgData?: Uint8ClampedArray) { }
+  getImageData(cs: ICanvasSize): ImageData;
+}
 
-  static FromEventData(data: any): IWebWorkerMsg {
-    let result = new WebWorkerMsg("");
+export interface IWebWorkerStartRequest extends IWebWorkerMessage {
+  canvasSize: ICanvasSize;
+  mapInfo: IMapInfo;
+}
 
-    result.message = data.mt || data as string;
+export class WebWorkerMessage implements IWebWorkerMessage {
+  constructor(public messageKind: string) { }
+
+  static FromEventData(data: any): IWebWorkerMessage {
+    return new WebWorkerMessage(data.mt || data || 'no data');
+  }
+}
+
+export class WebWorkerMapUpdateResponse implements IWebWorkerMapUpdateResponse {
+
+  constructor(public messageKind: string, public lineNumber?: number, public imgData?: Uint8ClampedArray) { }
+
+  static FromEventData(data: any): IWebWorkerMapUpdateResponse {
+    let result = new WebWorkerMapUpdateResponse("");
+
+    result.messageKind = data.mt || data as string;
     result.lineNumber = data.lineNumber || -1;
     result.imgData = data.img || null;
 
     return result;
   }
 
-  static ForUpdateMap(lineNumber: number, imageData: ImageData): IWebWorkerMsg {
-    let result = new WebWorkerMsg("UpdatedMapData", lineNumber, imageData.data);
+  static ForUpdateMap(lineNumber: number, imageData: ImageData): IWebWorkerMapUpdateResponse {
+    let result = new WebWorkerMapUpdateResponse("UpdatedMapData", lineNumber, imageData.data);
     return result;
   }
 
@@ -379,23 +356,69 @@ export class WebWorkerMsg implements IWebWorkerMsg {
     let result: ImageData = null;
 
     if (this.imgData) {
-      //let data = new Uint8ClampedArray(this.img);
       let pixelCount = this.imgData.length / 4;
       if (pixelCount !== cs.width * cs.height) {
         console.log('The image data being returned is not the correct size for our canvas.');
       }
-      //let elementsPerLine = pixelCount / lineCount;
-      //result = new ImageData(new Uint8ClampedArray(this.img), elementsPerLine, lineCount);
-      //result = new ImageData(this.imgData, elementsPerLine, lineCount);
       result = new ImageData(this.imgData, cs.width, cs.height);
-
     }
+    return result;
+  }
+}
 
+export class WebWorkerStartRequest implements IWebWorkerStartRequest {
+
+  constructor(public messageKind: string, public canvasSize: ICanvasSize, public mapInfo: IMapInfo) { }
+
+  static FromEventData(data: any): IWebWorkerStartRequest {
+    let result = new WebWorkerStartRequest(
+      data.mt,
+      data.canvasSize,
+      data.mapInfo
+    );
     return result;
   }
 
-
+  static ForStart(canvasSize: ICanvasSize, mapInfo: IMapInfo): IWebWorkerStartRequest {
+    let result = new WebWorkerStartRequest('Start', canvasSize, mapInfo);
+    return result;
+  }
 }
+
+/// Only used when the javascript produced from compiling this TypeScript is used to create worker.js
+
+var mapWorkingData: IMapWorkingData = null;
+
+// Handles messages sent from the window that started this web worker.
+onmessage = function (e) {
+  console.log('Worker received message: ' + e.data + '.');
+  let plainMsg: IWebWorkerMessage = WebWorkerMessage.FromEventData(e.data);
+
+  if (plainMsg.messageKind === 'Start') {
+    let startMsg = WebWorkerStartRequest.FromEventData(e.data);
+
+    let mapWorkingData = new MapWorkingData(startMsg.canvasSize, startMsg.mapInfo);
+    console.log('Worker created MapWorkingData with element count = ' + mapWorkingData.elementCount);
+
+    let responseMsg = new WebWorkerMessage('StartResponse');
+    console.log('Posting ' + responseMsg.messageKind + ' back to main script');
+    self.postMessage(responseMsg, "*");
+  }
+  else if (plainMsg.messageKind === 'Iterate') {
+    mapWorkingData.doInterationsForAll(1);
+    var imageData = mapWorkingData.getImageData();
+    let workerResult: IWebWorkerMapUpdateResponse =
+      WebWorkerMapUpdateResponse.ForUpdateMap(-1, imageData);
+
+    console.log('Posting ' + workerResult.messageKind + ' back to main script');
+    self.postMessage(workerResult, "*", [imageData.data.buffer]);
+  }
+  else {
+    console.log('Received unknown message kind: ' + plainMsg.messageKind);
+  }
+
+
+};
 
 
 

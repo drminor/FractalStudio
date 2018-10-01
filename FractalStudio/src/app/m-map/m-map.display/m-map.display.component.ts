@@ -4,7 +4,7 @@ import { Logger } from '../../logger.service';
 import {
   IPoint, Point, ICanvasSize, CanvasSize,
   IMapInfo, MapInfo, IMapWorkingData, MapWorkingData,
-  IWebWorkerMsg, WebWorkerMsg
+  IWebWorkerMapUpdateResponse, WebWorkerMapUpdateResponse, WebWorkerMessage, IWebWorkerMessage, WebWorkerStartRequest
 } from '../m-map-common';
 
 import { MMapService } from '../m-map.service';
@@ -42,10 +42,6 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     this.curIterationCount = 0;
   }
 
-  //doInterations(iterCount: number): void {
-  //  this.alive = this.workingData.doInterationsForAll(iterCount);
-  //}
-
   draw(imageData: ImageData): void {
     let ctx: CanvasRenderingContext2D = this.canvasRef.nativeElement.getContext('2d');
 
@@ -64,33 +60,24 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
       console.log('Draw is being called with ImageData whose heigth does not equal our canvas size.');
     }
 
-    console.log("Drawing on canvas with W = " + cw + " H = " + ch);
+    //console.log("Drawing on canvas with W = " + cw + " H = " + ch);
 
     ctx.fillStyle = '#DD0031';
     ctx.clearRect(0, 0, cw, ch);
 
-    console.log("Got ctx.");
-
-    //let imgData: ImageData = ctx.getImageData(0, 0, this.canvasSize.width, this.canvasSize.height);
-    //console.log("Got image data.");
-
-    //this.workingData.updateImageData(imgData);
-    //console.log("Updated buffer data.");
-
-    //let imgData:ImageData = this.workingData.getImageData();
-
+    //console.log("Got ctx.");
     ctx.putImageData(imageData, 0, 0);
-    console.log("Updated canvas.");
+    //console.log("Updated canvas.");
   }
 
   ngOnInit(): void {
     if (!this.componentInitialized) {
       this.componentInitialized = true;
-      console.log("We are inited.");
+      //console.log("We are inited.");
       //this.initWebWorker();
     }
     else {
-      console.log('We are being inited, but ngOnInit has already been called.');
+      //console.log('We are being inited, but ngOnInit has already been called.');
     }
   }
 
@@ -112,7 +99,16 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
       console.log("W = " + this.canvasSize.width + " H = " + this.canvasSize.height);
 
       this.initWebWorker();
-      this.workers[0].postMessage('Start');
+
+      const topRight: IPoint = new Point(1, 1);
+      const bottomLeft: IPoint = new Point(-2, -1);
+
+      const maxInterations = 1000;
+
+      const mi: IMapInfo = new MapInfo(bottomLeft, topRight, maxInterations);
+
+      let startRequestMsg = WebWorkerStartRequest.ForStart(this.canvasSize, mi);
+      this.workers[0].postMessage(startRequestMsg);
 
       this.curIterationCount = 100;
       this.workers[0].postMessage('Iterate');
@@ -144,11 +140,12 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     this.workers[0] = new Worker("/assets/worker.js");
 
     this.workers[0].addEventListener("message", (evt) => {
-      let msg: IWebWorkerMsg = WebWorkerMsg.FromEventData(evt.data);
-      console.log('Received message from web worker[0], The message = ' + msg.message + '.');
+      let plainMsg: IWebWorkerMessage = WebWorkerMessage.FromEventData(evt.data);
+      console.log('Received message from web worker[0], The message = ' + plainMsg.messageKind + '.');
 
-      if (msg.message === 'UpdatedMapData') {
-        let imageData: ImageData = msg.getImageData(this.canvasSize);
+      if (plainMsg.messageKind === 'UpdatedMapData') {
+        let updatedMapDataMsg = WebWorkerMapUpdateResponse.FromEventData(evt.data);
+        let imageData = updatedMapDataMsg.getImageData(this.canvasSize);
 
         this.draw(imageData);
 

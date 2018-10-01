@@ -276,13 +276,13 @@ onmessage = function (e) {
     self.postMessage(workerResult, [imageData.data.buffer]);
   }
 
-  if (e.data === 'GetMapUpdate') {
+  //if (e.data === 'GetMapUpdate') {
 
-    //mapWorkingData.doInterationsForAll(1);
-    workerResult = { mt: 'GetMapUpdate Response' };
-    console.log('Posting ' + workerResult.mt + ' back to main script');
-    self.postMessage(workerResult);
-  }
+  //  //mapWorkingData.doInterationsForAll(1);
+  //  workerResult = { mt: 'GetMapUpdate Response' };
+  //  console.log('Posting ' + workerResult.mt + ' back to main script');
+  //  self.postMessage(workerResult);
+  //}
 
 
 };
