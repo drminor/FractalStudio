@@ -7,6 +7,16 @@ var Point = /** @class */ (function () {
   }
   return Point;
 }());
+
+var MapInfo = /** @class */ (function () {
+  function MapInfo(bottomLeft, topRight, maxInterations) {
+    this.bottomLeft = bottomLeft;
+    this.topRight = topRight;
+    this.maxInterations = maxInterations;
+  }
+  return MapInfo;
+}());
+
 var CanvasSize = /** @class */ (function () {
   function CanvasSize(width, height) {
     this.width = width;
@@ -23,15 +33,9 @@ var CanvasSize = /** @class */ (function () {
   };
   return CanvasSize;
 }());
-var MapInfo = /** @class */ (function () {
-  function MapInfo(bottomLeft, topRight, maxInterations) {
-    this.bottomLeft = bottomLeft;
-    this.topRight = topRight;
-    this.maxInterations = maxInterations;
-  }
-  return MapInfo;
-}());
+
 var MapWorkingData = /** @class */ (function () {
+  //public alive: boolean = true;
   function MapWorkingData(canvasSize, mapInfo) {
     this.canvasSize = canvasSize;
     this.mapInfo = mapInfo;
@@ -43,7 +47,9 @@ var MapWorkingData = /** @class */ (function () {
     // X coordinates get larger as one moves from the left of the map to  the right.
     this.xVals = this.buildVals(this.canvasSize.width, this.mapInfo.bottomLeft.x, this.mapInfo.topRight.x);
     // Y coordinates get larger as one moves from the bottom of the map to the top.
-    this.yVals = this.buildValsRev(this.canvasSize.height, this.mapInfo.bottomLeft.y, this.mapInfo.topRight.y);
+    this.yVals = this.buildVals(this.canvasSize.height, this.mapInfo.bottomLeft.y, this.mapInfo.topRight.y);
+    // Assume that this map will contain at least on point in the set, until proven otherwise.
+    //this.alive = true;
   }
   // Calculate the number of elements in our single dimension data array needed to cover the
   // two-dimensional map.
@@ -61,24 +67,9 @@ var MapWorkingData = /** @class */ (function () {
     }
     return result;
   };
-
-  // Build the array of 'c' values for one dimension of the map.
-  MapWorkingData.prototype.buildValsRev = function (canvasExtent, start, end) {
-    var result = new Array(canvasExtent);
-    var mapExtent = end - start;
-    var unitExtent = mapExtent / canvasExtent;
-    var i;
-    var ptr = 0;
-    for (i = canvasExtent - 1; i > -1; i--) {
-      result[ptr++] = start + i * unitExtent;
-    }
-    return result;
-  };
-
   //public getLinearIndex(x:number, y:number): number {
   //  return x + y * this.canvasSize.width;
   //}
-
   // Returns the index to use when accessing wAData, wBData, cnts or flags.
   MapWorkingData.prototype.getLinearIndex = function (c) {
     return c.x + c.y * this.canvasSize.width;
@@ -203,37 +194,6 @@ var MapWorkingData = /** @class */ (function () {
       imageData[ptr + 3] = 255;
     }
   };
-  // Divides the specified MapWorking data into the specified vertical sections, each having the width of the original Map.
-  MapWorkingData.getWorkingDataSections = function (mapWorkingData, numberOfSections) {
-    var result = Array(numberOfSections);
-    var sectionHeight = mapWorkingData.canvasSize.height / numberOfSections;
-    var sectionHeightWN = parseInt(sectionHeight.toString(), 10);
-    var lastSectionHeight = mapWorkingData.canvasSize.height - sectionHeightWN * (numberOfSections - 1);
-    var left = mapWorkingData.mapInfo.bottomLeft.x;
-    var right = mapWorkingData.mapInfo.topRight.x;
-    var bottomPtr = 0;
-    var topPtr = sectionHeightWN;
-    var ptr;
-    for (ptr = 0; ptr < numberOfSections - 1; ptr++) {
-      var secCanvasSize_1 = new CanvasSize(mapWorkingData.canvasSize.width, sectionHeightWN);
-      var secBottom_1 = mapWorkingData.yVals[bottomPtr];
-      var secTop = mapWorkingData.yVals[topPtr];
-      var secBotLeft_1 = new Point(left, secBottom_1);
-      var secTopRight_1 = new Point(right, secTop);
-      var secMapInfo_1 = new MapInfo(secBotLeft_1, secTopRight_1, mapWorkingData.mapInfo.maxInterations);
-      result[ptr] = new MapWorkingData(secCanvasSize_1, secMapInfo_1);
-      // The next bottomPtr should point to one immediately following the last top.
-      bottomPtr = topPtr + 1;
-      topPtr += sectionHeightWN;
-    }
-    var secCanvasSize = new CanvasSize(mapWorkingData.canvasSize.width, lastSectionHeight);
-    var secBottom = mapWorkingData.yVals[bottomPtr];
-    var secBotLeft = new Point(left, secBottom);
-    var secTopRight = mapWorkingData.mapInfo.topRight;
-    var secMapInfo = new MapInfo(secBotLeft, secTopRight, mapWorkingData.mapInfo.maxInterations);
-    result[numberOfSections - 1] = new MapWorkingData(secCanvasSize, secMapInfo);
-    return result;
-  };
   // Returns a 'regular' linear array of booleans from the flags TypedArray.
   MapWorkingData.getFlagData = function (mapWorkingData) {
     var result = new Array(mapWorkingData.elementCount);
@@ -245,6 +205,7 @@ var MapWorkingData = /** @class */ (function () {
   };
   return MapWorkingData;
 }());
+
 var WebWorkerMessage = /** @class */ (function () {
   function WebWorkerMessage(messageKind) {
     this.messageKind = messageKind;
@@ -254,21 +215,22 @@ var WebWorkerMessage = /** @class */ (function () {
   };
   return WebWorkerMessage;
 }());
+
 var WebWorkerMapUpdateResponse = /** @class */ (function () {
-  function WebWorkerMapUpdateResponse(messageKind, sectionNumber, imgData) {
+  function WebWorkerMapUpdateResponse(messageKind, lineNumber, imgData) {
     this.messageKind = messageKind;
-    this.sectionNumber = sectionNumber;
+    this.lineNumber = lineNumber;
     this.imgData = imgData;
   }
   WebWorkerMapUpdateResponse.FromEventData = function (data) {
-    var result = new WebWorkerMapUpdateResponse(data.messageKind, data.sectionNumber, data.imgData);
-    //result.messageKind = data.messageKind || data as string;
-    //result.sectionNumber = data.sectionNumber;
-    //result.imgData = data.imgData || null;
+    var result = new WebWorkerMapUpdateResponse("");
+    result.messageKind = data.messageKind || data;
+    result.lineNumber = data.lineNumber || -1;
+    result.imgData = data.imgData || null;
     return result;
   };
-  WebWorkerMapUpdateResponse.ForUpdateMap = function (sectionNumber, imageData) {
-    var result = new WebWorkerMapUpdateResponse("UpdatedMapData", sectionNumber, imageData.data);
+  WebWorkerMapUpdateResponse.ForUpdateMap = function (lineNumber, imageData) {
+    var result = new WebWorkerMapUpdateResponse("UpdatedMapData", lineNumber, imageData.data);
     return result;
   };
   WebWorkerMapUpdateResponse.prototype.getImageData = function (cs) {
@@ -284,50 +246,35 @@ var WebWorkerMapUpdateResponse = /** @class */ (function () {
   };
   return WebWorkerMapUpdateResponse;
 }());
+
 var WebWorkerStartRequest = /** @class */ (function () {
-  function WebWorkerStartRequest(messageKind, canvasSize, mapInfo, sectionNumber) {
+  function WebWorkerStartRequest(messageKind, canvasSize, mapInfo) {
     this.messageKind = messageKind;
     this.canvasSize = canvasSize;
     this.mapInfo = mapInfo;
-    this.sectionNumber = sectionNumber;
   }
   WebWorkerStartRequest.FromEventData = function (data) {
-    var result = new WebWorkerStartRequest(data.messageKind, data.canvasSize, data.mapInfo, data.sectionNumber);
+    var result = new WebWorkerStartRequest(data.messageKind, data.canvasSize, data.mapInfo);
     return result;
   };
-  WebWorkerStartRequest.ForStart = function (canvasSize, mapInfo, sectionNumber) {
-    var result = new WebWorkerStartRequest('Start', canvasSize, mapInfo, sectionNumber);
+  WebWorkerStartRequest.ForStart = function (canvasSize, mapInfo) {
+    var result = new WebWorkerStartRequest('Start', canvasSize, mapInfo);
     return result;
   };
   return WebWorkerStartRequest;
 }());
-var WebWorkerIterateRequest = /** @class */ (function () {
-  function WebWorkerIterateRequest(messageKind, iterateCount) {
-    this.messageKind = messageKind;
-    this.iterateCount = iterateCount;
-  }
-  WebWorkerIterateRequest.FromEventData = function (data) {
-    var result = new WebWorkerIterateRequest(data.messageKind, data.iterateCount);
-    return result;
-  };
-  WebWorkerIterateRequest.ForIterate = function (iterateCount) {
-    var result = new WebWorkerIterateRequest('Iterate', iterateCount);
-    return result;
-  };
-  return WebWorkerIterateRequest;
-}());
+
 /// Only used when the javascript produced from compiling this TypeScript is used to create worker.js
 var mapWorkingData = null;
-var sectionNumber = 0;
+
 // Handles messages sent from the window that started this web worker.
 onmessage = function (e) {
-  //console.log('Worker received message: ' + e.data + '.');
+  console.log('Worker received message: ' + e.data + '.');
   var plainMsg = WebWorkerMessage.FromEventData(e.data);
   if (plainMsg.messageKind === 'Start') {
     var startMsg = WebWorkerStartRequest.FromEventData(e.data);
     mapWorkingData = new MapWorkingData(startMsg.canvasSize, startMsg.mapInfo);
-    sectionNumber = startMsg.sectionNumber;
-    console.log('Worker created MapWorkingData with element count = ' + mapWorkingData.elementCount + ' sn=' + sectionNumber);
+    console.log('Worker created MapWorkingData with element count = ' + mapWorkingData.elementCount);
     var responseMsg = new WebWorkerMessage('StartResponse');
     console.log('Posting ' + responseMsg.messageKind + ' back to main script');
     self.postMessage(responseMsg);
@@ -335,12 +282,12 @@ onmessage = function (e) {
   else if (plainMsg.messageKind === 'Iterate') {
     mapWorkingData.doInterationsForAll(1);
     var imageData = mapWorkingData.getImageData();
-    var workerResult = WebWorkerMapUpdateResponse.ForUpdateMap(sectionNumber, imageData);
-    console.log('Posting ' + workerResult.messageKind + ' sn=' + sectionNumber + ' back to main script');
+    var workerResult = WebWorkerMapUpdateResponse.ForUpdateMap(-1, imageData);
+    console.log('Posting ' + workerResult.messageKind + ' back to main script');
     self.postMessage(workerResult, [imageData.data.buffer]);
   }
   else {
     console.log('Received unknown message kind: ' + plainMsg.messageKind);
   }
 };
-//# sourceMappingURL=worker.js.map
+//# sourceMappingURL=m-map-common.js.map

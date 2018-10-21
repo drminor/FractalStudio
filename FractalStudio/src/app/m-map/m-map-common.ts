@@ -29,11 +29,16 @@ export interface IMapWorkingData {
   wAData: Float64Array; // Stores the current A (or real component.)
   wBData: Float64Array; // Stores the current B (or complex component.)
 
+  xVals: number[];
+  yVals: number[];
+
   // The number of times each point has been iterated.
   cnts: Uint16Array;
 
   // Flag for each point. If set then the point has grown more than 2.
   flags: Uint8Array;
+
+  curInterations: number;
 
   //getLinearIndex(x: number, y: number): number;
   getLinearIndex(c: IPoint): number;
@@ -89,7 +94,7 @@ export class MapWorkingData implements IMapWorkingData {
   public xVals: number[];
   public yVals: number[];
 
-  //public alive: boolean = true;
+  public curInterations: number;
 
   constructor(public canvasSize: ICanvasSize, public mapInfo: IMapInfo) {
 
@@ -105,10 +110,9 @@ export class MapWorkingData implements IMapWorkingData {
     this.xVals = this.buildVals(this.canvasSize.width, this.mapInfo.bottomLeft.x, this.mapInfo.topRight.x);
 
     // Y coordinates get larger as one moves from the bottom of the map to the top.
-    this.yVals = this.buildVals(this.canvasSize.height, this.mapInfo.bottomLeft.y, this.mapInfo.topRight.y);
+    this.yVals = MapWorkingData.buildValsRev(this.canvasSize.height, this.mapInfo.bottomLeft.y, this.mapInfo.topRight.y);
 
-    // Assume that this map will contain at least on point in the set, until proven otherwise.
-    //this.alive = true;
+    this.curInterations = 0;
   }
 
   // Calculate the number of elements in our single dimension data array needed to cover the
@@ -131,13 +135,34 @@ export class MapWorkingData implements IMapWorkingData {
     return result;
   }
 
+  // Build the array of 'c' values for one dimension of the map.
+  static buildValsRev(canvasExtent: number, start: number, end: number): number[] {
+    let result: number[] = new Array<number>(canvasExtent);
+
+    let mapExtent: number = end - start;
+    let unitExtent: number = mapExtent / canvasExtent;
+
+    var i: number;
+    var ptr: number;
+    for (i = canvasExtent - 1; i > -1; i--) {
+      result[ptr++] = start + i * unitExtent;
+    }
+    return result;
+  }
+
   //public getLinearIndex(x:number, y:number): number {
   //  return x + y * this.canvasSize.width;
   //}
 
   // Returns the index to use when accessing wAData, wBData, cnts or flags.
-  public getLinearIndex(c:IPoint): number {
-    return c.x + c.y * this.canvasSize.width;
+  public getLinearIndex(c: IPoint): number {
+    //return c.x + c.y * this.canvasSize.width;
+
+    let result: number = c.x;
+    let yComp = this.canvasSize.width - c.y * this.canvasSize.width;
+    result += yComp;
+
+    return result;
   }
 
   // Calculates z squared + c
@@ -291,8 +316,61 @@ export class MapWorkingData implements IMapWorkingData {
     }
   }
 
+  // Divides the specified MapWorking data into the specified vertical sections, each having the width of the original Map.
+  static getWorkingDataSections(canvasSize: ICanvasSize, mapInfo: IMapInfo, numberOfSections: number): IMapWorkingData[] {
+    let result: IMapWorkingData[] = Array<IMapWorkingData>(numberOfSections);
+
+    let sectionHeight = canvasSize.height / numberOfSections;
+    let sectionHeightWN = parseInt(sectionHeight.toString(), 10);
+
+    let lastSectionHeight: number = canvasSize.height - sectionHeightWN * (numberOfSections - 1);
+
+    let left = mapInfo.bottomLeft.x;
+    let right = mapInfo.topRight.x;
+
+    let bottomPtr = 0;
+    let topPtr = sectionHeightWN;
+
+    let yVals: number[];
+    yVals = MapWorkingData.buildValsRev(canvasSize.height, mapInfo.bottomLeft.y, mapInfo.topRight.y);
+
+
+    let ptr: number;
+
+    for (ptr = 0; ptr < numberOfSections - 1; ptr++) {
+      let secCanvasSize = new CanvasSize(canvasSize.width, sectionHeightWN);
+
+      let secBottom = yVals[bottomPtr];
+      let secTop = yVals[topPtr];
+
+      let secBotLeft = new Point(left, secBottom);
+      let secTopRight = new Point(right, secTop);
+
+      let secMapInfo = new MapInfo(secBotLeft, secTopRight, mapInfo.maxInterations);
+
+      result[ptr] = new MapWorkingData(secCanvasSize, secMapInfo);
+
+      // The next bottomPtr should point to one immediately following the last top.
+      bottomPtr = topPtr + 1;
+      topPtr += sectionHeightWN;
+    }
+
+    let secCanvasSize = new CanvasSize(canvasSize.width, lastSectionHeight);
+
+    let secBottom = yVals[bottomPtr];
+
+    let secBotLeft = new Point(left, secBottom);
+    let secTopRight = mapInfo.topRight;
+
+    let secMapInfo = new MapInfo(secBotLeft, secTopRight, mapInfo.maxInterations);
+    result[numberOfSections - 1] = new MapWorkingData(secCanvasSize, secMapInfo);
+
+    return result;
+  }
+
+
   // Returns a 'regular' linear array of booleans from the flags TypedArray.
-  static getFlagData(mapWorkingData: IMapWorkingData): boolean[] {
+  private getFlagData(mapWorkingData: IMapWorkingData): boolean[] {
 
     var result: boolean[] = new Array<boolean>(mapWorkingData.elementCount);
 
@@ -314,7 +392,7 @@ export interface IWebWorkerMessage {
 }
 
 export interface IWebWorkerMapUpdateResponse extends IWebWorkerMessage {
-  lineNumber?: number;
+  sectionNumber?: number;
   imgData?: Uint8ClampedArray;
 
   getImageData(cs: ICanvasSize): ImageData;
@@ -323,6 +401,7 @@ export interface IWebWorkerMapUpdateResponse extends IWebWorkerMessage {
 export interface IWebWorkerStartRequest extends IWebWorkerMessage {
   canvasSize: ICanvasSize;
   mapInfo: IMapInfo;
+  sectionNumber: number;
 }
 
 export interface IWebWorkerIterateRequest extends IWebWorkerMessage {
@@ -339,20 +418,20 @@ export class WebWorkerMessage implements IWebWorkerMessage {
 
 export class WebWorkerMapUpdateResponse implements IWebWorkerMapUpdateResponse {
 
-  constructor(public messageKind: string, public lineNumber?: number, public imgData?: Uint8ClampedArray) { }
+  constructor(public messageKind: string, public sectionNumber: number, public imgData?: Uint8ClampedArray) { }
 
   static FromEventData(data: any): IWebWorkerMapUpdateResponse {
-    let result = new WebWorkerMapUpdateResponse("");
+    let result = new WebWorkerMapUpdateResponse(data.messageKind, data.sectionNumber, data.imgData);
 
-    result.messageKind = data.messageKind || data as string;
-    result.lineNumber = data.lineNumber || -1;
-    result.imgData = data.imgData || null;
+    //result.messageKind = data.messageKind || data as string;
+    //result.sectionNumber = data.sectionNumber;
+    //result.imgData = data.imgData || null;
 
     return result;
   }
 
-  static ForUpdateMap(lineNumber: number, imageData: ImageData): IWebWorkerMapUpdateResponse {
-    let result = new WebWorkerMapUpdateResponse("UpdatedMapData", lineNumber, imageData.data);
+  static ForUpdateMap(sectionNumber: number, imageData: ImageData): IWebWorkerMapUpdateResponse {
+    let result = new WebWorkerMapUpdateResponse("UpdatedMapData", sectionNumber, imageData.data);
     return result;
   }
 
@@ -372,19 +451,20 @@ export class WebWorkerMapUpdateResponse implements IWebWorkerMapUpdateResponse {
 
 export class WebWorkerStartRequest implements IWebWorkerStartRequest {
 
-  constructor(public messageKind: string, public canvasSize: ICanvasSize, public mapInfo: IMapInfo) { }
+  constructor(public messageKind: string, public canvasSize: ICanvasSize, public mapInfo: IMapInfo, public sectionNumber: number) { }
 
   static FromEventData(data: any): IWebWorkerStartRequest {
     let result = new WebWorkerStartRequest(
       data.messageKind,
       data.canvasSize,
-      data.mapInfo
+      data.mapInfo,
+      data.sectionNumber
     );
     return result;
   }
 
-  static ForStart(canvasSize: ICanvasSize, mapInfo: IMapInfo): IWebWorkerStartRequest {
-    let result = new WebWorkerStartRequest('Start', canvasSize, mapInfo);
+  static ForStart(canvasSize: ICanvasSize, mapInfo: IMapInfo, sectionNumber: number): IWebWorkerStartRequest {
+    let result = new WebWorkerStartRequest('Start', canvasSize, mapInfo, sectionNumber);
     return result;
   }
 }
@@ -406,6 +486,7 @@ export class WebWorkerIterateRequest implements IWebWorkerIterateRequest {
 /// Only used when the javascript produced from compiling this TypeScript is used to create worker.js
 
 //var mapWorkingData: IMapWorkingData = null;
+//var sectionNumber: number = 0;
 
 //// Handles messages sent from the window that started this web worker.
 //onmessage = function (e) {
@@ -415,7 +496,8 @@ export class WebWorkerIterateRequest implements IWebWorkerIterateRequest {
 //  if (plainMsg.messageKind === 'Start') {
 //    let startMsg = WebWorkerStartRequest.FromEventData(e.data);
 
-//    let mapWorkingData = new MapWorkingData(startMsg.canvasSize, startMsg.mapInfo);
+//    mapWorkingData = new MapWorkingData(startMsg.canvasSize, startMsg.mapInfo);
+//    sectionNumber = startMsg.sectionNumber;
 //    console.log('Worker created MapWorkingData with element count = ' + mapWorkingData.elementCount);
 
 //    let responseMsg = new WebWorkerMessage('StartResponse');
@@ -426,7 +508,7 @@ export class WebWorkerIterateRequest implements IWebWorkerIterateRequest {
 //    mapWorkingData.doInterationsForAll(1);
 //    var imageData = mapWorkingData.getImageData();
 //    let workerResult: IWebWorkerMapUpdateResponse =
-//      WebWorkerMapUpdateResponse.ForUpdateMap(-1, imageData);
+//      WebWorkerMapUpdateResponse.ForUpdateMap(sectionNumber, imageData);
 
 //    console.log('Posting ' + workerResult.messageKind + ' back to main script');
 //    self.postMessage(workerResult, "*", [imageData.data.buffer]);
