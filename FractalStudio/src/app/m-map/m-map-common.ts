@@ -247,7 +247,7 @@ export class MapWorkingData implements IMapWorkingData {
 
     for (y = 0; y < this.canvasSize.height; y++) {
       for (x = 0; x < this.canvasSize.width; x++) {
-        let pointIsDone = this.iterateElement(new Point(x, y),iterCount);
+        let pointIsDone = this.iterateElement(new Point(x, y), iterCount);
         if (!pointIsDone) stillAlive = true;
       }
     }
@@ -335,13 +335,9 @@ export class MapWorkingData implements IMapWorkingData {
     let yVals: number[];
     yVals = MapWorkingData.buildValsRev(canvasSize.height, mapInfo.bottomLeft.y, mapInfo.topRight.y);
 
-    //let secAnchor: IPoint = new Point(0, 0);
-
     let ptr: number = 0;
 
     // Build all but the last section.
-    // Build the sections starting from the top, working down
-    // because when we draw ImageData they are drawn from the top, down.
     for (; ptr < numberOfSections - 1; ptr++) {
 
       let secCanvasSize = new CanvasSize(canvasSize.width, sectionHeightWN);
@@ -354,8 +350,7 @@ export class MapWorkingData implements IMapWorkingData {
 
       let secMapInfo = new MapInfo(secBotLeft, secTopRight, mapInfo.maxInterations);
 
-      let yOffset = (-1 + numberOfSections - ptr) * sectionHeightWN;
-      yOffset = ptr * sectionHeightWN;
+      let yOffset = ptr * sectionHeightWN;
       let secAnchor: IPoint = new Point(0, yOffset);
       result[ptr] = new MapWorkingData(secCanvasSize, secMapInfo, secAnchor);
 
@@ -364,25 +359,25 @@ export class MapWorkingData implements IMapWorkingData {
       topPtr += sectionHeightWN;
     }
 
-    ptr = numberOfSections - 1;
+    //ptr = numberOfSections - 1;
     // Build the last section.
     let secCanvasSize = new CanvasSize(canvasSize.width, lastSectionHeight);
 
     let secBottom = yVals[bottomPtr];
-    topPtr -= sectionHeightWN;
-    topPtr += lastSectionHeight - 1;
-    let secTop = yVals[topPtr];
 
+    //topPtr -= sectionHeightWN;
+    //topPtr += lastSectionHeight - 1;
+
+    topPtr = yVals.length - 1;
+    let secTop = yVals[topPtr];
 
     let secBotLeft = new Point(left, secBottom);
     //let secTopRight = mapInfo.topRight;
     let secTopRight = new Point(right, secTop);
 
-
     let secMapInfo = new MapInfo(secBotLeft, secTopRight, mapInfo.maxInterations);
 
-    let yOffset = (-1 + numberOfSections - ptr) * sectionHeightWN;
-    yOffset = ptr * sectionHeightWN;
+    let yOffset = ptr * sectionHeightWN;
     let secAnchor: IPoint = new Point(0, yOffset);
 
     result[ptr] = new MapWorkingData(secCanvasSize, secMapInfo, secAnchor);
@@ -403,11 +398,10 @@ export class MapWorkingData implements IMapWorkingData {
 
     return result;
   }
+} // End Class MapWorkingData
 
-}
 
-
-// WebWorker Messages
+// ---- WebWorker Messages ----
 
 export interface IWebWorkerMessage {
   messageKind: string;
@@ -445,10 +439,6 @@ export class WebWorkerMapUpdateResponse implements IWebWorkerMapUpdateResponse {
   static FromEventData(data: any): IWebWorkerMapUpdateResponse {
     let result = new WebWorkerMapUpdateResponse(data.messageKind, data.sectionNumber, data.imgData);
 
-    //result.messageKind = data.messageKind || data as string;
-    //result.sectionNumber = data.sectionNumber;
-    //result.imgData = data.imgData || null;
-
     return result;
   }
 
@@ -473,20 +463,26 @@ export class WebWorkerMapUpdateResponse implements IWebWorkerMapUpdateResponse {
 
 export class WebWorkerStartRequest implements IWebWorkerStartRequest {
 
-  constructor(public messageKind: string, public canvasSize: ICanvasSize, public mapInfo: IMapInfo, public sectionNumber: number) { }
+  constructor(public messageKind: string, public canvasSize: ICanvasSize, public mapInfo: IMapInfo, public sectionAnchor: IPoint, public sectionNumber: number) { }
 
   static FromEventData(data: any): IWebWorkerStartRequest {
     let result = new WebWorkerStartRequest(
       data.messageKind,
       data.canvasSize,
       data.mapInfo,
+      data.sectionAnchor,
       data.sectionNumber
     );
     return result;
   }
 
-  static ForStart(canvasSize: ICanvasSize, mapInfo: IMapInfo, sectionNumber: number): IWebWorkerStartRequest {
-    let result = new WebWorkerStartRequest('Start', canvasSize, mapInfo, sectionNumber);
+  //static ForStart(canvasSize: ICanvasSize, mapInfo: IMapInfo, sectionAnchor: IPoint, sectionNumber: number): IWebWorkerStartRequest {
+  //  let result = new WebWorkerStartRequest('Start', canvasSize, mapInfo, sectionAnchor, sectionNumber);
+  //  return result;
+  //}
+
+  static ForStart(mapWorkingData: IMapWorkingData, sectionNumber: number): IWebWorkerStartRequest {
+    let result = new WebWorkerStartRequest('Start', mapWorkingData.canvasSize, mapWorkingData.mapInfo, mapWorkingData.sectionAnchor, sectionNumber);
     return result;
   }
 }
@@ -507,40 +503,41 @@ export class WebWorkerIterateRequest implements IWebWorkerIterateRequest {
 
 /// Only used when the javascript produced from compiling this TypeScript is used to create worker.js
 
-//var mapWorkingData: IMapWorkingData = null;
-//var sectionNumber: number = 0;
+var mapWorkingData: IMapWorkingData = null;
+var sectionNumber: number = 0;
 
-//// Handles messages sent from the window that started this web worker.
-//onmessage = function (e) {
-//  console.log('Worker received message: ' + e.data + '.');
-//  let plainMsg: IWebWorkerMessage = WebWorkerMessage.FromEventData(e.data);
+// Handles messages sent from the window that started this web worker.
+onmessage = function (e) {
+  console.log('Worker received message: ' + e.data + '.');
+  let plainMsg: IWebWorkerMessage = WebWorkerMessage.FromEventData(e.data);
 
-//  if (plainMsg.messageKind === 'Start') {
-//    let startMsg = WebWorkerStartRequest.FromEventData(e.data);
+  if (plainMsg.messageKind === 'Start') {
+    let startMsg = WebWorkerStartRequest.FromEventData(e.data);
 
-//    mapWorkingData = new MapWorkingData(startMsg.canvasSize, startMsg.mapInfo);
-//    sectionNumber = startMsg.sectionNumber;
-//    console.log('Worker created MapWorkingData with element count = ' + mapWorkingData.elementCount);
+    let sectionAnchor: IPoint = new Point(0, 0);
+    mapWorkingData = new MapWorkingData(startMsg.canvasSize, startMsg.mapInfo, sectionAnchor);
+    sectionNumber = startMsg.sectionNumber;
+    console.log('Worker created MapWorkingData with element count = ' + mapWorkingData.elementCount);
 
-//    let responseMsg = new WebWorkerMessage('StartResponse');
-//    console.log('Posting ' + responseMsg.messageKind + ' back to main script');
-//    self.postMessage(responseMsg, "*");
-//  }
-//  else if (plainMsg.messageKind === 'Iterate') {
-//    mapWorkingData.doInterationsForAll(1);
-//    var imageData = mapWorkingData.getImageData();
-//    let workerResult: IWebWorkerMapUpdateResponse =
-//      WebWorkerMapUpdateResponse.ForUpdateMap(sectionNumber, imageData);
+    let responseMsg = new WebWorkerMessage('StartResponse');
+    console.log('Posting ' + responseMsg.messageKind + ' back to main script');
+    self.postMessage(responseMsg, "*");
+  }
+  else if (plainMsg.messageKind === 'Iterate') {
+    mapWorkingData.doInterationsForAll(1);
+    var imageData = mapWorkingData.getImageData();
+    let workerResult: IWebWorkerMapUpdateResponse =
+      WebWorkerMapUpdateResponse.ForUpdateMap(sectionNumber, imageData);
 
-//    console.log('Posting ' + workerResult.messageKind + ' back to main script');
-//    self.postMessage(workerResult, "*", [imageData.data.buffer]);
-//  }
-//  else {
-//    console.log('Received unknown message kind: ' + plainMsg.messageKind);
-//  }
+    console.log('Posting ' + workerResult.messageKind + ' back to main script');
+    self.postMessage(workerResult, "*", [imageData.data.buffer]);
+  }
+  else {
+    console.log('Received unknown message kind: ' + plainMsg.messageKind);
+  }
 
 
-//};
+};
 
 
 

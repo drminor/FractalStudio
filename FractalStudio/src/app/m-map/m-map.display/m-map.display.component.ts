@@ -29,14 +29,11 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
   private componentInitialized: boolean;
   private canvasSize: ICanvasSize;
   private mapInfo: IMapInfo;
-  //private workingData: IMapWorkingData;
 
   // Array of WebWorkers
   private workers: Worker[];
   private numberOfSections: number;
   private sections: IMapWorkingData[];
-
-  //private curIterationCount: number;
 
   constructor(private logger: Logger, private mService: MMapService) {
     this.componentInitialized = false;
@@ -51,11 +48,8 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     const maxInterations = 1000;
     this.mapInfo = new MapInfo(bottomLeft, topRight, maxInterations);
 
-    //this.workingData = null;
     this.workers = [];
     this.sections = [];
-
-    //this.curIterationCount = 0;
   }
 
   draw(imageData: ImageData, sectionNumber: number): void {
@@ -78,9 +72,6 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     if (imageData.width !== mapWorkingData.canvasSize.width) {
       console.log('Draw is being called with ImageData whose width does not equal canvas width for section number ' + sectionNumber + '.');
     }
-
-    //let chSection: number = this.canvasSize.height / 4;
-    //let cy = chSection * sectionNumber;
 
     // Check the image data's height to the canvas height for this section.
     if (imageData.height !== mapWorkingData.canvasSize.height) {
@@ -192,7 +183,11 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
         }
       });
 
-      let startRequestMsg = WebWorkerStartRequest.ForStart(this.sections[ptr].canvasSize, this.sections[ptr].mapInfo, ptr);
+
+      let mapWorkingData: IMapWorkingData = this.sections[ptr];
+
+      let startRequestMsg = WebWorkerStartRequest.ForStart(mapWorkingData, ptr);
+
       webWorker.postMessage(startRequestMsg);
 
       this.sections[ptr].curInterations++;

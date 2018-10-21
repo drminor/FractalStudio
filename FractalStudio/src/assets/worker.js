@@ -32,9 +32,10 @@ var MapInfo = /** @class */ (function () {
   return MapInfo;
 }());
 var MapWorkingData = /** @class */ (function () {
-  function MapWorkingData(canvasSize, mapInfo) {
+  function MapWorkingData(canvasSize, mapInfo, sectionAnchor) {
     this.canvasSize = canvasSize;
     this.mapInfo = mapInfo;
+    this.sectionAnchor = sectionAnchor;
     this.elementCount = this.getNumberOfElementsForCanvas(this.canvasSize);
     this.wAData = new Float64Array(this.elementCount); // All elements now have a value of zero.
     this.wBData = new Float64Array(this.elementCount); // All elements now have a value of zero.
@@ -222,7 +223,8 @@ var MapWorkingData = /** @class */ (function () {
       var secBotLeft_1 = new Point(left, secBottom_1);
       var secTopRight_1 = new Point(right, secTop);
       var secMapInfo_1 = new MapInfo(secBotLeft_1, secTopRight_1, mapWorkingData.mapInfo.maxInterations);
-      result[ptr] = new MapWorkingData(secCanvasSize_1, secMapInfo_1);
+      var secAnchor_1 = new Point(0, 0);
+      result[ptr] = new MapWorkingData(secCanvasSize_1, secMapInfo_1, secAnchor_1);
       // The next bottomPtr should point to one immediately following the last top.
       bottomPtr = topPtr + 1;
       topPtr += sectionHeightWN;
@@ -232,7 +234,8 @@ var MapWorkingData = /** @class */ (function () {
     var secBotLeft = new Point(left, secBottom);
     var secTopRight = mapWorkingData.mapInfo.topRight;
     var secMapInfo = new MapInfo(secBotLeft, secTopRight, mapWorkingData.mapInfo.maxInterations);
-    result[numberOfSections - 1] = new MapWorkingData(secCanvasSize, secMapInfo);
+    var secAnchor = new Point(0, 0);
+    result[numberOfSections - 1] = new MapWorkingData(secCanvasSize, secMapInfo, secAnchor);
     return result;
   };
   // Returns a 'regular' linear array of booleans from the flags TypedArray.
@@ -326,7 +329,8 @@ onmessage = function (e) {
   var plainMsg = WebWorkerMessage.FromEventData(e.data);
   if (plainMsg.messageKind === 'Start') {
     var startMsg = WebWorkerStartRequest.FromEventData(e.data);
-    mapWorkingData = new MapWorkingData(startMsg.canvasSize, startMsg.mapInfo);
+    var sectionAnchor = new Point(0, 0);
+    mapWorkingData = new MapWorkingData(startMsg.canvasSize, startMsg.mapInfo, sectionAnchor);
     sectionNumber = startMsg.sectionNumber;
     console.log('Worker created MapWorkingData with element count = ' + mapWorkingData.elementCount + ' sn=' + sectionNumber + '.');
     var responseMsg = new WebWorkerMessage('StartResponse');
