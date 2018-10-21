@@ -266,9 +266,6 @@ var WebWorkerMapUpdateResponse = /** @class */ (function () {
   }
   WebWorkerMapUpdateResponse.FromEventData = function (data) {
     var result = new WebWorkerMapUpdateResponse(data.messageKind, data.sectionNumber, data.imgData);
-    //result.messageKind = data.messageKind || data as string;
-    //result.sectionNumber = data.sectionNumber;
-    //result.imgData = data.imgData || null;
     return result;
   };
   WebWorkerMapUpdateResponse.ForUpdateMap = function (sectionNumber, imageData) {
@@ -289,18 +286,19 @@ var WebWorkerMapUpdateResponse = /** @class */ (function () {
   return WebWorkerMapUpdateResponse;
 }());
 var WebWorkerStartRequest = /** @class */ (function () {
-  function WebWorkerStartRequest(messageKind, canvasSize, mapInfo, sectionNumber) {
+  function WebWorkerStartRequest(messageKind, canvasSize, mapInfo, sectionAnchor, sectionNumber) {
     this.messageKind = messageKind;
     this.canvasSize = canvasSize;
     this.mapInfo = mapInfo;
+    this.sectionAnchor = sectionAnchor;
     this.sectionNumber = sectionNumber;
   }
   WebWorkerStartRequest.FromEventData = function (data) {
-    var result = new WebWorkerStartRequest(data.messageKind, data.canvasSize, data.mapInfo, data.sectionNumber);
+    var result = new WebWorkerStartRequest(data.messageKind, data.canvasSize, data.mapInfo, data.sectionAnchor, data.sectionNumber);
     return result;
   };
-  WebWorkerStartRequest.ForStart = function (canvasSize, mapInfo, sectionNumber) {
-    var result = new WebWorkerStartRequest('Start', canvasSize, mapInfo, sectionNumber);
+  WebWorkerStartRequest.ForStart = function (mapWorkinData, sectionNumber) {
+    var result = new WebWorkerStartRequest('Start', mapWorkinData.canvasSize, mapWorkinData.mapInfo, mapWorkinData.sectionAnchor, sectionNumber);
     return result;
   };
   return WebWorkerStartRequest;
@@ -329,8 +327,7 @@ onmessage = function (e) {
   var plainMsg = WebWorkerMessage.FromEventData(e.data);
   if (plainMsg.messageKind === 'Start') {
     var startMsg = WebWorkerStartRequest.FromEventData(e.data);
-    var sectionAnchor = new Point(0, 0);
-    mapWorkingData = new MapWorkingData(startMsg.canvasSize, startMsg.mapInfo, sectionAnchor);
+    mapWorkingData = new MapWorkingData(startMsg.canvasSize, startMsg.mapInfo, startMsg.sectionAnchor);
     sectionNumber = startMsg.sectionNumber;
     console.log('Worker created MapWorkingData with element count = ' + mapWorkingData.elementCount + ' sn=' + sectionNumber + '.');
     var responseMsg = new WebWorkerMessage('StartResponse');
@@ -341,7 +338,7 @@ onmessage = function (e) {
     mapWorkingData.doInterationsForAll(1);
     var imageData = mapWorkingData.getImageData();
     var workerResult = WebWorkerMapUpdateResponse.ForUpdateMap(sectionNumber, imageData);
-    console.log('Posting ' + workerResult.messageKind + ' sn=' + sectionNumber + ' back to main script.');
+    //console.log('Posting ' + workerResult.messageKind + ' sn=' + sectionNumber + ' back to main script.');
     self.postMessage(workerResult, [imageData.data.buffer]);
   }
   else {

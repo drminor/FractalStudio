@@ -86,7 +86,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
     ctx.putImageData(imageData, left, bot);
 
-    console.log('Just drew image data for sn=' + sectionNumber + ' left=' + left + ' bot =' + bot  + '.');
+    //console.log('Just drew image data for sn=' + sectionNumber + ' left=' + left + ' bot =' + bot  + '.');
   }
 
   ngOnInit(): void {
@@ -167,7 +167,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
           let updatedMapDataMsg = WebWorkerMapUpdateResponse.FromEventData(evt.data);
           let sectionNumber: number = updatedMapDataMsg.sectionNumber;
 
-          console.log('Received ' + plainMsg.messageKind + ' with section number = ' + sectionNumber + ' from a web worker.');
+          //console.log('Received ' + plainMsg.messageKind + ' with section number = ' + sectionNumber + ' from a web worker.');
 
           let mapInfo: IMapWorkingData = this.sections[sectionNumber];
           let imageData: ImageData = updatedMapDataMsg.getImageData(mapInfo.canvasSize);

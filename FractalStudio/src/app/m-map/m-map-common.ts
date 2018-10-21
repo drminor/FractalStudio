@@ -359,20 +359,14 @@ export class MapWorkingData implements IMapWorkingData {
       topPtr += sectionHeightWN;
     }
 
-    //ptr = numberOfSections - 1;
     // Build the last section.
     let secCanvasSize = new CanvasSize(canvasSize.width, lastSectionHeight);
 
     let secBottom = yVals[bottomPtr];
-
-    //topPtr -= sectionHeightWN;
-    //topPtr += lastSectionHeight - 1;
+    let secBotLeft = new Point(left, secBottom);
 
     topPtr = yVals.length - 1;
     let secTop = yVals[topPtr];
-
-    let secBotLeft = new Point(left, secBottom);
-    //let secTopRight = mapInfo.topRight;
     let secTopRight = new Point(right, secTop);
 
     let secMapInfo = new MapInfo(secBotLeft, secTopRight, mapInfo.maxInterations);
@@ -384,7 +378,6 @@ export class MapWorkingData implements IMapWorkingData {
 
     return result;
   }
-
 
   // Returns a 'regular' linear array of booleans from the flags TypedArray.
   private getFlagData(mapWorkingData: IMapWorkingData): boolean[] {
@@ -417,6 +410,7 @@ export interface IWebWorkerMapUpdateResponse extends IWebWorkerMessage {
 export interface IWebWorkerStartRequest extends IWebWorkerMessage {
   canvasSize: ICanvasSize;
   mapInfo: IMapInfo;
+  sectionAnchor: IPoint;
   sectionNumber: number;
 }
 
@@ -476,11 +470,6 @@ export class WebWorkerStartRequest implements IWebWorkerStartRequest {
     return result;
   }
 
-  //static ForStart(canvasSize: ICanvasSize, mapInfo: IMapInfo, sectionAnchor: IPoint, sectionNumber: number): IWebWorkerStartRequest {
-  //  let result = new WebWorkerStartRequest('Start', canvasSize, mapInfo, sectionAnchor, sectionNumber);
-  //  return result;
-  //}
-
   static ForStart(mapWorkingData: IMapWorkingData, sectionNumber: number): IWebWorkerStartRequest {
     let result = new WebWorkerStartRequest('Start', mapWorkingData.canvasSize, mapWorkingData.mapInfo, mapWorkingData.sectionAnchor, sectionNumber);
     return result;
@@ -503,41 +492,39 @@ export class WebWorkerIterateRequest implements IWebWorkerIterateRequest {
 
 /// Only used when the javascript produced from compiling this TypeScript is used to create worker.js
 
-var mapWorkingData: IMapWorkingData = null;
-var sectionNumber: number = 0;
+//var mapWorkingData: IMapWorkingData = null;
+//var sectionNumber: number = 0;
 
-// Handles messages sent from the window that started this web worker.
-onmessage = function (e) {
-  console.log('Worker received message: ' + e.data + '.');
-  let plainMsg: IWebWorkerMessage = WebWorkerMessage.FromEventData(e.data);
+//// Handles messages sent from the window that started this web worker.
+//onmessage = function (e) {
+//  //console.log('Worker received message: ' + e.data + '.');
+//  let plainMsg: IWebWorkerMessage = WebWorkerMessage.FromEventData(e.data);
 
-  if (plainMsg.messageKind === 'Start') {
-    let startMsg = WebWorkerStartRequest.FromEventData(e.data);
+//  if (plainMsg.messageKind === 'Start') {
+//    let startMsg = WebWorkerStartRequest.FromEventData(e.data);
+//    mapWorkingData = new MapWorkingData(startMsg.canvasSize, startMsg.mapInfo, startMsg.sectionAnchor);
+//    sectionNumber = startMsg.sectionNumber;
+//    console.log('Worker created MapWorkingData with element count = ' + mapWorkingData.elementCount);
 
-    let sectionAnchor: IPoint = new Point(0, 0);
-    mapWorkingData = new MapWorkingData(startMsg.canvasSize, startMsg.mapInfo, sectionAnchor);
-    sectionNumber = startMsg.sectionNumber;
-    console.log('Worker created MapWorkingData with element count = ' + mapWorkingData.elementCount);
+//    let responseMsg = new WebWorkerMessage('StartResponse');
+//    console.log('Posting ' + responseMsg.messageKind + ' back to main script');
+//    self.postMessage(responseMsg, "*");
+//  }
+//  else if (plainMsg.messageKind === 'Iterate') {
+//    mapWorkingData.doInterationsForAll(1);
+//    var imageData = mapWorkingData.getImageData();
+//    let workerResult: IWebWorkerMapUpdateResponse =
+//      WebWorkerMapUpdateResponse.ForUpdateMap(sectionNumber, imageData);
 
-    let responseMsg = new WebWorkerMessage('StartResponse');
-    console.log('Posting ' + responseMsg.messageKind + ' back to main script');
-    self.postMessage(responseMsg, "*");
-  }
-  else if (plainMsg.messageKind === 'Iterate') {
-    mapWorkingData.doInterationsForAll(1);
-    var imageData = mapWorkingData.getImageData();
-    let workerResult: IWebWorkerMapUpdateResponse =
-      WebWorkerMapUpdateResponse.ForUpdateMap(sectionNumber, imageData);
-
-    console.log('Posting ' + workerResult.messageKind + ' back to main script');
-    self.postMessage(workerResult, "*", [imageData.data.buffer]);
-  }
-  else {
-    console.log('Received unknown message kind: ' + plainMsg.messageKind);
-  }
+//    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
+//    self.postMessage(workerResult, "*", [imageData.data.buffer]);
+//  }
+//  else {
+//    console.log('Received unknown message kind: ' + plainMsg.messageKind);
+//  }
 
 
-};
+//};
 
 
 
