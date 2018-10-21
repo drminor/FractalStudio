@@ -22,6 +22,7 @@ export interface ICanvasSize {
 export interface IMapWorkingData {
   canvasSize: ICanvasSize;
   mapInfo: IMapInfo;
+  sectionAnchor: IPoint;
 
   elementCount: number;
 
@@ -47,9 +48,6 @@ export interface IMapWorkingData {
 
   getImageData(): ImageData;
   getImageDataForLine(y: number): ImageData;
-
-  //updateImageData(imageData: ImageData): void;
-  //updateImageDataForLine(imageData: ImageData, y: number): void;
 }
 
 export class Point implements IPoint {
@@ -96,7 +94,7 @@ export class MapWorkingData implements IMapWorkingData {
 
   public curInterations: number;
 
-  constructor(public canvasSize: ICanvasSize, public mapInfo: IMapInfo) {
+  constructor(public canvasSize: ICanvasSize, public mapInfo: IMapInfo, public sectionAnchor: IPoint) {
 
     this.elementCount = this.getNumberOfElementsForCanvas(this.canvasSize);
 
@@ -107,10 +105,11 @@ export class MapWorkingData implements IMapWorkingData {
     this.flags = new Uint8Array(this.elementCount);
 
     // X coordinates get larger as one moves from the left of the map to  the right.
-    this.xVals = this.buildVals(this.canvasSize.width, this.mapInfo.bottomLeft.x, this.mapInfo.topRight.x);
+    this.xVals = MapWorkingData.buildVals(this.canvasSize.width, this.mapInfo.bottomLeft.x, this.mapInfo.topRight.x);
 
     // Y coordinates get larger as one moves from the bottom of the map to the top.
-    this.yVals = MapWorkingData.buildValsRev(this.canvasSize.height, this.mapInfo.bottomLeft.y, this.mapInfo.topRight.y);
+    // But ImageData "blocks" are drawn from top to bottom.
+    this.yVals = MapWorkingData.buildVals(this.canvasSize.height, this.mapInfo.bottomLeft.y, this.mapInfo.topRight.y);
 
     this.curInterations = 0;
   }
@@ -122,7 +121,7 @@ export class MapWorkingData implements IMapWorkingData {
   }
 
   // Build the array of 'c' values for one dimension of the map.
-  private buildVals(canvasExtent: number, start: number, end: number): number[] {
+  static buildVals(canvasExtent: number, start: number, end: number): number[] {
     let result: number[] = new Array<number>(canvasExtent);
 
     let mapExtent: number = end - start;
@@ -143,7 +142,7 @@ export class MapWorkingData implements IMapWorkingData {
     let unitExtent: number = mapExtent / canvasExtent;
 
     var i: number;
-    var ptr: number;
+    var ptr: number = 0;
     for (i = canvasExtent - 1; i > -1; i--) {
       result[ptr++] = start + i * unitExtent;
     }
@@ -320,9 +319,11 @@ export class MapWorkingData implements IMapWorkingData {
   static getWorkingDataSections(canvasSize: ICanvasSize, mapInfo: IMapInfo, numberOfSections: number): IMapWorkingData[] {
     let result: IMapWorkingData[] = Array<IMapWorkingData>(numberOfSections);
 
+    // Calculate the heigth of each section, rounded down to the nearest whole number.
     let sectionHeight = canvasSize.height / numberOfSections;
     let sectionHeightWN = parseInt(sectionHeight.toString(), 10);
 
+    // Calculate the height of the last section.
     let lastSectionHeight: number = canvasSize.height - sectionHeightWN * (numberOfSections - 1);
 
     let left = mapInfo.bottomLeft.x;
@@ -334,10 +335,15 @@ export class MapWorkingData implements IMapWorkingData {
     let yVals: number[];
     yVals = MapWorkingData.buildValsRev(canvasSize.height, mapInfo.bottomLeft.y, mapInfo.topRight.y);
 
+    //let secAnchor: IPoint = new Point(0, 0);
 
-    let ptr: number;
+    let ptr: number = 0;
 
-    for (ptr = 0; ptr < numberOfSections - 1; ptr++) {
+    // Build all but the last section.
+    // Build the sections starting from the top, working down
+    // because when we draw ImageData they are drawn from the top, down.
+    for (; ptr < numberOfSections - 1; ptr++) {
+
       let secCanvasSize = new CanvasSize(canvasSize.width, sectionHeightWN);
 
       let secBottom = yVals[bottomPtr];
@@ -348,22 +354,38 @@ export class MapWorkingData implements IMapWorkingData {
 
       let secMapInfo = new MapInfo(secBotLeft, secTopRight, mapInfo.maxInterations);
 
-      result[ptr] = new MapWorkingData(secCanvasSize, secMapInfo);
+      let yOffset = (-1 + numberOfSections - ptr) * sectionHeightWN;
+      yOffset = ptr * sectionHeightWN;
+      let secAnchor: IPoint = new Point(0, yOffset);
+      result[ptr] = new MapWorkingData(secCanvasSize, secMapInfo, secAnchor);
 
       // The next bottomPtr should point to one immediately following the last top.
       bottomPtr = topPtr + 1;
       topPtr += sectionHeightWN;
     }
 
+    ptr = numberOfSections - 1;
+    // Build the last section.
     let secCanvasSize = new CanvasSize(canvasSize.width, lastSectionHeight);
 
     let secBottom = yVals[bottomPtr];
+    topPtr -= sectionHeightWN;
+    topPtr += lastSectionHeight - 1;
+    let secTop = yVals[topPtr];
+
 
     let secBotLeft = new Point(left, secBottom);
-    let secTopRight = mapInfo.topRight;
+    //let secTopRight = mapInfo.topRight;
+    let secTopRight = new Point(right, secTop);
+
 
     let secMapInfo = new MapInfo(secBotLeft, secTopRight, mapInfo.maxInterations);
-    result[numberOfSections - 1] = new MapWorkingData(secCanvasSize, secMapInfo);
+
+    let yOffset = (-1 + numberOfSections - ptr) * sectionHeightWN;
+    yOffset = ptr * sectionHeightWN;
+    let secAnchor: IPoint = new Point(0, yOffset);
+
+    result[ptr] = new MapWorkingData(secCanvasSize, secMapInfo, secAnchor);
 
     return result;
   }

@@ -43,7 +43,8 @@ var MapWorkingData = /** @class */ (function () {
     // X coordinates get larger as one moves from the left of the map to  the right.
     this.xVals = this.buildVals(this.canvasSize.width, this.mapInfo.bottomLeft.x, this.mapInfo.topRight.x);
     // Y coordinates get larger as one moves from the bottom of the map to the top.
-    this.yVals = this.buildValsRev(this.canvasSize.height, this.mapInfo.bottomLeft.y, this.mapInfo.topRight.y);
+    // But ImageData "blocks" are drawn from top to bottom.
+    this.yVals = this.buildVals(this.canvasSize.height, this.mapInfo.bottomLeft.y, this.mapInfo.topRight.y);
   }
   // Calculate the number of elements in our single dimension data array needed to cover the
   // two-dimensional map.
@@ -327,7 +328,7 @@ onmessage = function (e) {
     var startMsg = WebWorkerStartRequest.FromEventData(e.data);
     mapWorkingData = new MapWorkingData(startMsg.canvasSize, startMsg.mapInfo);
     sectionNumber = startMsg.sectionNumber;
-    console.log('Worker created MapWorkingData with element count = ' + mapWorkingData.elementCount + ' sn=' + sectionNumber);
+    console.log('Worker created MapWorkingData with element count = ' + mapWorkingData.elementCount + ' sn=' + sectionNumber + '.');
     var responseMsg = new WebWorkerMessage('StartResponse');
     console.log('Posting ' + responseMsg.messageKind + ' back to main script');
     self.postMessage(responseMsg);
@@ -336,7 +337,7 @@ onmessage = function (e) {
     mapWorkingData.doInterationsForAll(1);
     var imageData = mapWorkingData.getImageData();
     var workerResult = WebWorkerMapUpdateResponse.ForUpdateMap(sectionNumber, imageData);
-    console.log('Posting ' + workerResult.messageKind + ' sn=' + sectionNumber + ' back to main script');
+    console.log('Posting ' + workerResult.messageKind + ' sn=' + sectionNumber + ' back to main script.');
     self.postMessage(workerResult, [imageData.data.buffer]);
   }
   else {

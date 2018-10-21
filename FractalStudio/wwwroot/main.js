@@ -272,17 +272,19 @@ var MapInfo = /** @class */ (function () {
 }());
 
 var MapWorkingData = /** @class */ (function () {
-    function MapWorkingData(canvasSize, mapInfo) {
+    function MapWorkingData(canvasSize, mapInfo, sectionAnchor) {
         this.canvasSize = canvasSize;
         this.mapInfo = mapInfo;
+        this.sectionAnchor = sectionAnchor;
         this.elementCount = this.getNumberOfElementsForCanvas(this.canvasSize);
         this.wAData = new Float64Array(this.elementCount); // All elements now have a value of zero.
         this.wBData = new Float64Array(this.elementCount); // All elements now have a value of zero.
         this.cnts = new Uint16Array(this.elementCount);
         this.flags = new Uint8Array(this.elementCount);
         // X coordinates get larger as one moves from the left of the map to  the right.
-        this.xVals = this.buildVals(this.canvasSize.width, this.mapInfo.bottomLeft.x, this.mapInfo.topRight.x);
+        this.xVals = MapWorkingData.buildVals(this.canvasSize.width, this.mapInfo.bottomLeft.x, this.mapInfo.topRight.x);
         // Y coordinates get larger as one moves from the bottom of the map to the top.
+        // But ImageData "blocks" are drawn from top to bottom.
         this.yVals = MapWorkingData.buildValsRev(this.canvasSize.height, this.mapInfo.bottomLeft.y, this.mapInfo.topRight.y);
         this.curInterations = 0;
     }
@@ -292,7 +294,7 @@ var MapWorkingData = /** @class */ (function () {
         return cs.width * cs.height;
     };
     // Build the array of 'c' values for one dimension of the map.
-    MapWorkingData.prototype.buildVals = function (canvasExtent, start, end) {
+    MapWorkingData.buildVals = function (canvasExtent, start, end) {
         var result = new Array(canvasExtent);
         var mapExtent = end - start;
         var unitExtent = mapExtent / canvasExtent;
@@ -448,8 +450,10 @@ var MapWorkingData = /** @class */ (function () {
     // Divides the specified MapWorking data into the specified vertical sections, each having the width of the original Map.
     MapWorkingData.getWorkingDataSections = function (canvasSize, mapInfo, numberOfSections) {
         var result = Array(numberOfSections);
+        // Calculate the heigth of each section, rounded down to the nearest whole number.
         var sectionHeight = canvasSize.height / numberOfSections;
         var sectionHeightWN = parseInt(sectionHeight.toString(), 10);
+        // Calculate the height of the last section.
         var lastSectionHeight = canvasSize.height - sectionHeightWN * (numberOfSections - 1);
         var left = mapInfo.bottomLeft.x;
         var right = mapInfo.topRight.x;
@@ -457,25 +461,35 @@ var MapWorkingData = /** @class */ (function () {
         var topPtr = sectionHeightWN;
         var yVals;
         yVals = MapWorkingData.buildValsRev(canvasSize.height, mapInfo.bottomLeft.y, mapInfo.topRight.y);
-        var ptr;
-        for (ptr = 0; ptr < numberOfSections - 1; ptr++) {
+        //let secAnchor: IPoint = new Point(0, 0);
+        var ptr = 0;
+        // Build all but the last section.
+        // Build the sections starting from the top, working down
+        // because when we draw ImageData they are drawn from the top, down.
+        for (; ptr < numberOfSections - 1; ptr++) {
             var secCanvasSize_1 = new CanvasSize(canvasSize.width, sectionHeightWN);
             var secBottom_1 = yVals[bottomPtr];
             var secTop = yVals[topPtr];
             var secBotLeft_1 = new Point(left, secBottom_1);
             var secTopRight_1 = new Point(right, secTop);
             var secMapInfo_1 = new MapInfo(secBotLeft_1, secTopRight_1, mapInfo.maxInterations);
-            result[ptr] = new MapWorkingData(secCanvasSize_1, secMapInfo_1);
+            var yOffset_1 = (-1 + numberOfSections - ptr) * sectionHeightWN;
+            var secAnchor_1 = new Point(0, yOffset_1);
+            result[ptr] = new MapWorkingData(secCanvasSize_1, secMapInfo_1, secAnchor_1);
             // The next bottomPtr should point to one immediately following the last top.
             bottomPtr = topPtr + 1;
             topPtr += sectionHeightWN;
         }
+        //ptr = numberOfSections - 1;
+        // Build the last section.
         var secCanvasSize = new CanvasSize(canvasSize.width, lastSectionHeight);
         var secBottom = yVals[bottomPtr];
         var secBotLeft = new Point(left, secBottom);
         var secTopRight = mapInfo.topRight;
         var secMapInfo = new MapInfo(secBotLeft, secTopRight, mapInfo.maxInterations);
-        result[numberOfSections - 1] = new MapWorkingData(secCanvasSize, secMapInfo);
+        var yOffset = (-1 + numberOfSections - ptr) * sectionHeightWN;
+        var secAnchor = new Point(0, yOffset);
+        result[ptr] = new MapWorkingData(secCanvasSize, secMapInfo, secAnchor);
         return result;
     };
     // Returns a 'regular' linear array of booleans from the flags TypedArray.
@@ -797,11 +811,12 @@ var MMapDisplayComponent = /** @class */ (function () {
         if (imageData.height !== mapWorkingData.canvasSize.height) {
             console.log('Draw is being called with ImageData whose height does not equal the canvas height for section number ' + sectionNumber + '.');
         }
-        var bot = mapWorkingData.mapInfo.bottomLeft.y;
-        var left = mapWorkingData.mapInfo.bottomLeft.x;
+        var left = mapWorkingData.sectionAnchor.x;
+        var bot = mapWorkingData.sectionAnchor.y;
         ctx.fillStyle = '#DD0031';
         ctx.clearRect(left, bot, imageData.width, imageData.height);
         ctx.putImageData(imageData, left, bot);
+        console.log('Just drew image data for sn=' + sectionNumber + ' left=' + left + ' bot =' + bot + '.');
     };
     MMapDisplayComponent.prototype.ngOnInit = function () {
         if (!this.componentInitialized) {
@@ -833,6 +848,10 @@ var MMapDisplayComponent = /** @class */ (function () {
             //let mapWorkingData = new MapWorkingData(this.canvasSize, this.mapInfo);
             // Create a MapWorkingData for each section.
             this.sections = _m_map_common__WEBPACK_IMPORTED_MODULE_2__["MapWorkingData"].getWorkingDataSections(this.canvasSize, this.mapInfo, this.numberOfSections);
+            var ptr = 0;
+            for (ptr = 0; ptr < 4; ptr++) {
+                console.log('Section Number: ' + ptr + ' bot=' + this.sections[ptr].sectionAnchor.y + '.');
+            }
             // initialized our workers array (this.workers)
             this.workers = this.initWebWorkers(this.numberOfSections);
         }
@@ -852,7 +871,7 @@ var MMapDisplayComponent = /** @class */ (function () {
         var ptr = 0;
         for (ptr = 0; ptr < numberOfSections; ptr++) {
             var webWorker = new Worker('/assets/worker.js');
-            this.workers[ptr] = webWorker;
+            result[ptr] = webWorker;
             webWorker.addEventListener("message", function (evt) {
                 var plainMsg = _m_map_common__WEBPACK_IMPORTED_MODULE_2__["WebWorkerMessage"].FromEventData(evt.data);
                 if (plainMsg.messageKind === 'UpdatedMapData') {
@@ -922,7 +941,7 @@ var MMapService = /** @class */ (function () {
     function MMapService() {
     }
     MMapService.prototype.createMapWD = function (canvasSize, mapInfo) {
-        var result = new _m_map_common__WEBPACK_IMPORTED_MODULE_0__["MapWorkingData"](canvasSize, mapInfo);
+        var result = new _m_map_common__WEBPACK_IMPORTED_MODULE_0__["MapWorkingData"](canvasSize, mapInfo, new _m_map_common__WEBPACK_IMPORTED_MODULE_0__["Point"](0, 0));
         return result;
     };
     MMapService.prototype.createTestMapWD = function () {
@@ -931,7 +950,7 @@ var MMapService = /** @class */ (function () {
         var bottomLeft = new _m_map_common__WEBPACK_IMPORTED_MODULE_0__["Point"](-2, -1);
         var topRight = new _m_map_common__WEBPACK_IMPORTED_MODULE_0__["Point"](1, 1);
         var mi = new _m_map_common__WEBPACK_IMPORTED_MODULE_0__["MapInfo"](bottomLeft, topRight, maxInterations);
-        var result = new _m_map_common__WEBPACK_IMPORTED_MODULE_0__["MapWorkingData"](cs, mi);
+        var result = new _m_map_common__WEBPACK_IMPORTED_MODULE_0__["MapWorkingData"](cs, mi, new _m_map_common__WEBPACK_IMPORTED_MODULE_0__["Point"](0, 0));
         return result;
         //var alive = result.doInterations(10);
         //var flags: boolean[] = MapWorkingData.getFlagData(result);

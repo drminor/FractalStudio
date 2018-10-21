@@ -46,8 +46,8 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     this.numberOfSections = 4;
 
     // Define our MapInfo -- will be provided as input soon.
-    const bottomLeft: IPoint = new Point(-1, -1);
-    const topRight: IPoint = new Point(0.5, 0);
+    const bottomLeft: IPoint = new Point(-1, 0);
+    const topRight: IPoint = new Point(0.5, 1);
     const maxInterations = 1000;
     this.mapInfo = new MapInfo(bottomLeft, topRight, maxInterations);
 
@@ -65,6 +65,8 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     let ch: number = this.canvasRef.nativeElement.height;
 
     //console.log("Drawing on canvas with W = " + cw + " H = " + ch);
+
+    //if (sectionNumber > 2) return;
 
     let mapWorkingData: IMapWorkingData = this.sections[sectionNumber];
 
@@ -85,13 +87,15 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
       console.log('Draw is being called with ImageData whose height does not equal the canvas height for section number ' + sectionNumber + '.');
     }
 
-    let bot: number = mapWorkingData.mapInfo.bottomLeft.y;
-    let left: number = mapWorkingData.mapInfo.bottomLeft.x;
+    let left: number = mapWorkingData.sectionAnchor.x;
+    let bot: number = mapWorkingData.sectionAnchor.y;
 
     ctx.fillStyle = '#DD0031';
     ctx.clearRect(left, bot, imageData.width, imageData.height);
 
     ctx.putImageData(imageData, left, bot);
+
+    console.log('Just drew image data for sn=' + sectionNumber + ' left=' + left + ' bot =' + bot  + '.');
   }
 
   ngOnInit(): void {
@@ -130,6 +134,11 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
       // Create a MapWorkingData for each section.
       this.sections = MapWorkingData.getWorkingDataSections(this.canvasSize, this.mapInfo, this.numberOfSections);
 
+      let ptr: number = 0;
+      for (ptr = 0; ptr < 4; ptr++) {
+        console.log('Section Number: ' + ptr + ' bot=' + this.sections[ptr].sectionAnchor.y + '.');
+      }
+
       // initialized our workers array (this.workers)
       this.workers = this.initWebWorkers(this.numberOfSections);
     }
@@ -159,7 +168,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
     for (ptr = 0; ptr < numberOfSections; ptr++) {
       let webWorker = new Worker('/assets/worker.js');
-      this.workers[ptr] = webWorker;
+      result[ptr] = webWorker;
 
       webWorker.addEventListener("message", (evt) => {
         let plainMsg: IWebWorkerMessage = WebWorkerMessage.FromEventData(evt.data);

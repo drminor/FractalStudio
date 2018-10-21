@@ -13,7 +13,7 @@ export class MMapService {
   constructor() { }
 
   public createMapWD(canvasSize: ICanvasSize, mapInfo: IMapInfo): IMapWorkingData {
-    const result: IMapWorkingData = new MapWorkingData(canvasSize, mapInfo);
+    const result: IMapWorkingData = new MapWorkingData(canvasSize, mapInfo, new Point(0,0));
     return result;
   }
 
@@ -27,7 +27,7 @@ export class MMapService {
 
     const mi: IMapInfo = new MapInfo(bottomLeft, topRight, maxInterations);
 
-    const result: IMapWorkingData = new MapWorkingData(cs, mi);
+    const result: IMapWorkingData = new MapWorkingData(cs, mi, new Point(0,0));
     return result;
 
     
