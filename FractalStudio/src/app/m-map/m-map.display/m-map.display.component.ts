@@ -48,8 +48,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     const bottomLeft: IPoint = new Point(-0.45, 0.5);
     const topRight: IPoint = new Point(0.3, 1);
 
-
-    const maxInterations = 1000;
+    const maxInterations = 500;
     this.mapInfo = new MapInfo(bottomLeft, topRight, maxInterations);
 
     this.workers = [];
@@ -154,11 +153,9 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
         this.sections[0] = new MapWorkingData(this.canvasSize, this.mapInfo, new Point(0, 0));
 
         this.progresslvy();
-
       }
-
-
     }
+
   }
 
   private initMapDisplay(): ICanvasSize {
@@ -195,12 +192,12 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
           //console.log('Received ' + plainMsg.messageKind + ' with section number = ' + sectionNumber + ' from a web worker.');
 
-          let mapInfo: IMapWorkingData = this.sections[sectionNumber];
-          let imageData: ImageData = updatedMapDataMsg.getImageData(mapInfo.canvasSize);
+          let mapWorkingData: IMapWorkingData = this.sections[sectionNumber];
+          let imageData: ImageData = updatedMapDataMsg.getImageData(mapWorkingData.canvasSize);
 
           this.draw(imageData, sectionNumber);
 
-          if (mapInfo.curInterations++ < 100) {
+          if (mapWorkingData.curInterations++ < mapWorkingData.mapInfo.maxInterations) {
             this.workers[sectionNumber].postMessage('Iterate');
           }
         }
@@ -228,7 +225,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     const that = this;
     let alive: boolean = true;
 
-    let iterCount = 500;
+    let iterCount = this.sections[0].mapInfo.maxInterations;
     const intId = setInterval(doOneAndDraw, 5);
 
     function doOneAndDraw() {
