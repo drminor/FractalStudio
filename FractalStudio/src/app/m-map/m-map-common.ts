@@ -1,4 +1,5 @@
 import { element } from "@angular/core/src/render3/instructions";
+import * as math from "mathjs";
 
 const MAX_CANVAS_WIDTH: number = 5000;
 const MAX_CANVAS_HEIGHT: number = 5000;
@@ -109,7 +110,10 @@ export class MapWorkingData implements IMapWorkingData {
 
     // Y coordinates get larger as one moves from the bottom of the map to the top.
     // But ImageData "blocks" are drawn from top to bottom.
-    this.yVals = MapWorkingData.buildVals(this.canvasSize.height, this.mapInfo.bottomLeft.y, this.mapInfo.topRight.y);
+    //this.yVals = MapWorkingData.buildVals(this.canvasSize.height, this.mapInfo.bottomLeft.y, this.mapInfo.topRight.y);
+
+    // if we only have a single section, then we must reverse the y values.
+    this.yVals = MapWorkingData.buildValsRev(this.canvasSize.height, this.mapInfo.bottomLeft.y, this.mapInfo.topRight.y);
 
     this.curInterations = 0;
   }
@@ -155,13 +159,7 @@ export class MapWorkingData implements IMapWorkingData {
 
   // Returns the index to use when accessing wAData, wBData, cnts or flags.
   public getLinearIndex(c: IPoint): number {
-    //return c.x + c.y * this.canvasSize.width;
-
-    let result: number = c.x;
-    let yComp = this.canvasSize.width - c.y * this.canvasSize.width;
-    result += yComp;
-
-    return result;
+    return c.x + c.y * this.canvasSize.width;
   }
 
   // Calculates z squared + c
@@ -254,67 +252,6 @@ export class MapWorkingData implements IMapWorkingData {
     return stillAlive;
   }
 
-  public getImageData(): ImageData {
-    const imageData = new ImageData(this.canvasSize.width, this.canvasSize.height);
-    this.updateImageData(imageData);
-    return imageData;
-  }
-
-  public getImageDataForLine(y: number): ImageData {
-    const imageData = new ImageData(this.canvasSize.width, 1);
-    this.updateImageDataForLine(imageData, y);
-    return imageData;
-  }
-
-  private updateImageData(imageData: ImageData): void {
-    let data: Uint8ClampedArray = imageData.data;
-    if (data.length !== 4 * this.elementCount) {
-      console.log("The imagedata data does not have the correct number of elements.");
-      return;
-    }
-
-    let i: number = 0;
-
-    for (; i < this.elementCount; i++) {
-      const inTheSet: boolean = this.flags[i] === 0;
-      this.setPixelValueBinary(inTheSet, i * 4, data);
-    }
-  }
-
-  private updateImageDataForLine(imageData: ImageData, y: number): void {
-    let data: Uint8ClampedArray = imageData.data;
-    if (data.length !== 4 * this.canvasSize.width) {
-      console.log("The imagedata data does not have the correct number of elements.");
-      return;
-    }
-
-    let start: number = this.getLinearIndex(new Point(0, y));
-    let end: number = start + this.canvasSize.width;
-
-    let i: number;
-
-    for (i = start; i < end; i++) {
-      const inTheSet: boolean = this.flags[i] === 0;
-      this.setPixelValueBinary(inTheSet, i * 4, data);
-    }
-  }
-  
-  private setPixelValueBinary(on: boolean, ptr: number, imageData: Uint8ClampedArray) {
-    if (on) {
-      // Points within the set are drawn in black.
-      imageData[ptr] = 0;
-      imageData[ptr + 1] = 0;
-      imageData[ptr + 2] = 0;
-      imageData[ptr + 3] = 255;
-    } else {
-      // Points outside the set are drawn in white.
-      imageData[ptr] = 255;
-      imageData[ptr + 1] = 255;
-      imageData[ptr + 2] = 255;
-      imageData[ptr + 3] = 255;
-    }
-  }
-
   // Divides the specified MapWorking data into the specified vertical sections, each having the width of the original Map.
   static getWorkingDataSections(canvasSize: ICanvasSize, mapInfo: IMapInfo, numberOfSections: number): IMapWorkingData[] {
     let result: IMapWorkingData[] = Array<IMapWorkingData>(numberOfSections);
@@ -379,6 +316,136 @@ export class MapWorkingData implements IMapWorkingData {
     return result;
   }
 
+  public getImageData(): ImageData {
+
+    const pixelData = new Uint32Array(this.elementCount);
+
+    this.updateImageDataNew(pixelData);
+
+    const imgData = new Uint8ClampedArray(pixelData.buffer);
+    const imageData = new ImageData(imgData, this.canvasSize.width, this.canvasSize.height);
+
+    return imageData;
+  }
+ 
+  private updateImageDataNew(pixelData: Uint32Array): void {
+    if (pixelData.length !== this.elementCount) {
+      console.log("The pixel data does not have the correct number of elements.");
+      return;
+    }
+
+    let i: number = 0;
+    let colorNums = new ColorNumbers();
+
+    //for (; i < this.elementCount; i++) {
+    //  const inTheSet: boolean = this.flags[i] === 0;
+    //  this.setPixelValueBinaryByInt(inTheSet, i, pixelData, colorNums);
+    //}
+
+    for (; i < this.elementCount; i++) {
+      const cnt = this.cnts[i];
+      this.setPixelValueFromCount(cnt, i, pixelData, colorNums);
+    }
+  }
+  
+  private setPixelValueBinaryByInt(on: boolean, ptr: number, imageData: Uint32Array, colorNums: ColorNumbers) {
+    if (on) {
+      // Points within the set are drawn in black.
+      imageData[ptr] = colorNums.red;
+    } else {
+      // Points outside the set are drawn in white.
+      let tt: number = colorNums.white;
+
+      //tt = ‭math.pow(2, 32);
+
+      imageData[ptr] = tt; //math.pow(2, 32).valueOf() as number;
+    }
+  }
+
+  private setPixelValueFromCount(cnt: number, ptr: number, imageData: Uint32Array, colorNums: ColorNumbers) {
+
+    let cNum: number;
+
+    if (cnt < 10) {
+      cNum = colorNums.white;
+    }
+    else if (cnt < 20) {
+      cNum = colorNums.red;
+    }
+    else if (cnt < 50) {
+      cNum = colorNums.green;
+    }
+    else if (cnt < 200) {
+      cNum = colorNums.blue;
+    }
+    else {
+      cNum = colorNums.black;
+    }
+
+    imageData[ptr] = cNum;
+  }
+
+  public getImageDataForLine(y: number): ImageData {
+    const imageData = new ImageData(this.canvasSize.width, 1);
+    this.updateImageDataForLine(imageData, y);
+    return imageData;
+  }
+
+  private updateImageDataForLine(imageData: ImageData, y: number): void {
+    let data: Uint8ClampedArray = imageData.data;
+    if (data.length !== 4 * this.canvasSize.width) {
+      console.log("The imagedata data does not have the correct number of elements.");
+      return;
+    }
+
+    let start: number = this.getLinearIndex(new Point(0, y));
+    let end: number = start + this.canvasSize.width;
+
+    let i: number;
+
+    for (i = start; i < end; i++) {
+      const inTheSet: boolean = this.flags[i] === 0;
+      this.setPixelValueBinary(inTheSet, i * 4, data);
+    }
+  }
+
+  private updateImageData(imageData: ImageData): void {
+    let data: Uint8ClampedArray = imageData.data;
+    if (data.length !== 4 * this.elementCount) {
+      console.log("The imagedata data does not have the correct number of elements.");
+      return;
+    }
+
+    let i: number = 0;
+
+    for (; i < this.elementCount; i++) {
+      const inTheSet: boolean = this.flags[i] === 0;
+      this.setPixelValueBinary(inTheSet, i * 4, data);
+    }
+  }
+
+  private setPixelValueBinary(on: boolean, ptr: number, imageData: Uint8ClampedArray) {
+    if (on) {
+      // Points within the set are drawn in black.
+      imageData[ptr] = 0;
+      imageData[ptr + 1] = 0;
+      imageData[ptr + 2] = 0;
+      imageData[ptr + 3] = 255;
+    } else {
+      // Points outside the set are drawn in white.
+      imageData[ptr] = 255;
+      imageData[ptr + 1] = 255;
+      imageData[ptr + 2] = 255;
+      imageData[ptr + 3] = 255;
+    }
+  }
+
+  public getImageDataOld(): ImageData {
+    const imageData = new ImageData(this.canvasSize.width, this.canvasSize.height);
+    this.updateImageData(imageData);
+    return imageData;
+  }
+
   // Returns a 'regular' linear array of booleans from the flags TypedArray.
   private getFlagData(mapWorkingData: IMapWorkingData): boolean[] {
 
@@ -393,6 +460,36 @@ export class MapWorkingData implements IMapWorkingData {
   }
 } // End Class MapWorkingData
 
+
+export class ColorNumbers {
+
+  black: number = 65536 * 65280; // FF00 0000
+  white: number; // = -1 + 65536 * 65536; // FFFF FFFF
+  red: number;
+  green: number;
+  blue: number;
+
+  constructor() {
+    this.white = this.getColorNumber(255, 255, 255);
+    this.red = this.getColorNumber(255, 0, 0);
+    this.green = this.getColorNumber(0, 255, 0);
+    this.blue = this.getColorNumber(0, 0, 255);
+  }
+
+  private getColorNumber(r: number, g: number, b: number): number {
+
+    if (r > 255 || r < 0) throw new RangeError('R must be between 0 and 255.');
+    if (g > 255 || g < 0) throw new RangeError('G must be between 0 and 255.');
+    if (b > 255 || b < 0) throw new RangeError('B must be between 0 and 255.');
+
+    let result: number = this.black;
+    result += b << 16;
+    result += g << 8;
+    result += r;
+
+    return result;
+  }
+}
 
 // ---- WebWorker Messages ----
 

@@ -35,21 +35,33 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
   private numberOfSections: number;
   private sections: IMapWorkingData[];
 
+  private useWorkers: boolean;
+
   constructor(private logger: Logger, private mService: MMapService) {
     this.componentInitialized = false;
     this.viewInitialized = false;
 
-    // Set the number of sections to 4 - because we have 4 logical processors.
-    this.numberOfSections = 4;
-
     // Define our MapInfo -- will be provided as input soon.
-    const bottomLeft: IPoint = new Point(-1, 0);
-    const topRight: IPoint = new Point(0.5, 1);
+    //const bottomLeft: IPoint = new Point(-2, -1);
+    //const topRight: IPoint = new Point(1, 1);
+
+    const bottomLeft: IPoint = new Point(-0.45, 0.5);
+    const topRight: IPoint = new Point(0.3, 1);
+
+
     const maxInterations = 1000;
     this.mapInfo = new MapInfo(bottomLeft, topRight, maxInterations);
 
     this.workers = [];
     this.sections = [];
+
+    //// Set the number of sections to 4 - because we have 4 logical processors.
+    //this.numberOfSections = 4;
+    //this.useWorkers = true;
+
+    // For simplicity, do not use Web Workers and use only one section.
+    this.numberOfSections = 1;
+    this.useWorkers = false;
   }
 
   draw(imageData: ImageData, sectionNumber: number): void {
@@ -86,7 +98,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
     ctx.putImageData(imageData, left, bot);
 
-    //console.log('Just drew image data for sn=' + sectionNumber + ' left=' + left + ' bot =' + bot  + '.');
+    console.log('Just drew image data for sn=' + sectionNumber + ' left=' + left + ' bot =' + bot  + '.');
   }
 
   ngOnInit(): void {
@@ -119,19 +131,33 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
       console.log("The initial canvas size is W = " + this.canvasSize.width + " H = " + this.canvasSize.height);
 
       // Now that we know the size of our canvas,
-      //// Build mapWorkingData for the entire map.
-      //let mapWorkingData = new MapWorkingData(this.canvasSize, this.mapInfo);
 
-      // Create a MapWorkingData for each section.
-      this.sections = MapWorkingData.getWorkingDataSections(this.canvasSize, this.mapInfo, this.numberOfSections);
 
-      let ptr: number = 0;
-      for (ptr = 0; ptr < 4; ptr++) {
-        console.log('Section Number: ' + ptr + ' bot=' + this.sections[ptr].sectionAnchor.y + '.');
+      if (this.useWorkers) {
+        // Create a MapWorkingData for each section.
+        this.sections = MapWorkingData.getWorkingDataSections(this.canvasSize, this.mapInfo, this.numberOfSections);
+
+        let ptr: number = 0;
+        for (ptr = 0; ptr < 4; ptr++) {
+          console.log('Section Number: ' + ptr + ' bot=' + this.sections[ptr].sectionAnchor.y + '.');
+        }
+
+        // initialized our workers array (this.workers)
+        this.workers = this.initWebWorkers(this.numberOfSections);
+      }
+      else {
+        if (this.numberOfSections !== 1) {
+          //console.log('The number of sections must be set to 1, if useWorkers = false.');
+          throw new RangeError('The number of sections must be set to 1, if useWorkers = false.');
+        }
+        this.sections = new Array<IMapWorkingData>(1);
+        this.sections[0] = new MapWorkingData(this.canvasSize, this.mapInfo, new Point(0, 0));
+
+        this.progresslvy();
+
       }
 
-      // initialized our workers array (this.workers)
-      this.workers = this.initWebWorkers(this.numberOfSections);
+
     }
   }
 
@@ -197,41 +223,28 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     return result;
   }
 
-  // OLD STUFF
-    //private buildWorkingData(canvasSize: ICanvasSize): IMapWorkingData {
+  private progresslvy(): void {
 
-  //  const topRight: IPoint = new Point(1, 1);
-  // const bottomLeft: IPoint = new Point(-2, -1);
+    const that = this;
+    let alive: boolean = true;
 
-  //  const maxInterations = 1000;
+    let iterCount = 500;
+    const intId = setInterval(doOneAndDraw, 5);
 
-  //  const mi: IMapInfo = new MapInfo(bottomLeft, topRight, maxInterations);
+    function doOneAndDraw() {
+      if (iterCount > 0 && alive) {
+        iterCount--;
 
-  //  const workingData = this.mService.createMapWD(canvasSize, mi);
+        let mapWorkinData: IMapWorkingData = that.sections[0];
 
-  //  return workingData;
-  //}
+        alive = mapWorkinData.doInterationsForAll(1);
 
-
-  //private progresslvy(): void {
-
-  //  const that = this;
-
-  //  let iterCount = 100;
-  //  const intId = setInterval(doOneAndDraw, 5);
-
-  //  function doOneAndDraw() {
-  //    if (iterCount > 0) {
-  //      iterCount--;
-
-  //      that.workers[0].postMessage('Iterate');
-  //      //that.doInterations(1);
-  //      //that.draw();
-
-  //    } else {
-  //      clearInterval(intId);
-  //    }
-  //  }
-  //}
+        let imageData: ImageData = mapWorkinData.getImageData();
+        that.draw(imageData, 0);
+      } else {
+        clearInterval(intId);
+      }
+    }
+  }
 
 }
