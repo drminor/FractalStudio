@@ -16,10 +16,5 @@
     <TypeScriptCompile Include="src\app\SampleClassTypeDeclarations\file.ts" />
   </ItemGroup>
 
-  <ItemGroup>
-    <None Update="src\assets\worker.js">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
 
 </Project>

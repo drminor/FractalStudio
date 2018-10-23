@@ -42,6 +42,8 @@ export interface IMapWorkingData {
 
   curInterations: number;
 
+  pixelData: Uint8ClampedArray;
+
   //getLinearIndex(x: number, y: number): number;
   getLinearIndex(c: IPoint): number;
   doInterationsForAll(iterCount: number): boolean;
@@ -49,6 +51,8 @@ export interface IMapWorkingData {
 
   getImageData(): ImageData;
   getImageDataForLine(y: number): ImageData;
+
+  updateImageData(imgData: Uint8ClampedArray): void;
 }
 
 export class Point implements IPoint {
@@ -95,6 +99,8 @@ export class MapWorkingData implements IMapWorkingData {
 
   public curInterations: number;
 
+  public pixelData: Uint8ClampedArray;
+
   constructor(public canvasSize: ICanvasSize, public mapInfo: IMapInfo, public sectionAnchor: IPoint) {
 
     this.elementCount = this.getNumberOfElementsForCanvas(this.canvasSize);
@@ -116,6 +122,8 @@ export class MapWorkingData implements IMapWorkingData {
     this.yVals = MapWorkingData.buildValsRev(this.canvasSize.height, this.mapInfo.bottomLeft.y, this.mapInfo.topRight.y);
 
     this.curInterations = 0;
+
+    this.pixelData = new Uint8ClampedArray(this.elementCount * 4);
   }
 
   // Calculate the number of elements in our single dimension data array needed to cover the
@@ -318,29 +326,28 @@ export class MapWorkingData implements IMapWorkingData {
 
   public getImageData(): ImageData {
 
-    const pixelData = new Uint32Array(this.elementCount);
+    const imgData = new Uint8ClampedArray(this.elementCount * 4);
 
-    this.updateImageDataNew(pixelData);
+    //const pixelData = new Uint32Array(this.elementCount);
 
-    const imgData = new Uint8ClampedArray(pixelData.buffer);
+    this.updateImageData(imgData);
+
+    //const imgData = new Uint8ClampedArray(pixelData.buffer);
     const imageData = new ImageData(imgData, this.canvasSize.width, this.canvasSize.height);
 
     return imageData;
   }
  
-  private updateImageDataNew(pixelData: Uint32Array): void {
-    if (pixelData.length !== this.elementCount) {
-      console.log("The pixel data does not have the correct number of elements.");
+  public updateImageData(imgData: Uint8ClampedArray): void {
+    if (imgData.length !== this.elementCount * 4) {
+      console.log("The imgData data does not have the correct number of elements.");
       return;
     }
 
+    const pixelData = new Uint32Array(imgData.buffer);
+
     let i: number = 0;
     let colorNums = new ColorNumbers();
-
-    //for (; i < this.elementCount; i++) {
-    //  const inTheSet: boolean = this.flags[i] === 0;
-    //  this.setPixelValueBinaryByInt(inTheSet, i, pixelData, colorNums);
-    //}
 
     for (; i < this.elementCount; i++) {
       const cnt = this.cnts[i];
@@ -409,7 +416,7 @@ export class MapWorkingData implements IMapWorkingData {
     }
   }
 
-  private updateImageData(imageData: ImageData): void {
+  private updateImageDataOld(imageData: ImageData): void {
     let data: Uint8ClampedArray = imageData.data;
     if (data.length !== 4 * this.elementCount) {
       console.log("The imagedata data does not have the correct number of elements.");
@@ -442,7 +449,7 @@ export class MapWorkingData implements IMapWorkingData {
 
   public getImageDataOld(): ImageData {
     const imageData = new ImageData(this.canvasSize.width, this.canvasSize.height);
-    this.updateImageData(imageData);
+    this.updateImageDataOld(imageData);
     return imageData;
   }
 
@@ -497,13 +504,6 @@ export interface IWebWorkerMessage {
   messageKind: string;
 }
 
-export interface IWebWorkerMapUpdateResponse extends IWebWorkerMessage {
-  sectionNumber?: number;
-  imgData?: Uint8ClampedArray;
-
-  getImageData(cs: ICanvasSize): ImageData;
-}
-
 export interface IWebWorkerStartRequest extends IWebWorkerMessage {
   canvasSize: ICanvasSize;
   mapInfo: IMapInfo;
@@ -515,40 +515,42 @@ export interface IWebWorkerIterateRequest extends IWebWorkerMessage {
   iterateCount: number;
 }
 
+export interface IWebWorkerImageDataRequest extends IWebWorkerMessage {
+  pixelData: Uint8ClampedArray;
+}
+
+export interface IWebWorkerImageDataResponse extends IWebWorkerMessage {
+  sectionNumber: number;
+  pixelData: Uint8ClampedArray;
+
+  getImageData(cs: ICanvasSize): ImageData;
+}
+
+export interface IWebWorkerAliveFlagsRequest extends IWebWorkerMessage {
+  flagData: Uint8Array;
+}
+
+export interface IWebWorkerAliveFlagsResponse extends IWebWorkerMessage {
+  sectionNumber: number;
+  flagData: Uint8Array;
+
+  getAliveFlags(): boolean[];
+}
+
+export interface IWebWorkerIterCountsRequest extends IWebWorkerMessage {
+  iterCountsData: Uint16Array;
+}
+
+export interface IWebWorkerIterCountsResponse extends IWebWorkerMessage {
+  sectionNumber: number;
+  iterCountsData: Uint16Array;
+}
+
 export class WebWorkerMessage implements IWebWorkerMessage {
   constructor(public messageKind: string) { }
 
   static FromEventData(data: any): IWebWorkerMessage {
     return new WebWorkerMessage(data.messageKind || data || 'no data');
-  }
-}
-
-export class WebWorkerMapUpdateResponse implements IWebWorkerMapUpdateResponse {
-
-  constructor(public messageKind: string, public sectionNumber: number, public imgData?: Uint8ClampedArray) { }
-
-  static FromEventData(data: any): IWebWorkerMapUpdateResponse {
-    let result = new WebWorkerMapUpdateResponse(data.messageKind, data.sectionNumber, data.imgData);
-
-    return result;
-  }
-
-  static ForUpdateMap(sectionNumber: number, imageData: ImageData): IWebWorkerMapUpdateResponse {
-    let result = new WebWorkerMapUpdateResponse("UpdatedMapData", sectionNumber, imageData.data);
-    return result;
-  }
-
-  public getImageData(cs: ICanvasSize): ImageData {
-    let result: ImageData = null;
-
-    if (this.imgData) {
-      let pixelCount = this.imgData.length / 4;
-      if (pixelCount !== cs.width * cs.height) {
-        console.log('The image data being returned is not the correct size for our canvas.');
-      }
-      result = new ImageData(this.imgData, cs.width, cs.height);
-    }
-    return result;
   }
 }
 
@@ -567,7 +569,7 @@ export class WebWorkerStartRequest implements IWebWorkerStartRequest {
     return result;
   }
 
-  static ForStart(mapWorkingData: IMapWorkingData, sectionNumber: number): IWebWorkerStartRequest {
+  static CreateRequest(mapWorkingData: IMapWorkingData, sectionNumber: number): IWebWorkerStartRequest {
     let result = new WebWorkerStartRequest('Start', mapWorkingData.canvasSize, mapWorkingData.mapInfo, mapWorkingData.sectionAnchor, sectionNumber);
     return result;
   }
@@ -587,41 +589,173 @@ export class WebWorkerIterateRequest implements IWebWorkerIterateRequest {
   }
 }
 
-/// Only used when the javascript produced from compiling this TypeScript is used to create worker.js
+export class WebWorkerImageDataRequest implements IWebWorkerImageDataRequest {
+  constructor(public messageKind: string, public pixelData: Uint8ClampedArray) { }
 
-//var mapWorkingData: IMapWorkingData = null;
-//var sectionNumber: number = 0;
+  static FromEventData(data: any): IWebWorkerImageDataRequest {
+    let result = new WebWorkerImageDataRequest(data.messageKind, data.pixelData);
+    return result;
+  }
 
-//// Handles messages sent from the window that started this web worker.
-//onmessage = function (e) {
-//  //console.log('Worker received message: ' + e.data + '.');
-//  let plainMsg: IWebWorkerMessage = WebWorkerMessage.FromEventData(e.data);
+  static CreateRequest(pixelData: Uint8ClampedArray): IWebWorkerImageDataRequest {
+    let result = new WebWorkerImageDataRequest('GetImageData', pixelData);
+    return result;
+  }
+}
 
-//  if (plainMsg.messageKind === 'Start') {
-//    let startMsg = WebWorkerStartRequest.FromEventData(e.data);
-//    mapWorkingData = new MapWorkingData(startMsg.canvasSize, startMsg.mapInfo, startMsg.sectionAnchor);
-//    sectionNumber = startMsg.sectionNumber;
-//    console.log('Worker created MapWorkingData with element count = ' + mapWorkingData.elementCount);
+export class WebWorkerImageDataResponse implements IWebWorkerImageDataResponse {
 
-//    let responseMsg = new WebWorkerMessage('StartResponse');
-//    console.log('Posting ' + responseMsg.messageKind + ' back to main script');
-//    self.postMessage(responseMsg, "*");
-//  }
-//  else if (plainMsg.messageKind === 'Iterate') {
-//    mapWorkingData.doInterationsForAll(1);
-//    var imageData = mapWorkingData.getImageData();
-//    let workerResult: IWebWorkerMapUpdateResponse =
-//      WebWorkerMapUpdateResponse.ForUpdateMap(sectionNumber, imageData);
+  constructor(public messageKind: string, public sectionNumber: number, public pixelData: Uint8ClampedArray) { }
 
-//    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
-//    self.postMessage(workerResult, "*", [imageData.data.buffer]);
-//  }
-//  else {
-//    console.log('Received unknown message kind: ' + plainMsg.messageKind);
-//  }
+  static FromEventData(data: any): IWebWorkerImageDataResponse {
+    let result = new WebWorkerImageDataResponse(data.messageKind, data.sectionNumber, data.pixelData);
+
+    return result;
+  }
+
+  static CreateResponse(sectionNumber: number, pixelData: Uint8ClampedArray): IWebWorkerImageDataResponse {
+    let result = new WebWorkerImageDataResponse("ImageDataResponse", sectionNumber, pixelData);
+    return result;
+  }
+
+  public getImageData(cs: ICanvasSize): ImageData {
+    let result: ImageData = null;
+
+    //if (this.pixelData) {
+      let pixelCount = this.pixelData.length / 4;
+      if (pixelCount !== cs.width * cs.height) {
+        console.log('The image data being returned is not the correct size for our canvas.');
+      }
+      result = new ImageData(this.pixelData, cs.width, cs.height);
+    //}
+    return result;
+  }
+}
+
+export class WebWorkerAliveFlagsRequest implements IWebWorkerAliveFlagsRequest {
+  constructor(public messageKind: string, public flagData: Uint8Array) { }
+
+  static FromEventData(data: any): IWebWorkerAliveFlagsRequest {
+    let result = new WebWorkerAliveFlagsRequest(data.messageKind, data.flagData);
+    return result;
+  }
+
+  static CreateRequest(flagData: Uint8Array): IWebWorkerAliveFlagsRequest {
+    let result = new WebWorkerAliveFlagsRequest('GetAliveFlags', flagData);
+    return result;
+  }
+}
+
+export class WebWorkerAliveFlagsResponse implements IWebWorkerAliveFlagsResponse {  
+
+  constructor(public messageKind: string, public sectionNumber: number, public flagData: Uint8Array) { }
+
+  static FromEventData(data: any): IWebWorkerImageDataResponse {
+    let result = new WebWorkerImageDataResponse(data.messageKind, data.sectionNumber, data.flagData);
+
+    return result;
+  }
+
+  static CreateResponse(sectionNumber: number, flagData: Uint8Array): IWebWorkerAliveFlagsResponse {
+    let result = new WebWorkerAliveFlagsResponse("AliveFlagResults", sectionNumber, flagData);
+    return result;
+  }
+
+  public getAliveFlags(): boolean[] {
+    let result: boolean[] = new Array<boolean>(this.flagData.length);
+
+    let ptr: number = 0;
+    for (; ptr < this.flagData.length; ptr++) {
+      result[ptr] = this.flagData[ptr] !== 0;
+    }
+
+    return result;
+  }
+}
+
+export class WebWorkerIterCountsRequest implements IWebWorkerIterCountsRequest {
+  constructor(public messageKind: string, public iterCountsData: Uint16Array) { }
+
+  static FromEventData(data: any): IWebWorkerAliveFlagsRequest {
+    let result = new WebWorkerAliveFlagsRequest(data.messageKind, data.flagData);
+    return result;
+  }
+
+  static CreateRequest(flagData: Uint8Array): IWebWorkerAliveFlagsRequest {
+    let result = new WebWorkerAliveFlagsRequest('GetIterCounts', flagData);
+    return result;
+  }
+
+}
+
+export class WebWorkerIterCountsResponse implements IWebWorkerIterCountsResponse {
+  constructor(public messageKind: string, public sectionNumber: number, public iterCountsData: Uint16Array) { }
+
+  static FromEventData(data: any): IWebWorkerIterCountsResponse {
+    let result = new WebWorkerIterCountsResponse(data.messageKind, data.sectionNumber, data.iterCountsData);
+
+    return result;
+  }
+
+  static CreateResponse(sectionNumber: number, iterCountsData: Uint16Array): IWebWorkerIterCountsResponse {
+    let result = new WebWorkerIterCountsResponse("IterCountsResults", sectionNumber, iterCountsData);
+    return result;
+  }
+}
+
+// Only used when the javascript produced from compiling this TypeScript is used to create worker.js
+
+var mapWorkingData: IMapWorkingData = null;
+var sectionNumber: number = 0;
+
+// Handles messages sent from the window that started this web worker.
+onmessage = function (e) {
+
+  var pixelData: Uint8ClampedArray;
+  var imageData: ImageData;
+  var imageDataResponse: IWebWorkerImageDataResponse;
+
+  //console.log('Worker received message: ' + e.data + '.');
+  let plainMsg: IWebWorkerMessage = WebWorkerMessage.FromEventData(e.data);
+
+  if (plainMsg.messageKind === 'Start') {
+    let startMsg = WebWorkerStartRequest.FromEventData(e.data);
+    mapWorkingData = new MapWorkingData(startMsg.canvasSize, startMsg.mapInfo, startMsg.sectionAnchor);
+    sectionNumber = startMsg.sectionNumber;
+    console.log('Worker created MapWorkingData with element count = ' + mapWorkingData.elementCount);
+
+    let responseMsg = new WebWorkerMessage('StartResponse');
+    console.log('Posting ' + responseMsg.messageKind + ' back to main script');
+    self.postMessage(responseMsg, "*");
+  }
+  else if (plainMsg.messageKind === 'Iterate') {
+    mapWorkingData.doInterationsForAll(1);
+    imageData = mapWorkingData.getImageData();
+
+    imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, imageData.data);
+
+    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
+    self.postMessage(imageDataResponse, "*", [imageData.data.buffer]);
+  }
+  else if (plainMsg.messageKind === 'GetImageData') {
+    mapWorkingData.doInterationsForAll(1);
+
+    let dataRequest = WebWorkerImageDataRequest.FromEventData(e.data);
+
+    pixelData = dataRequest.pixelData;
+    mapWorkingData.updateImageData(pixelData);
+
+    imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, pixelData);
+
+    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
+    self.postMessage(imageDataResponse, "*", [pixelData.buffer]);
+  }
+  else {
+    console.log('Received unknown message kind: ' + plainMsg.messageKind);
+  }
 
 
-//};
+};
 
 
 
