@@ -370,7 +370,7 @@ var WebWorkerIterateRequest = /** @class */ (function () {
     var result = new WebWorkerIterateRequest(data.messageKind, data.iterateCount);
     return result;
   };
-  WebWorkerIterateRequest.ForIterate = function (iterateCount) {
+  WebWorkerIterateRequest.CreateRequest = function (iterateCount) {
     var result = new WebWorkerIterateRequest('Iterate', iterateCount);
     return result;
   };
@@ -508,7 +508,12 @@ onmessage = function (e) {
     self.postMessage(responseMsg);
   }
   else if (plainMsg.messageKind === 'Iterate') {
-    mapWorkingData.doInterationsForAll(1);
+    console.log('WebWorker ' + this.sectionNumber + ' received an Iterate Request.');
+    var iterateRequestMsg = WebWorkerIterateRequest.FromEventData(e.data);
+    var iterCount = iterateRequestMsg.iterateCount;
+    mapWorkingData.doInterationsForAll(iterCount);
+
+    //mapWorkingData.doInterationsForAll(1);
     imageData = mapWorkingData.getImageData();
     imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, imageData.data);
     //console.log('Posting ' + workerResult.messageKind + ' back to main script');

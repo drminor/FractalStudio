@@ -583,7 +583,7 @@ export class WebWorkerIterateRequest implements IWebWorkerIterateRequest {
     return result;
   }
 
-  static ForIterate(iterateCount: number): IWebWorkerIterateRequest {
+  static CreateRequest(iterateCount: number): IWebWorkerIterateRequest {
     let result = new WebWorkerIterateRequest('Iterate', iterateCount);
     return result;
   }
@@ -696,7 +696,7 @@ export class WebWorkerIterCountsResponse implements IWebWorkerIterCountsResponse
 
     return result;
   }
-
+  
   static CreateResponse(sectionNumber: number, iterCountsData: Uint16Array): IWebWorkerIterCountsResponse {
     let result = new WebWorkerIterCountsResponse("IterCountsResults", sectionNumber, iterCountsData);
     return result;
@@ -705,57 +705,59 @@ export class WebWorkerIterCountsResponse implements IWebWorkerIterCountsResponse
 
 // Only used when the javascript produced from compiling this TypeScript is used to create worker.js
 
-var mapWorkingData: IMapWorkingData = null;
-var sectionNumber: number = 0;
+//var mapWorkingData: IMapWorkingData = null;
+//var sectionNumber: number = 0;
 
-// Handles messages sent from the window that started this web worker.
-onmessage = function (e) {
+//// Handles messages sent from the window that started this web worker.
+//onmessage = function (e) {
 
-  var pixelData: Uint8ClampedArray;
-  var imageData: ImageData;
-  var imageDataResponse: IWebWorkerImageDataResponse;
+//  var pixelData: Uint8ClampedArray;
+//  var imageData: ImageData;
+//  var imageDataResponse: IWebWorkerImageDataResponse;
 
-  //console.log('Worker received message: ' + e.data + '.');
-  let plainMsg: IWebWorkerMessage = WebWorkerMessage.FromEventData(e.data);
+//  //console.log('Worker received message: ' + e.data + '.');
+//  let plainMsg: IWebWorkerMessage = WebWorkerMessage.FromEventData(e.data);
 
-  if (plainMsg.messageKind === 'Start') {
-    let startMsg = WebWorkerStartRequest.FromEventData(e.data);
-    mapWorkingData = new MapWorkingData(startMsg.canvasSize, startMsg.mapInfo, startMsg.sectionAnchor);
-    sectionNumber = startMsg.sectionNumber;
-    console.log('Worker created MapWorkingData with element count = ' + mapWorkingData.elementCount);
+//  if (plainMsg.messageKind === 'Start') {
+//    let startMsg = WebWorkerStartRequest.FromEventData(e.data);
+//    mapWorkingData = new MapWorkingData(startMsg.canvasSize, startMsg.mapInfo, startMsg.sectionAnchor);
+//    sectionNumber = startMsg.sectionNumber;
+//    console.log('Worker created MapWorkingData with element count = ' + mapWorkingData.elementCount);
 
-    let responseMsg = new WebWorkerMessage('StartResponse');
-    console.log('Posting ' + responseMsg.messageKind + ' back to main script');
-    self.postMessage(responseMsg, "*");
-  }
-  else if (plainMsg.messageKind === 'Iterate') {
-    mapWorkingData.doInterationsForAll(1);
-    imageData = mapWorkingData.getImageData();
+//    let responseMsg = new WebWorkerMessage('StartResponse');
+//    console.log('Posting ' + responseMsg.messageKind + ' back to main script');
+//    self.postMessage(responseMsg, "*");
+//  }
+//  else if (plainMsg.messageKind === 'Iterate') {
+//    let iterateRequestMsg = WebWorkerIterateRequest.FromEventData(e.data);
+//    let iterCount = iterateRequestMsg.iterateCount;
+//    mapWorkingData.doInterationsForAll(iterCount);
+//    imageData = mapWorkingData.getImageData();
 
-    imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, imageData.data);
+//    imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, imageData.data);
 
-    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
-    self.postMessage(imageDataResponse, "*", [imageData.data.buffer]);
-  }
-  else if (plainMsg.messageKind === 'GetImageData') {
-    mapWorkingData.doInterationsForAll(1);
+//    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
+//    self.postMessage(imageDataResponse, "*", [imageData.data.buffer]);
+//  }
+//  else if (plainMsg.messageKind === 'GetImageData') {
+//    mapWorkingData.doInterationsForAll(1);
 
-    let dataRequest = WebWorkerImageDataRequest.FromEventData(e.data);
+//    let dataRequest = WebWorkerImageDataRequest.FromEventData(e.data);
 
-    pixelData = dataRequest.pixelData;
-    mapWorkingData.updateImageData(pixelData);
+//    pixelData = dataRequest.pixelData;
+//    mapWorkingData.updateImageData(pixelData);
 
-    imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, pixelData);
+//    imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, pixelData);
 
-    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
-    self.postMessage(imageDataResponse, "*", [pixelData.buffer]);
-  }
-  else {
-    console.log('Received unknown message kind: ' + plainMsg.messageKind);
-  }
+//    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
+//    self.postMessage(imageDataResponse, "*", [pixelData.buffer]);
+//  }
+//  else {
+//    console.log('Received unknown message kind: ' + plainMsg.messageKind);
+//  }
 
 
-};
+//};
 
 
 

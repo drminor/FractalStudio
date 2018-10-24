@@ -4,7 +4,7 @@ import { Logger } from '../../logger.service';
 import {
   IPoint, Point, ICanvasSize, CanvasSize,
   IMapInfo, MapInfo, IMapWorkingData, MapWorkingData,
-  WebWorkerImageDataResponse, WebWorkerMessage, WebWorkerStartRequest, WebWorkerImageDataRequest
+  WebWorkerImageDataResponse, WebWorkerMessage, WebWorkerStartRequest, WebWorkerImageDataRequest, WebWorkerIterateRequest
 } from '../m-map-common';
 
 import { MMapService } from '../m-map.service';
@@ -36,6 +36,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
   private sections: IMapWorkingData[];
 
   private useWorkers: boolean;
+  private iterationsPerStep: number;
 
   constructor(private logger: Logger, private mService: MMapService) {
     this.componentInitialized = false;
@@ -47,6 +48,8 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
     const bottomLeft: IPoint = new Point(-0.45, 0.5);
     const topRight: IPoint = new Point(0.3, 1);
+
+    this.iterationsPerStep = 1;
 
     const maxInterations = 500;
     this.mapInfo = new MapInfo(bottomLeft, topRight, maxInterations);
@@ -61,6 +64,13 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     //// For simplicity, do not use Web Workers and use only one section.
     //this.numberOfSections = 1;
     //this.useWorkers = false;
+  }
+
+  drawEndNote(): void {
+    //let ctx: CanvasRenderingContext2D = this.canvasRef.nativeElement.getContext('2d');
+
+    //ctx.fillStyle = '#DD0031';
+    //ctx.clearRect(0, 0, this.canvasSize.width, 20);
   }
 
   draw(imageData: ImageData, sectionNumber: number): void {
@@ -193,20 +203,35 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
           let mapWorkingData: IMapWorkingData = this.sections[sectionNumber];
           let imageData: ImageData = updatedMapDataMsg.getImageData(mapWorkingData.canvasSize);
 
-          this.draw(imageData, sectionNumber);
+          //this.draw(imageData, sectionNumber);
 
-          if (mapWorkingData.curInterations++ < mapWorkingData.mapInfo.maxInterations) {
+          if (mapWorkingData.curInterations < mapWorkingData.mapInfo.maxInterations) {
 
             //this.workers[sectionNumber].postMessage("Iterate");
 
-            //let imgData: ImageData = new ImageData(mapWorkingData.canvasSize.width, mapWorkingData.canvasSize.height);
-            //let pixelData: Uint8ClampedArray = imgData.data;
+            let iterateRequest = WebWorkerIterateRequest.CreateRequest(this.iterationsPerStep);
+            this.workers[sectionNumber].postMessage(iterateRequest);
+            mapWorkingData.curInterations += this.iterationsPerStep;
 
-            // Reuse the pixelData just returned to use from the WebWorker.
-            let pixelData = imageData.data;
+            //let imgDataToFill: ImageData = new ImageData(mapWorkingData.canvasSize.width, mapWorkingData.canvasSize.height);
+            //let pixelData: Uint8ClampedArray = imgDataToFill.data;
 
-            let getImageDataRequest = WebWorkerImageDataRequest.CreateRequest(pixelData);
-            this.workers[sectionNumber].postMessage(getImageDataRequest, [getImageDataRequest.pixelData.buffer]);
+            ////// Reuse the pixelData just returned to use from the WebWorker.
+            ////let pixelData = imageData.data;
+
+            //let getImageDataRequest = WebWorkerImageDataRequest.CreateRequest(pixelData);
+            //this.workers[sectionNumber].postMessage(getImageDataRequest, [getImageDataRequest.pixelData.buffer]);
+
+            // Call draw after sending the request to get the next ImageData.
+            this.draw(imageData, sectionNumber);
+          }
+          else {
+            // Call draw for the last ImageDataResponse
+            this.draw(imageData, sectionNumber);
+
+            // And then draw the end note.
+            this.drawEndNote();
+            console.log("Done.");
           }
         }
         else {
@@ -216,22 +241,22 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
 
       let mapWorkingData: IMapWorkingData = this.sections[ptr];
-
       let startRequestMsg = WebWorkerStartRequest.CreateRequest(mapWorkingData, ptr);
-
       webWorker.postMessage(startRequestMsg);
 
-      this.sections[ptr].curInterations++;
 
       //webWorker.postMessage("Iterate");
+      let iterateRequest = WebWorkerIterateRequest.CreateRequest(this.iterationsPerStep);
+      webWorker.postMessage(iterateRequest);
+      mapWorkingData.curInterations += this.iterationsPerStep;
 
-      //let imgData: ImageData = new ImageData(mapWorkingData.canvasSize.width, mapWorkingData.canvasSize.height);
-      //let pixelData: Uint8ClampedArray = imgData.data;
+      ////let imgData: ImageData = new ImageData(mapWorkingData.canvasSize.width, mapWorkingData.canvasSize.height);
+      ////let pixelData: Uint8ClampedArray = imgData.data;
 
-      let pixelData = mapWorkingData.pixelData;
-      let getImageDataRequest = WebWorkerImageDataRequest.CreateRequest(pixelData);
+      //let pixelData = mapWorkingData.pixelData;
+      //let getImageDataRequest = WebWorkerImageDataRequest.CreateRequest(pixelData);
 
-      webWorker.postMessage(getImageDataRequest, [getImageDataRequest.pixelData.buffer]);
+      //webWorker.postMessage(getImageDataRequest, [getImageDataRequest.pixelData.buffer]);
 
     }
 
@@ -262,6 +287,8 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
         that.draw(imageData, 0);
       } else {
         clearInterval(intId);
+        that.drawEndNote();
+        console.log("No WebWorkers -- Done.");
       }
     }
   }
