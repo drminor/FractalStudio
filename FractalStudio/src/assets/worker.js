@@ -471,16 +471,15 @@ var WebWorkerIterateRequest = /** @class */ (function () {
   return WebWorkerIterateRequest;
 }());
 var WebWorkerImageDataRequest = /** @class */ (function () {
-  function WebWorkerImageDataRequest(messageKind, pixelData) {
+  function WebWorkerImageDataRequest(messageKind) {
     this.messageKind = messageKind;
-    this.pixelData = pixelData;
   }
   WebWorkerImageDataRequest.FromEventData = function (data) {
-    var result = new WebWorkerImageDataRequest(data.messageKind, data.pixelData);
+    var result = new WebWorkerImageDataRequest(data.messageKind);
     return result;
   };
-  WebWorkerImageDataRequest.CreateRequest = function (pixelData) {
-    var result = new WebWorkerImageDataRequest('GetImageData', pixelData);
+  WebWorkerImageDataRequest.CreateRequest = function () {
+    var result = new WebWorkerImageDataRequest('GetImageData');
     return result;
   };
   return WebWorkerImageDataRequest;
@@ -611,7 +610,6 @@ var sectionNumber = 0;
 // Handles messages sent from the window that started this web worker.
 onmessage = function (e) {
   var pixelData;
-  var imageData;
   var imageDataResponse;
   //console.log('Worker received message: ' + e.data + '.');
   var plainMsg = WebWorkerMessage.FromEventData(e.data);
@@ -634,10 +632,9 @@ onmessage = function (e) {
     self.postMessage(imageDataResponse, [pixelData.buffer]);
   }
   else if (plainMsg.messageKind === 'GetImageData') {
-    mapWorkingData.doInterationsForAll(1);
-    var dataRequest = WebWorkerImageDataRequest.FromEventData(e.data);
-    pixelData = dataRequest.pixelData;
-    mapWorkingData.updateImageData(pixelData);
+    //mapWorkingData.doInterationsForAll(1);
+
+    pixelData = mapWorkingData.getPixelData();
     imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, pixelData);
     //console.log('Posting ' + workerResult.messageKind + ' back to main script');
     self.postMessage(imageDataResponse, [pixelData.buffer]);

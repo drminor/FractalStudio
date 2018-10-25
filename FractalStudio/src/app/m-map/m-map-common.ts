@@ -328,17 +328,8 @@ export class MapWorkingData implements IMapWorkingData {
   }
 
   public getPixelData(): Uint8ClampedArray {
-
     const pixelData = new Uint8ClampedArray(this.elementCount * 4);
-
-    //const pixelData = new Uint32Array(this.elementCount);
-
     this.updateImageData(pixelData);
-
-    //const imgData = new Uint8ClampedArray(pixelData.buffer);
-    //const imageData = new ImageData(pixelData, this.canvasSize.width, this.canvasSize.height);
-
-    //return imageData;
     return pixelData;
   }
  
@@ -349,59 +340,51 @@ export class MapWorkingData implements IMapWorkingData {
     }
 
     const pixelData = new Uint32Array(imgData.buffer);
-
     let colorMap: ColorMap = this.colorMap;
 
     let i: number = 0;
-    //let colorNums = new ColorNumbers();
-
-    //for (; i < this.elementCount; i++) {
-    //  const cnt = this.cnts[i];
-    //  this.setPixelValueFromCount(cnt, i, pixelData, colorNums);
-    //}
-
     for (; i < this.elementCount; i++) {
       const cnt = this.cnts[i];
       pixelData[i] = colorMap.getColor(cnt);
     }
   }
   
-  private setPixelValueBinaryByInt(on: boolean, ptr: number, imageData: Uint32Array, colorNums: ColorNumbers) {
-    if (on) {
-      // Points within the set are drawn in black.
-      imageData[ptr] = colorNums.red;
-    } else {
-      // Points outside the set are drawn in white.
-      let tt: number = colorNums.white;
+  //private setPixelValueBinaryByInt(on: boolean, ptr: number, imageData: Uint32Array, colorNums: ColorNumbers) {
+  //  if (on) {
+  //    // Points within the set are drawn in black.
+  //    imageData[ptr] = colorNums.red;
+  //  } else {
+  //    // Points outside the set are drawn in white.
+  //    let tt: number = colorNums.white;
 
-      //tt = ‭math.pow(2, 32);
+  //    //tt = ‭math.pow(2, 32);
 
-      imageData[ptr] = tt; //math.pow(2, 32).valueOf() as number;
-    }
-  }
+  //    imageData[ptr] = tt; //math.pow(2, 32).valueOf() as number;
+  //  }
+  //}
 
-  private setPixelValueFromCount(cnt: number, ptr: number, imageData: Uint32Array, colorNums: ColorNumbers) {
+  //private setPixelValueFromCount(cnt: number, ptr: number, imageData: Uint32Array, colorNums: ColorNumbers) {
 
-    let cNum: number;
+  //  let cNum: number;
 
-    if (cnt < 10) {
-      cNum = colorNums.white;
-    }
-    else if (cnt < 20) {
-      cNum = colorNums.red;
-    }
-    else if (cnt < 50) {
-      cNum = colorNums.green;
-    }
-    else if (cnt < 200) {
-      cNum = colorNums.blue;
-    }
-    else {
-      cNum = colorNums.black;
-    }
+  //  if (cnt < 10) {
+  //    cNum = colorNums.white;
+  //  }
+  //  else if (cnt < 20) {
+  //    cNum = colorNums.red;
+  //  }
+  //  else if (cnt < 50) {
+  //    cNum = colorNums.green;
+  //  }
+  //  else if (cnt < 200) {
+  //    cNum = colorNums.blue;
+  //  }
+  //  else {
+  //    cNum = colorNums.black;
+  //  }
 
-    imageData[ptr] = cNum;
-  }
+  //  imageData[ptr] = cNum;
+  //}
 
   public getImageDataForLine(y: number): ImageData {
     const imageData = new ImageData(this.canvasSize.width, 1);
@@ -622,7 +605,7 @@ export interface IWebWorkerIterateRequest extends IWebWorkerMessage {
 }
 
 export interface IWebWorkerImageDataRequest extends IWebWorkerMessage {
-  pixelData: Uint8ClampedArray;
+  //pixelData: Uint8ClampedArray;
 }
 
 export interface IWebWorkerImageDataResponse extends IWebWorkerMessage {
@@ -723,15 +706,15 @@ export class WebWorkerIterateRequest implements IWebWorkerIterateRequest {
 }
 
 export class WebWorkerImageDataRequest implements IWebWorkerImageDataRequest {
-  constructor(public messageKind: string, public pixelData: Uint8ClampedArray) { }
+  constructor(public messageKind: string/*, public pixelData: Uint8ClampedArray*/) { }
 
   static FromEventData(data: any): IWebWorkerImageDataRequest {
-    let result = new WebWorkerImageDataRequest(data.messageKind, data.pixelData);
+    let result = new WebWorkerImageDataRequest(data.messageKind/*, data.pixelData*/);
     return result;
   }
 
-  static CreateRequest(pixelData: Uint8ClampedArray): IWebWorkerImageDataRequest {
-    let result = new WebWorkerImageDataRequest('GetImageData', pixelData);
+  static CreateRequest(/*pixelData: Uint8ClampedArray*/): IWebWorkerImageDataRequest {
+    let result = new WebWorkerImageDataRequest('GetImageData'/*, pixelData*/);
     return result;
   }
 }
@@ -901,10 +884,12 @@ export class WebWorkerUpdateColorMapRequest implements IWebWorkerUpdateColorMapR
 //  else if (plainMsg.messageKind === 'GetImageData') {
 //    mapWorkingData.doInterationsForAll(1);
 
-//    let dataRequest = WebWorkerImageDataRequest.FromEventData(e.data);
+//    //let dataRequest = WebWorkerImageDataRequest.FromEventData(e.data);
 
-//    pixelData = dataRequest.pixelData;
-//    mapWorkingData.updateImageData(pixelData);
+//    //pixelData = dataRequest.pixelData;
+//    //mapWorkingData.updateImageData(pixelData);
+
+//    let pixelData = mapWorkingData.getPixelData();
 
 //    imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, pixelData);
 

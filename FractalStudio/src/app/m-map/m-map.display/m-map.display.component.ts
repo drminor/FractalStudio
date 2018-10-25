@@ -51,7 +51,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     const bottomLeft: IPoint = new Point(-0.45, 0.5);
     const topRight: IPoint = new Point(0.3, 1);
 
-    this.iterationsPerStep = 5;
+    this.iterationsPerStep = 50;
 
     const maxInterations = 500;
     this.mapInfo = new MapInfo(bottomLeft, topRight, maxInterations);
@@ -125,7 +125,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
     ctx.putImageData(imageData, left, bot);
 
-    console.log('Just drew image data for sn=' + sectionNumber + ' left=' + left + ' bot =' + bot  + '.');
+    //console.log('Just drew image data for sn=' + sectionNumber + ' left=' + left + ' bot =' + bot  + '.');
   }
 
   ngOnInit(): void {
@@ -225,20 +225,12 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
           if (mapWorkingData.curInterations < mapWorkingData.mapInfo.maxInterations) {
 
-            //this.workers[sectionNumber].postMessage("Iterate");
-
             let iterateRequest = WebWorkerIterateRequest.CreateRequest(this.iterationsPerStep);
             this.workers[sectionNumber].postMessage(iterateRequest);
             mapWorkingData.curInterations += this.iterationsPerStep;
 
-            //let imgDataToFill: ImageData = new ImageData(mapWorkingData.canvasSize.width, mapWorkingData.canvasSize.height);
-            //let pixelData: Uint8ClampedArray = imgDataToFill.data;
-
-            ////// Reuse the pixelData just returned to use from the WebWorker.
-            ////let pixelData = imageData.data;
-
-            //let getImageDataRequest = WebWorkerImageDataRequest.CreateRequest(pixelData);
-            //this.workers[sectionNumber].postMessage(getImageDataRequest, [getImageDataRequest.pixelData.buffer]);
+            //let getImageDataRequest = WebWorkerImageDataRequest.CreateRequest();
+            //this.workers[sectionNumber].postMessage(getImageDataRequest);
 
             // Call draw after sending the request to get the next ImageData.
             this.draw(imageData, sectionNumber);
@@ -265,20 +257,12 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
       //let upColorMapRequestMsg = WebWorkerUpdateColorMapRequest.CreateRequest(mapWorkingData.colorMap);
       //webWorker.postMessage(upColorMapRequestMsg);
 
-
-      //webWorker.postMessage("Iterate");
       let iterateRequest = WebWorkerIterateRequest.CreateRequest(this.iterationsPerStep);
       webWorker.postMessage(iterateRequest);
       mapWorkingData.curInterations += this.iterationsPerStep;
 
-      ////let imgData: ImageData = new ImageData(mapWorkingData.canvasSize.width, mapWorkingData.canvasSize.height);
-      ////let pixelData: Uint8ClampedArray = imgData.data;
-
-      //let pixelData = mapWorkingData.pixelData;
-      //let getImageDataRequest = WebWorkerImageDataRequest.CreateRequest(pixelData);
-
-      //webWorker.postMessage(getImageDataRequest, [getImageDataRequest.pixelData.buffer]);
-
+      //let getImageDataRequest = WebWorkerImageDataRequest.CreateRequest();
+      //webWorker.postMessage(getImageDataRequest);
     }
 
     return result;
