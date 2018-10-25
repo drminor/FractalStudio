@@ -686,7 +686,8 @@ export class WebWorkerStartRequest implements IWebWorkerStartRequest {
       data.messageKind,
       data.canvasSize,
       data.mapInfo,
-      data.colorMap,
+      // Because the ColorMap class has methods, we must build a new instance from the data.
+      new ColorMap(data.colorMap.ranges, data.colorMap.highColor),
       data.sectionAnchor,
       data.sectionNumber
     );
@@ -877,6 +878,7 @@ export class WebWorkerUpdateColorMapRequest implements IWebWorkerUpdateColorMapR
 
 //  if (plainMsg.messageKind === 'Start') {
 //    let startMsg = WebWorkerStartRequest.FromEventData(e.data);
+
 //    mapWorkingData = new MapWorkingData(startMsg.canvasSize, startMsg.mapInfo, startMsg.colorMap, startMsg.sectionAnchor);
 //    sectionNumber = startMsg.sectionNumber;
 //    console.log('Worker created MapWorkingData with element count = ' + mapWorkingData.elementCount);

@@ -444,7 +444,9 @@ var WebWorkerStartRequest = /** @class */ (function () {
     this.sectionNumber = sectionNumber;
   }
   WebWorkerStartRequest.FromEventData = function (data) {
-    var result = new WebWorkerStartRequest(data.messageKind, data.canvasSize, data.mapInfo, data.colorMap, data.sectionAnchor, data.sectionNumber);
+    var result = new WebWorkerStartRequest(data.messageKind, data.canvasSize, data.mapInfo,
+      new ColorMap(data.colorMap.ranges, data.colorMap.highColor),
+      data.sectionAnchor, data.sectionNumber);
     return result;
   };
   WebWorkerStartRequest.CreateRequest = function (mapWorkingData, sectionNumber) {

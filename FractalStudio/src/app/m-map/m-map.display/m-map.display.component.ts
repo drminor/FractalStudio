@@ -262,8 +262,8 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
       let startRequestMsg = WebWorkerStartRequest.CreateRequest(mapWorkingData, ptr);
       webWorker.postMessage(startRequestMsg);
 
-      let upColorMapRequestMsg = WebWorkerUpdateColorMapRequest.CreateRequest(mapWorkingData.colorMap);
-      webWorker.postMessage(upColorMapRequestMsg);
+      //let upColorMapRequestMsg = WebWorkerUpdateColorMapRequest.CreateRequest(mapWorkingData.colorMap);
+      //webWorker.postMessage(upColorMapRequestMsg);
 
 
       //webWorker.postMessage("Iterate");
