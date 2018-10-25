@@ -32,11 +32,9 @@ var MapInfo = /** @class */ (function () {
   return MapInfo;
 }());
 var MapWorkingData = /** @class */ (function () {
-  //public pixelData: Uint8ClampedArray;
-  function MapWorkingData(canvasSize, mapInfo, colorMap, sectionAnchor) {
+  function MapWorkingData(canvasSize, mapInfo, sectionAnchor) {
     this.canvasSize = canvasSize;
     this.mapInfo = mapInfo;
-    this.colorMap = colorMap;
     this.sectionAnchor = sectionAnchor;
     this.elementCount = this.getNumberOfElementsForCanvas(this.canvasSize);
     this.wAData = new Float64Array(this.elementCount); // All elements now have a value of zero.
@@ -51,7 +49,6 @@ var MapWorkingData = /** @class */ (function () {
     // if we only have a single section, then we must reverse the y values.
     this.yVals = MapWorkingData.buildVals(this.canvasSize.height, this.mapInfo.bottomLeft.y, this.mapInfo.topRight.y);
     this.curInterations = 0;
-    //this.pixelData = new Uint8ClampedArray(this.elementCount * 4);
   }
   // Calculate the number of elements in our single dimension data array needed to cover the
   // two-dimensional map.
@@ -157,7 +154,7 @@ var MapWorkingData = /** @class */ (function () {
     return stillAlive;
   };
   // Divides the specified MapWorking data into the specified vertical sections, each having the width of the original Map.
-  MapWorkingData.getWorkingDataSections = function (canvasSize, mapInfo, colorMap, numberOfSections) {
+  MapWorkingData.getWorkingDataSections = function (canvasSize, mapInfo, numberOfSections) {
     var result = Array(numberOfSections);
     // Calculate the heigth of each section, rounded down to the nearest whole number.
     var sectionHeight = canvasSize.height / numberOfSections;
@@ -181,7 +178,7 @@ var MapWorkingData = /** @class */ (function () {
       var secMapInfo_1 = new MapInfo(secBotLeft_1, secTopRight_1, mapInfo.maxInterations);
       var yOffset_1 = ptr * sectionHeightWN;
       var secAnchor_1 = new Point(0, yOffset_1);
-      result[ptr] = new MapWorkingData(secCanvasSize_1, secMapInfo_1, colorMap, secAnchor_1);
+      result[ptr] = new MapWorkingData(secCanvasSize_1, secMapInfo_1, secAnchor_1);
       // The next bottomPtr should point to one immediately following the last top.
       bottomPtr = topPtr + 1;
       topPtr += sectionHeightWN;
@@ -196,17 +193,16 @@ var MapWorkingData = /** @class */ (function () {
     var secMapInfo = new MapInfo(secBotLeft, secTopRight, mapInfo.maxInterations);
     var yOffset = ptr * sectionHeightWN;
     var secAnchor = new Point(0, yOffset);
-    result[ptr] = new MapWorkingData(secCanvasSize, secMapInfo, colorMap, secAnchor);
+    result[ptr] = new MapWorkingData(secCanvasSize, secMapInfo, secAnchor);
     return result;
   };
   MapWorkingData.prototype.getPixelData = function () {
-    var pixelData = new Uint8ClampedArray(this.elementCount * 4);
+    var imgData = new Uint8ClampedArray(this.elementCount * 4);
     //const pixelData = new Uint32Array(this.elementCount);
-    this.updateImageData(pixelData);
+    this.updateImageData(imgData);
     //const imgData = new Uint8ClampedArray(pixelData.buffer);
-    //const imageData = new ImageData(pixelData, this.canvasSize.width, this.canvasSize.height);
-    //return imageData;
-    return pixelData;
+    //var imageData = new ImageData(imgData, this.canvasSize.width, this.canvasSize.height);
+    return imgData;
   };
   MapWorkingData.prototype.updateImageData = function (imgData) {
     if (imgData.length !== this.elementCount * 4) {
@@ -215,14 +211,10 @@ var MapWorkingData = /** @class */ (function () {
     }
     var pixelData = new Uint32Array(imgData.buffer);
     var i = 0;
-    //let colorNums = new ColorNumbers();
-    //for (; i < this.elementCount; i++) {
-    //  const cnt = this.cnts[i];
-    //  this.setPixelValueFromCount(cnt, i, pixelData, colorNums);
-    //}
+    var colorNums = new ColorNumbers();
     for (; i < this.elementCount; i++) {
       var cnt = this.cnts[i];
-      pixelData[i] = this.colorMap.getColor(cnt);
+      this.setPixelValueFromCount(cnt, i, pixelData, colorNums);
     }
   };
   MapWorkingData.prototype.setPixelValueBinaryByInt = function (on, ptr, imageData, colorNums) {
@@ -319,88 +311,6 @@ var MapWorkingData = /** @class */ (function () {
   };
   return MapWorkingData;
 }()); // End Class MapWorkingData
-var ColorMapEntry = /** @class */ (function () {
-  function ColorMapEntry(cutOff, colorNum) {
-    this.cutOff = cutOff;
-    this.colorNum = colorNum;
-  }
-  return ColorMapEntry;
-}());
-var ColorMap = /** @class */ (function () {
-  function ColorMap(ranges, highColor) {
-    this.ranges = ranges;
-    this.highColor = highColor;
-  }
-  ColorMap.FromTypedArrays = function (cutOffs, colorNums, highColor) {
-    var ranges = new Array(cutOffs.length);
-    var i = 0;
-    for (; i < cutOffs.length; i++) {
-      ranges[i] = new ColorMapEntry(cutOffs[i], colorNums[i]);
-    }
-    var result = new ColorMap(ranges, highColor);
-    return result;
-  };
-  ColorMap.prototype.getColor = function (countValue) {
-    var result;
-    var index = this.searchInsert(countValue);
-    if (index === this.ranges.length) {
-      result = this.highColor;
-    }
-    else {
-      result = this.ranges[index].colorNum;
-    }
-    return result;
-  };
-  ColorMap.prototype.searchInsert = function (countVal) {
-    var start = 0;
-    var end = this.ranges.length - 1;
-    var index = Math.floor((end - start) / 2) + start;
-    if (countVal > this.ranges[this.ranges.length - 1].cutOff) {
-      // The target is beyond the end of this array.
-      index = this.ranges.length;
-    }
-    else {
-      // Start in middle, divide and conquer.
-      while (start < end) {
-        // Get value at current index.
-        var value = this.ranges[index].cutOff;
-        if (value === countVal) {
-          // Found our target.
-          //result = index;
-          break;
-        }
-        else if (countVal < value) {
-          // Target is lower in array, move the index halfway down.
-          end = index;
-        }
-        else {
-          // Target is higher in array, move the index halfway up.
-          start = index + 1;
-        }
-        // Get next mid-point.
-        index = Math.floor((end - start) / 2) + start;
-      }
-    }
-    return index;
-  };
-  ColorMap.prototype.GetCutOffs = function () {
-    var result = new Uint16Array(this.ranges.length);
-    var i = 0;
-    for (; i < this.ranges.length; i++) {
-      result[i] = this.ranges[i].cutOff;
-    }
-    return result;
-  };
-  ColorMap.prototype.GetColorNums = function () {
-    var result = new Uint32Array(this.ranges.length);
-    var i = 0;
-    for (; i < this.ranges.length; i++) {
-      result[i] = this.ranges[i].colorNum;
-    }
-    return result;
-  };
-  return ColorMap;
-}());
 var ColorNumbers = /** @class */ (function () {
   function ColorNumbers() {
     this.black = 65536 * 65280; // FF00 0000
@@ -424,7 +334,6 @@ var ColorNumbers = /** @class */ (function () {
   };
   return ColorNumbers;
 }());
-// -- WebWorker Message Implementations
 var WebWorkerMessage = /** @class */ (function () {
   function WebWorkerMessage(messageKind) {
     this.messageKind = messageKind;
@@ -435,20 +344,19 @@ var WebWorkerMessage = /** @class */ (function () {
   return WebWorkerMessage;
 }());
 var WebWorkerStartRequest = /** @class */ (function () {
-  function WebWorkerStartRequest(messageKind, canvasSize, mapInfo, colorMap, sectionAnchor, sectionNumber) {
+  function WebWorkerStartRequest(messageKind, canvasSize, mapInfo, sectionAnchor, sectionNumber) {
     this.messageKind = messageKind;
     this.canvasSize = canvasSize;
     this.mapInfo = mapInfo;
-    this.colorMap = colorMap;
     this.sectionAnchor = sectionAnchor;
     this.sectionNumber = sectionNumber;
   }
   WebWorkerStartRequest.FromEventData = function (data) {
-    var result = new WebWorkerStartRequest(data.messageKind, data.canvasSize, data.mapInfo, data.colorMap, data.sectionAnchor, data.sectionNumber);
+    var result = new WebWorkerStartRequest(data.messageKind, data.canvasSize, data.mapInfo, data.sectionAnchor, data.sectionNumber);
     return result;
   };
   WebWorkerStartRequest.CreateRequest = function (mapWorkingData, sectionNumber) {
-    var result = new WebWorkerStartRequest('Start', mapWorkingData.canvasSize, mapWorkingData.mapInfo, mapWorkingData.colorMap, mapWorkingData.sectionAnchor, sectionNumber);
+    var result = new WebWorkerStartRequest('Start', mapWorkingData.canvasSize, mapWorkingData.mapInfo, mapWorkingData.sectionAnchor, sectionNumber);
     return result;
   };
   return WebWorkerStartRequest;
@@ -580,42 +488,19 @@ var WebWorkerIterCountsResponse = /** @class */ (function () {
   };
   return WebWorkerIterCountsResponse;
 }());
-var WebWorkerUpdateColorMapRequest = /** @class */ (function () {
-  function WebWorkerUpdateColorMapRequest(messageKind, cutOffs, colorNums, highColorNum) {
-    this.messageKind = messageKind;
-    this.cutOffs = cutOffs;
-    this.colorNums = colorNums;
-    this.highColorNum = highColorNum;
-  }
-  WebWorkerUpdateColorMapRequest.FromEventData = function (data) {
-    var result = new WebWorkerUpdateColorMapRequest(data.messageKind, data.cutOffs, data.colorNums, data.highColorNum);
-    return result;
-  };
-  WebWorkerUpdateColorMapRequest.CreateRequest = function (colorMap) {
-    var cutOffs = colorMap.GetCutOffs();
-    var colorNums = colorMap.GetColorNums();
-    var result = new WebWorkerUpdateColorMapRequest("UpdateColorMap", cutOffs, colorNums, colorMap.highColor);
-    return result;
-  };
-  WebWorkerUpdateColorMapRequest.prototype.getColorMap = function () {
-    var result = ColorMap.FromTypedArrays(this.cutOffs, this.colorNums, this.highColorNum);
-    return result;
-  };
-  return WebWorkerUpdateColorMapRequest;
-}());
 // Only used when the javascript produced from compiling this TypeScript is used to create worker.js
 var mapWorkingData = null;
 var sectionNumber = 0;
 // Handles messages sent from the window that started this web worker.
 onmessage = function (e) {
-  var pixelData;
   var imageData;
+  var pixelData;
   var imageDataResponse;
   //console.log('Worker received message: ' + e.data + '.');
   var plainMsg = WebWorkerMessage.FromEventData(e.data);
   if (plainMsg.messageKind === 'Start') {
     var startMsg = WebWorkerStartRequest.FromEventData(e.data);
-    mapWorkingData = new MapWorkingData(startMsg.canvasSize, startMsg.mapInfo, startMsg.colorMap, startMsg.sectionAnchor);
+    mapWorkingData = new MapWorkingData(startMsg.canvasSize, startMsg.mapInfo, startMsg.sectionAnchor);
     sectionNumber = startMsg.sectionNumber;
     console.log('Worker created MapWorkingData with element count = ' + mapWorkingData.elementCount);
     var responseMsg = new WebWorkerMessage('StartResponse');
@@ -623,10 +508,15 @@ onmessage = function (e) {
     self.postMessage(responseMsg);
   }
   else if (plainMsg.messageKind === 'Iterate') {
+    console.log('WebWorker ' + this.sectionNumber + ' received an Iterate Request.');
     var iterateRequestMsg = WebWorkerIterateRequest.FromEventData(e.data);
     var iterCount = iterateRequestMsg.iterateCount;
     mapWorkingData.doInterationsForAll(iterCount);
+
+    //mapWorkingData.doInterationsForAll(1);
+    //imageData = mapWorkingData.getImageData();
     pixelData = mapWorkingData.getPixelData();
+
     imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, pixelData);
     //console.log('Posting ' + workerResult.messageKind + ' back to main script');
     self.postMessage(imageDataResponse, [pixelData.buffer]);
@@ -640,13 +530,8 @@ onmessage = function (e) {
     //console.log('Posting ' + workerResult.messageKind + ' back to main script');
     self.postMessage(imageDataResponse, [pixelData.buffer]);
   }
-  else if (plainMsg.messageKind === "UpdateColorMap") {
-    var upColorMapReq = WebWorkerUpdateColorMapRequest.FromEventData(e.data);
-    mapWorkingData.colorMap = upColorMapReq.getColorMap();
-    console.log('WebWorker received an UpdateColorMapRequest with ' + mapWorkingData.colorMap.ranges.length + ' entries.');
-  }
   else {
     console.log('Received unknown message kind: ' + plainMsg.messageKind);
   }
 };
-//# sourceMappingURL=m-map-common.js.map
+//# sourceMappingURL=worker.js.map

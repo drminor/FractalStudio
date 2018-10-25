@@ -12,23 +12,23 @@ export class MMapService {
 
   constructor() { }
 
-  public createMapWD(canvasSize: ICanvasSize, mapInfo: IMapInfo): IMapWorkingData {
-    const result: IMapWorkingData = new MapWorkingData(canvasSize, mapInfo, new Point(0,0));
-    return result;
-  }
+  //public createMapWD(canvasSize: ICanvasSize, mapInfo: IMapInfo): IMapWorkingData {
+  //  const result: IMapWorkingData = new MapWorkingData(canvasSize, mapInfo, new Point(0,0));
+  //  return result;
+  //}
 
-  public createTestMapWD(): IMapWorkingData {
+  //public createTestMapWD(): IMapWorkingData {
 
-    const maxInterations = 1000;
-    const cs: ICanvasSize = new CanvasSize(100, 100);
+  //  const maxInterations = 1000;
+  //  const cs: ICanvasSize = new CanvasSize(100, 100);
 
-    const bottomLeft: IPoint = new Point(-2, -1);
-    const topRight: IPoint = new Point(1, 1);
+  //  const bottomLeft: IPoint = new Point(-2, -1);
+  //  const topRight: IPoint = new Point(1, 1);
 
-    const mi: IMapInfo = new MapInfo(bottomLeft, topRight, maxInterations);
+  //  const mi: IMapInfo = new MapInfo(bottomLeft, topRight, maxInterations);
 
-    const result: IMapWorkingData = new MapWorkingData(cs, mi, new Point(0,0));
-    return result;
+  //  const result: IMapWorkingData = new MapWorkingData(cs, mi, new Point(0,0));
+  //  return result;
 
     
     //var alive = result.doInterations(10);
@@ -56,6 +56,6 @@ export class MMapService {
     //  console.log("There are no points in the set.");
     //}
     //return result;
-  }
+  //}
 
 }

@@ -2,10 +2,14 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.1</TargetFramework>
-    <TypeScriptCompileBlocked>true</TypeScriptCompileBlocked> 
+    <TypeScriptCompileBlocked>false</TypeScriptCompileBlocked> 
     <PostBuildEvent>ng build --aot</PostBuildEvent> 
     <TypeScriptToolsVersion>3.0</TypeScriptToolsVersion>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="src\app\m-map\m-map-common.ts" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.App" />
@@ -13,6 +17,9 @@
 
   <ItemGroup>
     <TypeScriptCompile Include="src\app\logger.service.ts" />
+    <TypeScriptCompile Include="src\app\m-map\m-map-common.ts">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </TypeScriptCompile>
     <TypeScriptCompile Include="src\app\SampleClassTypeDeclarations\file.ts" />
   </ItemGroup>
 

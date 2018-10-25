@@ -4,7 +4,7 @@ import { Logger } from '../../logger.service';
 import {
   IPoint, Point, ICanvasSize, CanvasSize,
   IMapInfo, MapInfo, IMapWorkingData, MapWorkingData,
-  WebWorkerImageDataResponse, WebWorkerMessage, WebWorkerStartRequest, WebWorkerImageDataRequest, WebWorkerIterateRequest
+  WebWorkerImageDataResponse, WebWorkerMessage, WebWorkerStartRequest, WebWorkerImageDataRequest, WebWorkerIterateRequest, ColorMap, ColorMapEntry, ColorNumbers, WebWorkerUpdateColorMapRequest
 } from '../m-map-common';
 
 import { MMapService } from '../m-map.service';
@@ -38,6 +38,8 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
   private useWorkers: boolean;
   private iterationsPerStep: number;
 
+  private colorMap: ColorMap;
+
   constructor(private logger: Logger, private mService: MMapService) {
     this.componentInitialized = false;
     this.viewInitialized = false;
@@ -49,10 +51,12 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     const bottomLeft: IPoint = new Point(-0.45, 0.5);
     const topRight: IPoint = new Point(0.3, 1);
 
-    this.iterationsPerStep = 1;
+    this.iterationsPerStep = 5;
 
     const maxInterations = 500;
     this.mapInfo = new MapInfo(bottomLeft, topRight, maxInterations);
+
+    this.colorMap = this.buildColorMap();
 
     this.workers = [];
     this.sections = [];
@@ -64,6 +68,20 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     //// For simplicity, do not use Web Workers and use only one section.
     //this.numberOfSections = 1;
     //this.useWorkers = false;
+  }
+
+  private buildColorMap(): ColorMap {
+
+    let cNumGenerator = new ColorNumbers();
+
+    let ranges: ColorMapEntry[] = new Array<ColorMapEntry>(4);
+    ranges[0] = new ColorMapEntry(10, cNumGenerator.white);
+    ranges[1] = new ColorMapEntry(20, cNumGenerator.red);
+    ranges[2] = new ColorMapEntry(50, cNumGenerator.green);
+    ranges[3] = new ColorMapEntry(200, cNumGenerator.blue);
+
+    let result: ColorMap = new ColorMap(ranges, cNumGenerator.black);
+    return result;
   }
 
   drawEndNote(): void {
@@ -142,7 +160,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
       // Now that we know the size of our canvas,
       if (this.useWorkers) {
         // Create a MapWorkingData for each section.
-        this.sections = MapWorkingData.getWorkingDataSections(this.canvasSize, this.mapInfo, this.numberOfSections);
+        this.sections = MapWorkingData.getWorkingDataSections(this.canvasSize, this.mapInfo, this.colorMap, this.numberOfSections);
 
         let ptr: number = 0;
         for (ptr = 0; ptr < this.numberOfSections; ptr++) {
@@ -158,7 +176,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
           throw new RangeError('The number of sections must be set to 1, if useWorkers = false.');
         }
         this.sections = new Array<IMapWorkingData>(1);
-        this.sections[0] = new MapWorkingData(this.canvasSize, this.mapInfo, new Point(0, 0));
+        this.sections[0] = new MapWorkingData(this.canvasSize, this.mapInfo, this.colorMap, new Point(0, 0));
 
         this.progresslvy();
       }
@@ -239,10 +257,13 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
         }
       });
 
-
+      // Send the mapWorking data and color map to the Web Worker.
       let mapWorkingData: IMapWorkingData = this.sections[ptr];
       let startRequestMsg = WebWorkerStartRequest.CreateRequest(mapWorkingData, ptr);
       webWorker.postMessage(startRequestMsg);
+
+      let upColorMapRequestMsg = WebWorkerUpdateColorMapRequest.CreateRequest(mapWorkingData.colorMap);
+      webWorker.postMessage(upColorMapRequestMsg);
 
 
       //webWorker.postMessage("Iterate");
@@ -279,10 +300,10 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
         alive = mapWorkinData.doInterationsForAll(1);
 
-        //let imageData: ImageData = mapWorkinData.getImageData();
+        let pixelData: Uint8ClampedArray = mapWorkinData.getPixelData();
 
-        mapWorkinData.updateImageData(mapWorkinData.pixelData);
-        let imageData = new ImageData(mapWorkinData.pixelData, mapWorkinData.canvasSize.width, mapWorkinData.canvasSize.height);
+        //mapWorkinData.updateImageData(mapWorkinData.pixelData);
+        let imageData = new ImageData(pixelData, mapWorkinData.canvasSize.width, mapWorkinData.canvasSize.height);
 
         that.draw(imageData, 0);
       } else {

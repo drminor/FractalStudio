@@ -42,14 +42,17 @@ export interface IMapWorkingData {
 
   curInterations: number;
 
-  pixelData: Uint8ClampedArray;
+  //pixelData: Uint8ClampedArray;
+
+  colorMap: ColorMap;
 
   //getLinearIndex(x: number, y: number): number;
   getLinearIndex(c: IPoint): number;
   doInterationsForAll(iterCount: number): boolean;
   doInterationsForLine(iterCount: number, y: number): boolean;
 
-  getImageData(): ImageData;
+  //getImageData(): ImageData;
+  getPixelData(): Uint8ClampedArray;
   getImageDataForLine(y: number): ImageData;
 
   updateImageData(imgData: Uint8ClampedArray): void;
@@ -99,9 +102,9 @@ export class MapWorkingData implements IMapWorkingData {
 
   public curInterations: number;
 
-  public pixelData: Uint8ClampedArray;
+  //public pixelData: Uint8ClampedArray;
 
-  constructor(public canvasSize: ICanvasSize, public mapInfo: IMapInfo, public sectionAnchor: IPoint) {
+  constructor(public canvasSize: ICanvasSize, public mapInfo: IMapInfo, public colorMap: ColorMap, public sectionAnchor: IPoint) {
 
     this.elementCount = this.getNumberOfElementsForCanvas(this.canvasSize);
 
@@ -119,11 +122,11 @@ export class MapWorkingData implements IMapWorkingData {
     //this.yVals = MapWorkingData.buildVals(this.canvasSize.height, this.mapInfo.bottomLeft.y, this.mapInfo.topRight.y);
 
     // if we only have a single section, then we must reverse the y values.
-    this.yVals = MapWorkingData.buildValsRev(this.canvasSize.height, this.mapInfo.bottomLeft.y, this.mapInfo.topRight.y);
+    this.yVals = MapWorkingData.buildVals(this.canvasSize.height, this.mapInfo.bottomLeft.y, this.mapInfo.topRight.y);
 
     this.curInterations = 0;
 
-    this.pixelData = new Uint8ClampedArray(this.elementCount * 4);
+    //this.pixelData = new Uint8ClampedArray(this.elementCount * 4);
   }
 
   // Calculate the number of elements in our single dimension data array needed to cover the
@@ -261,7 +264,7 @@ export class MapWorkingData implements IMapWorkingData {
   }
 
   // Divides the specified MapWorking data into the specified vertical sections, each having the width of the original Map.
-  static getWorkingDataSections(canvasSize: ICanvasSize, mapInfo: IMapInfo, numberOfSections: number): IMapWorkingData[] {
+  static getWorkingDataSections(canvasSize: ICanvasSize, mapInfo: IMapInfo, colorMap: ColorMap, numberOfSections: number): IMapWorkingData[] {
     let result: IMapWorkingData[] = Array<IMapWorkingData>(numberOfSections);
 
     // Calculate the heigth of each section, rounded down to the nearest whole number.
@@ -297,7 +300,7 @@ export class MapWorkingData implements IMapWorkingData {
 
       let yOffset = ptr * sectionHeightWN;
       let secAnchor: IPoint = new Point(0, yOffset);
-      result[ptr] = new MapWorkingData(secCanvasSize, secMapInfo, secAnchor);
+      result[ptr] = new MapWorkingData(secCanvasSize, secMapInfo, colorMap, secAnchor);
 
       // The next bottomPtr should point to one immediately following the last top.
       bottomPtr = topPtr + 1;
@@ -319,23 +322,24 @@ export class MapWorkingData implements IMapWorkingData {
     let yOffset = ptr * sectionHeightWN;
     let secAnchor: IPoint = new Point(0, yOffset);
 
-    result[ptr] = new MapWorkingData(secCanvasSize, secMapInfo, secAnchor);
+    result[ptr] = new MapWorkingData(secCanvasSize, secMapInfo, colorMap, secAnchor);
 
     return result;
   }
 
-  public getImageData(): ImageData {
+  public getPixelData(): Uint8ClampedArray {
 
-    const imgData = new Uint8ClampedArray(this.elementCount * 4);
+    const pixelData = new Uint8ClampedArray(this.elementCount * 4);
 
     //const pixelData = new Uint32Array(this.elementCount);
 
-    this.updateImageData(imgData);
+    this.updateImageData(pixelData);
 
     //const imgData = new Uint8ClampedArray(pixelData.buffer);
-    const imageData = new ImageData(imgData, this.canvasSize.width, this.canvasSize.height);
+    //const imageData = new ImageData(pixelData, this.canvasSize.width, this.canvasSize.height);
 
-    return imageData;
+    //return imageData;
+    return pixelData;
   }
  
   public updateImageData(imgData: Uint8ClampedArray): void {
@@ -346,12 +350,19 @@ export class MapWorkingData implements IMapWorkingData {
 
     const pixelData = new Uint32Array(imgData.buffer);
 
+    let colorMap: ColorMap = this.colorMap;
+
     let i: number = 0;
-    let colorNums = new ColorNumbers();
+    //let colorNums = new ColorNumbers();
+
+    //for (; i < this.elementCount; i++) {
+    //  const cnt = this.cnts[i];
+    //  this.setPixelValueFromCount(cnt, i, pixelData, colorNums);
+    //}
 
     for (; i < this.elementCount; i++) {
       const cnt = this.cnts[i];
-      this.setPixelValueFromCount(cnt, i, pixelData, colorNums);
+      pixelData[i] = colorMap.getColor(cnt);
     }
   }
   
@@ -452,7 +463,7 @@ export class MapWorkingData implements IMapWorkingData {
     this.updateImageDataOld(imageData);
     return imageData;
   }
-
+                                                                                            
   // Returns a 'regular' linear array of booleans from the flags TypedArray.
   private getFlagData(mapWorkingData: IMapWorkingData): boolean[] {
 
@@ -467,6 +478,100 @@ export class MapWorkingData implements IMapWorkingData {
   }
 } // End Class MapWorkingData
 
+export class ColorMapEntry {
+  constructor(public cutOff: number, public colorNum: number) {
+  }
+}
+
+export class ColorMap {
+
+  constructor(public ranges: ColorMapEntry[], public highColor: number) { }
+
+  public static FromTypedArrays(cutOffs: Uint16Array, colorNums: Uint32Array, highColor: number): ColorMap {
+    let ranges: ColorMapEntry[] = new Array<ColorMapEntry>(cutOffs.length);
+    let i: number = 0;
+
+    for (; i < cutOffs.length; i++) {
+      ranges[i] = new ColorMapEntry(cutOffs[i], colorNums[i]);
+    }
+
+    let result: ColorMap = new ColorMap(ranges, highColor);
+
+    return result;
+  }
+
+  public getColor(countValue: number): number {
+    let result: number;
+    let index = this.searchInsert(countValue);
+    if (index === this.ranges.length) {
+      result = this.highColor;
+    }
+    else {
+      result = this.ranges[index].colorNum;
+    }
+    return result;
+  }
+
+  private searchInsert(countVal: number): number {
+
+    let start = 0;
+    let end = this.ranges.length - 1;
+    let index = Math.floor((end - start) / 2) + start;
+
+    if (countVal > this.ranges[this.ranges.length - 1].cutOff) {
+      // The target is beyond the end of this array.
+      index = this.ranges.length;
+    }
+    else {
+      // Start in middle, divide and conquer.
+      while (start < end) {
+        // Get value at current index.
+        let value: number = this.ranges[index].cutOff;
+
+        if (value === countVal) {
+          // Found our target.
+          //result = index;
+          break;
+        }
+        else if (countVal < value) {
+          // Target is lower in array, move the index halfway down.
+          end = index;
+        }
+        else {
+          // Target is higher in array, move the index halfway up.
+          start = index + 1;
+        }
+
+        // Get next mid-point.
+        index = Math.floor((end - start) / 2) + start;
+      }
+    }
+
+    return index;
+  }
+
+  public GetCutOffs(): Uint16Array {
+    let result = new Uint16Array(this.ranges.length);
+    let i: number = 0;
+
+    for (; i < this.ranges.length; i++) {
+      result[i] = this.ranges[i].cutOff;
+    }
+
+    return result;
+  }
+
+  public GetColorNums(): Uint32Array {
+    let result = new Uint32Array(this.ranges.length);
+    let i: number = 0;
+
+    for (; i < this.ranges.length; i++) {
+      result[i] = this.ranges[i].colorNum;
+    }
+
+    return result;
+  }
+}
 
 export class ColorNumbers {
 
@@ -498,7 +603,7 @@ export class ColorNumbers {
   }
 }
 
-// ---- WebWorker Messages ----
+// ---- WebWorker Message Interfaces ----
 
 export interface IWebWorkerMessage {
   messageKind: string;
@@ -507,6 +612,7 @@ export interface IWebWorkerMessage {
 export interface IWebWorkerStartRequest extends IWebWorkerMessage {
   canvasSize: ICanvasSize;
   mapInfo: IMapInfo;
+  colorMap: ColorMap;
   sectionAnchor: IPoint;
   sectionNumber: number;
 }
@@ -546,6 +652,16 @@ export interface IWebWorkerIterCountsResponse extends IWebWorkerMessage {
   iterCountsData: Uint16Array;
 }
 
+export interface IWebWorkerUpdateColorMapRequest extends IWebWorkerMessage {
+  cutOffs: Uint16Array;
+  colorNums: Uint32Array;
+  highColorNum: number;
+
+  getColorMap(): ColorMap;
+}
+
+// -- WebWorker Message Implementations
+
 export class WebWorkerMessage implements IWebWorkerMessage {
   constructor(public messageKind: string) { }
 
@@ -556,13 +672,21 @@ export class WebWorkerMessage implements IWebWorkerMessage {
 
 export class WebWorkerStartRequest implements IWebWorkerStartRequest {
 
-  constructor(public messageKind: string, public canvasSize: ICanvasSize, public mapInfo: IMapInfo, public sectionAnchor: IPoint, public sectionNumber: number) { }
+  constructor(
+    public messageKind: string,
+    public canvasSize: ICanvasSize,
+    public mapInfo: IMapInfo,
+    public colorMap: ColorMap,
+    public sectionAnchor: IPoint,
+    public sectionNumber: number
+  ) { }
 
   static FromEventData(data: any): IWebWorkerStartRequest {
     let result = new WebWorkerStartRequest(
       data.messageKind,
       data.canvasSize,
       data.mapInfo,
+      data.colorMap,
       data.sectionAnchor,
       data.sectionNumber
     );
@@ -570,7 +694,15 @@ export class WebWorkerStartRequest implements IWebWorkerStartRequest {
   }
 
   static CreateRequest(mapWorkingData: IMapWorkingData, sectionNumber: number): IWebWorkerStartRequest {
-    let result = new WebWorkerStartRequest('Start', mapWorkingData.canvasSize, mapWorkingData.mapInfo, mapWorkingData.sectionAnchor, sectionNumber);
+    let result = new WebWorkerStartRequest(
+      'Start',
+      mapWorkingData.canvasSize,
+      mapWorkingData.mapInfo,
+      mapWorkingData.colorMap,
+      mapWorkingData.sectionAnchor,
+      sectionNumber
+    );
+
     return result;
   }
 }
@@ -703,6 +835,31 @@ export class WebWorkerIterCountsResponse implements IWebWorkerIterCountsResponse
   }
 }
 
+export class WebWorkerUpdateColorMapRequest implements IWebWorkerUpdateColorMapRequest {
+  constructor(public messageKind: string, public cutOffs: Uint16Array, public colorNums: Uint32Array, public highColorNum: number) { }
+
+  static FromEventData(data: any): IWebWorkerUpdateColorMapRequest {
+    let result = new WebWorkerUpdateColorMapRequest(data.messageKind, data.cutOffs, data.colorNums, data.highColorNum);
+
+    return result;
+  }
+
+  static CreateRequest(colorMap: ColorMap): IWebWorkerUpdateColorMapRequest {
+
+    let cutOffs = colorMap.GetCutOffs();
+    let colorNums = colorMap.GetColorNums();
+
+    let result = new WebWorkerUpdateColorMapRequest("UpdateColorMap", cutOffs, colorNums, colorMap.highColor);
+    return result;
+  }
+
+  public getColorMap(): ColorMap {
+    let result: ColorMap = ColorMap.FromTypedArrays(this.cutOffs, this.colorNums, this.highColorNum);
+    return result;
+  }
+
+}
+
 // Only used when the javascript produced from compiling this TypeScript is used to create worker.js
 
 //var mapWorkingData: IMapWorkingData = null;
@@ -720,7 +877,7 @@ export class WebWorkerIterCountsResponse implements IWebWorkerIterCountsResponse
 
 //  if (plainMsg.messageKind === 'Start') {
 //    let startMsg = WebWorkerStartRequest.FromEventData(e.data);
-//    mapWorkingData = new MapWorkingData(startMsg.canvasSize, startMsg.mapInfo, startMsg.sectionAnchor);
+//    mapWorkingData = new MapWorkingData(startMsg.canvasSize, startMsg.mapInfo, startMsg.colorMap, startMsg.sectionAnchor);
 //    sectionNumber = startMsg.sectionNumber;
 //    console.log('Worker created MapWorkingData with element count = ' + mapWorkingData.elementCount);
 
@@ -732,12 +889,12 @@ export class WebWorkerIterCountsResponse implements IWebWorkerIterCountsResponse
 //    let iterateRequestMsg = WebWorkerIterateRequest.FromEventData(e.data);
 //    let iterCount = iterateRequestMsg.iterateCount;
 //    mapWorkingData.doInterationsForAll(iterCount);
-//    imageData = mapWorkingData.getImageData();
+//    pixelData = mapWorkingData.getPixelData();
 
-//    imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, imageData.data);
+//    imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, pixelData);
 
 //    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
-//    self.postMessage(imageDataResponse, "*", [imageData.data.buffer]);
+//    self.postMessage(imageDataResponse, "*", [pixelData.buffer]);
 //  }
 //  else if (plainMsg.messageKind === 'GetImageData') {
 //    mapWorkingData.doInterationsForAll(1);
@@ -751,6 +908,12 @@ export class WebWorkerIterCountsResponse implements IWebWorkerIterCountsResponse
 
 //    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
 //    self.postMessage(imageDataResponse, "*", [pixelData.buffer]);
+//  }
+//  else if (plainMsg.messageKind === "UpdateColorMap") {
+//    let upColorMapReq = WebWorkerUpdateColorMapRequest.FromEventData(e.data);
+
+//    mapWorkingData.colorMap = upColorMapReq.getColorMap();
+//    console.log('WebWorker received an UpdateColorMapRequest with ' + mapWorkingData.colorMap.ranges.length + ' entries.');
 //  }
 //  else {
 //    console.log('Received unknown message kind: ' + plainMsg.messageKind);
