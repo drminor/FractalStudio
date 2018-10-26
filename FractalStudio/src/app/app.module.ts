@@ -1,6 +1,5 @@
 import { BrowserModule } from '@angular/platform-browser';
 import { NgModule } from '@angular/core';
-//import { SampleModule } from '../fractalMapLib';
 
 import { AppComponent } from './app.component';
 import { Logger } from './logger.service';

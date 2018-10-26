@@ -1,12 +1,14 @@
 
-<h2>Map Params Section</h2>
-<app-m-map-params></app-m-map-params>
+<h2>The Mandlebrodt Set</h2>
+<div style="margin-bottom:20px">
+  <app-m-map-params (mapInfoUpdated)="onMapInfoUpdated($event)"></app-m-map-params>
+</div>
 
-<h2>Map Output Section</h2>
+<!--<h2>Map Output Section</h2>-->
 
-  <div style="position:relative; width:700px; height:470px; padding:3px 3px 3px 3px; border: 2px solid black">
-    <div style="position:relative; width:690px; height:460px; margin:5px">
-      <app-m-map-display></app-m-map-display>
-    </div>
+<div style="position:relative; width:700px; height:470px; padding:3px 3px 3px 3px; border: 2px solid black">
+  <div style="position:relative; width:690px; height:460px; margin:5px">
+    <app-m-map-display [mapInfo]="mapInfo"></app-m-map-display>
   </div>
+</div>
 

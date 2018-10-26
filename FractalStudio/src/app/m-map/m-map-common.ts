@@ -13,6 +13,7 @@ export interface IMapInfo {
   bottomLeft: IPoint;
   topRight: IPoint;
   maxInterations: number;
+  iterationsPerStep: number;
 }
 
 export interface ICanvasSize {
@@ -79,7 +80,7 @@ export class CanvasSize implements ICanvasSize {
 }
 
 export class MapInfo implements IMapInfo {
-  constructor(public bottomLeft: IPoint, public topRight: IPoint, public maxInterations: number) {
+  constructor(public bottomLeft: IPoint, public topRight: IPoint, public maxInterations: number, public iterationsPerStep: number) {
   }
 }
 
@@ -296,7 +297,7 @@ export class MapWorkingData implements IMapWorkingData {
       let secBotLeft = new Point(left, secBottom);
       let secTopRight = new Point(right, secTop);
 
-      let secMapInfo = new MapInfo(secBotLeft, secTopRight, mapInfo.maxInterations);
+      let secMapInfo = new MapInfo(secBotLeft, secTopRight, mapInfo.maxInterations, mapInfo.iterationsPerStep);
 
       let yOffset = ptr * sectionHeightWN;
       let secAnchor: IPoint = new Point(0, yOffset);
@@ -317,7 +318,7 @@ export class MapWorkingData implements IMapWorkingData {
     let secTop = yVals[topPtr];
     let secTopRight = new Point(right, secTop);
 
-    let secMapInfo = new MapInfo(secBotLeft, secTopRight, mapInfo.maxInterations);
+    let secMapInfo = new MapInfo(secBotLeft, secTopRight, mapInfo.maxInterations, mapInfo.iterationsPerStep);
 
     let yOffset = ptr * sectionHeightWN;
     let secAnchor: IPoint = new Point(0, yOffset);
@@ -339,53 +340,18 @@ export class MapWorkingData implements IMapWorkingData {
       return;
     }
 
+    // Address the image data buffer as Int32's
     const pixelData = new Uint32Array(imgData.buffer);
-    let colorMap: ColorMap = this.colorMap;
+
+    //let colorMap: ColorMap = this.colorMap;
 
     let i: number = 0;
     for (; i < this.elementCount; i++) {
       const cnt = this.cnts[i];
-      pixelData[i] = colorMap.getColor(cnt);
+      pixelData[i] = this.colorMap.getColor(cnt);
     }
   }
   
-  //private setPixelValueBinaryByInt(on: boolean, ptr: number, imageData: Uint32Array, colorNums: ColorNumbers) {
-  //  if (on) {
-  //    // Points within the set are drawn in black.
-  //    imageData[ptr] = colorNums.red;
-  //  } else {
-  //    // Points outside the set are drawn in white.
-  //    let tt: number = colorNums.white;
-
-  //    //tt = ‭math.pow(2, 32);
-
-  //    imageData[ptr] = tt; //math.pow(2, 32).valueOf() as number;
-  //  }
-  //}
-
-  //private setPixelValueFromCount(cnt: number, ptr: number, imageData: Uint32Array, colorNums: ColorNumbers) {
-
-  //  let cNum: number;
-
-  //  if (cnt < 10) {
-  //    cNum = colorNums.white;
-  //  }
-  //  else if (cnt < 20) {
-  //    cNum = colorNums.red;
-  //  }
-  //  else if (cnt < 50) {
-  //    cNum = colorNums.green;
-  //  }
-  //  else if (cnt < 200) {
-  //    cNum = colorNums.blue;
-  //  }
-  //  else {
-  //    cNum = colorNums.black;
-  //  }
-
-  //  imageData[ptr] = cNum;
-  //}
-
   public getImageDataForLine(y: number): ImageData {
     const imageData = new ImageData(this.canvasSize.width, 1);
     this.updateImageDataForLine(imageData, y);
