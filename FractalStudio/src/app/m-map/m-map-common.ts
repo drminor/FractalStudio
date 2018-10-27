@@ -14,6 +14,7 @@ export interface IBox {
   end: IPoint;
   width: number;
   height: number;
+  getNormalizedBox(): IBox;
 }
 
 export interface IMapInfo {
@@ -73,12 +74,72 @@ export class Point implements IPoint {
 export class Box implements IBox {
   constructor(public start: IPoint, public end: IPoint) { }
 
+  public static fromPointExtent(point: IPoint, width: number, height: number): IBox {
+    const result: IBox = new Box(point, new Point(point.x + width, point.y + height));
+
+    return result;
+  }
   public get width(): number {
     return this.end.x - this.start.x;
   }
 
   public get height(): number {
     return this.end.y - this.start.y;
+  }
+
+  // Return a box of the same size and position
+  // but make sure that the width and height are both positive.
+  public getNormalizedBox(): IBox {
+
+    let box = this;
+
+    let sx: number;
+    let sy: number;
+
+    let ex: number;
+    let ey: number;
+
+    if (box.start.x < box.end.x) {
+      if (box.start.y < box.end.y) {
+        // Already in normal form.
+        sx = box.start.x;
+        ex = box.end.x;
+        sy = box.start.y;
+        ey = box.end.y;
+      }
+      else {
+        // Width is already positive, reverse the y values.
+        sx = box.start.x;
+        ex = box.end.x;
+        sy = box.end.y;
+        ey = box.start.y;
+      }
+    }
+    else {
+      if (box.start.y < box.end.y) {
+        // Height is already positive, reverse the x values.
+        sx = box.end.x;
+        ex = box.start.x;
+        sy = box.start.y;
+        ey = box.end.y;
+      } else {
+        // Reverse both x and y values.
+        sx = box.end.x;
+        ex = box.start.x;
+        sy = box.end.y;
+        ey = box.start.y;
+      }
+    }
+
+    let result = new Box(new Point(this.round(sx), this.round(sy)), new Point(this.round(ex), this.round(ey)));
+
+    return result;
+  }
+
+  private round(x: number): number {
+    const result: number = parseInt((x + 0.5).toString(), 10);
+
+    return result;
   }
 }
 
