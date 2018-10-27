@@ -346,22 +346,31 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     // Determine if the height or the width of the zoom box will be used to calculate the new coordinates.
     if (nBox.width * 1.5 > nBox.height) {
       // Using the width will result in the smallest change to the resulting dimensions, use it.
+      console.log('Using Width, adjusting height.');
       nw = nBox.width;
       nh = this.round(nBox.width / 1.5);
       nx = nBox.start.x;
 
       // Since we are changing the height, move the starting position 1/2 the distance of the change
       // this will center the new height around the old box's vertical extent.
-      ny = nBox.start.y + this.round(nh - nBox.height / 2);
+      let vAdj = this.round((nh - nBox.height) / 2);
+      console.log('Moving start y back by ' + vAdj + '.');
+      ny = nBox.start.y - vAdj;
+      //ny = nBox.start.y;
     }
     else {
       // Using the height will result in the smallest change to the resulting dimensions, use it.
+      console.log('Using height, adjusting width.');
       nw = this.round(nBox.height * 1.5);
       nh = nBox.height;
       ny = nBox.start.y;
 
-      nx = nBox.start.x + this.round(nw - nBox.width / 2);
-
+      // Since we are changing the width, move the starting position 1/2 the distance of the change
+      // this will center the new width around the old box's horizontal extent.
+      let hAdj = this.round((nw - nBox.width) / 2);
+      console.log('Moving start x back by ' + hAdj + '.');
+      nx = nBox.start.x - hAdj;
+      //nx = nBox.start.x;
     }
 
     let zBox = Box.fromPointExtent(new Point(nx, ny), nw, nh);
@@ -372,6 +381,53 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
       console.log('The new zoom box has the wrong aspect ratio.');
     }
 
+    console.log('Original Zoom Box: ' + box.toString());
+    console.log('Normalized Zoom Box: ' + nBox.toString());
+
+
+    console.log('Current MapInfo = ' + this.mapInfo.toString());
+    console.log('Canvas = w:' + this.canvasSize.width + ' h:' + this.canvasSize.height + '.');
+    console.log('Proportioned Zoom Box: ' + zBox.toString());
+
+    let unitExtentX: number = (this.mapInfo.topRight.x - this.mapInfo.bottomLeft.x) / this.canvasSize.width;
+    let unitExtentY: number = (this.mapInfo.topRight.y - this.mapInfo.bottomLeft.y) / this.canvasSize.height;
+
+    console.log('unit x: ' + unitExtentX + ' unit y' + unitExtentY);
+
+    let msx = this.mapInfo.bottomLeft.x + zBox.start.x * unitExtentX;
+    let mex = this.mapInfo.bottomLeft.x + zBox.end.x * unitExtentX;
+
+    //console.log('new map sx: ' + msx + ' new map ex: ' + mex + '.');
+
+    // Canvas origin is the top, right -- map coordinate origin is the bottom, right.
+    // Invert the canvas coordinates.
+    let invCanvasSY = this.canvasSize.height - zBox.end.y;
+    let invCanvasEY = this.canvasSize.height - zBox.start.y;
+
+    console.log('Inverted Canvas sy:' + invCanvasSY + ' ey:' + invCanvasEY + '.');
+
+    let msy = this.mapInfo.bottomLeft.y + invCanvasSY * unitExtentY;
+    let mey = this.mapInfo.bottomLeft.y + invCanvasEY * unitExtentY;
+
+    //console.log('new map sy: ' + msy + ' new map ey: ' + mey + '.');
+
+    let newMapInfo: IMapInfo = new MapInfo(new Point(msx, msy), new Point(mex, mey),
+      this.mapInfo.maxInterations, this.mapInfo.iterationsPerStep);
+
+    console.log('New MapInfo = ' + newMapInfo.toString());
+
+    unitExtentX = (newMapInfo.topRight.x - newMapInfo.bottomLeft.x) / this.canvasSize.width;
+    unitExtentY = (newMapInfo.topRight.y - newMapInfo.bottomLeft.y) / this.canvasSize.height;
+    console.log('unit x: ' + unitExtentX + ' unit y' + unitExtentY);
+
+    
+    let ptr: number = 0;
+    for (; ptr < this.workers.length; ptr++) {
+      this.workers[ptr].terminate();
+    }
+
+    this.mapInfo = newMapInfo;
+    this.buildWorkingData();
   }
 
   private round(x: number): number {

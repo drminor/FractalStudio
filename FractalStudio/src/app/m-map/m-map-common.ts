@@ -14,7 +14,9 @@ export interface IBox {
   end: IPoint;
   width: number;
   height: number;
+
   getNormalizedBox(): IBox;
+  toString(): string;
 }
 
 export interface IMapInfo {
@@ -22,6 +24,8 @@ export interface IMapInfo {
   topRight: IPoint;
   maxInterations: number;
   iterationsPerStep: number;
+
+  toString(): string
 }
 
 export interface ICanvasSize {
@@ -141,6 +145,10 @@ export class Box implements IBox {
 
     return result;
   }
+
+  public toString(): string {
+    return 'sx:' + this.start.x + ' ex:' + this.end.x + ' sy:' + this.start.y + ' ey:' + this.end.y + '.';
+  }
 }
 
 export class CanvasSize implements ICanvasSize {
@@ -161,6 +169,10 @@ export class CanvasSize implements ICanvasSize {
 
 export class MapInfo implements IMapInfo {
   constructor(public bottomLeft: IPoint, public topRight: IPoint, public maxInterations: number, public iterationsPerStep: number) {
+  }
+
+  public toString(): string {
+    return 'sx:' + this.bottomLeft.x + ' ex:' + this.topRight.x + ' sy:' + this.bottomLeft.y + ' ey:' + this.topRight.y + ' mi:' + this.maxInterations + ' ips:' + this.iterationsPerStep + '.';
   }
 }
 
