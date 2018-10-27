@@ -52,6 +52,14 @@ export class MMapParamsComponent implements OnInit {
     this.mapInfoUpdated.emit(mapInfo);
   }
 
+  onDownloadImage(): void {
+    //window.location = canvas.toDataURL('image/png');
+  }
+
+
+
+
+
   ngOnInit() {
   }
 

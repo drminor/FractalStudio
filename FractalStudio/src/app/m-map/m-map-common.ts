@@ -9,6 +9,13 @@ export interface IPoint {
   y: number;
 }
 
+export interface IBox {
+  start: IPoint;
+  end: IPoint;
+  width: number;
+  height: number;
+}
+
 export interface IMapInfo {
   bottomLeft: IPoint;
   topRight: IPoint;
@@ -61,6 +68,18 @@ export interface IMapWorkingData {
 
 export class Point implements IPoint {
   constructor(public x: number, public y: number) { }
+}
+
+export class Box implements IBox {
+  constructor(public start: IPoint, public end: IPoint) { }
+
+  public get width(): number {
+    return this.end.x - this.start.x;
+  }
+
+  public get height(): number {
+    return this.end.y - this.start.y;
+  }
 }
 
 export class CanvasSize implements ICanvasSize {

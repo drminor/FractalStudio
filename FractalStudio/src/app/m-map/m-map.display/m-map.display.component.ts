@@ -2,9 +2,11 @@ import { Component, OnInit, AfterViewInit, ElementRef, ViewChild, Input } from '
 import { Logger } from '../../logger.service';
 
 import {
-  IPoint, Point, ICanvasSize, CanvasSize,
+  IPoint, Point, IBox, Box, ICanvasSize, CanvasSize,
   IMapInfo, MapInfo, IMapWorkingData, MapWorkingData,
-  WebWorkerImageDataResponse, WebWorkerMessage, WebWorkerStartRequest, WebWorkerImageDataRequest, WebWorkerIterateRequest, ColorMap, ColorMapEntry, ColorNumbers, WebWorkerUpdateColorMapRequest
+  WebWorkerImageDataResponse, WebWorkerMessage, WebWorkerStartRequest, WebWorkerImageDataRequest,
+  WebWorkerIterateRequest, WebWorkerUpdateColorMapRequest,
+  ColorMap, ColorMapEntry, ColorNumbers
 } from '../m-map-common';
 
 import { MMapService } from '../m-map.service';
@@ -41,6 +43,10 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
   private colorMap: ColorMap;
 
+  private box: IBox;
+  private canvasElement: HTMLCanvasElement;
+
+
   constructor(private logger: Logger, private mService: MMapService) {
     this.componentInitialized = false;
     this.viewInitialized = false;
@@ -70,6 +76,9 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     //// For simplicity, do not use Web Workers and use only one section.
     //this.numberOfSections = 1;
     //this.useWorkers = false;
+
+    this.box = null;
+    this.canvasElement = null;
   }
 
   private buildColorMap(): ColorMap {
@@ -95,10 +104,10 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
   draw(imageData: ImageData, sectionNumber: number): void {
 
-    let ctx: CanvasRenderingContext2D = this.canvasRef.nativeElement.getContext('2d');
+    let ctx: CanvasRenderingContext2D = this.canvasElement.getContext('2d');
 
-    let cw: number = this.canvasRef.nativeElement.width;
-    let ch: number = this.canvasRef.nativeElement.height;
+    let cw: number = this.canvasElement.width;
+    let ch: number = this.canvasElement.height;
 
     //console.log("Drawing on canvas with W = " + cw + " H = " + ch);
 
@@ -128,7 +137,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
     ctx.putImageData(imageData, left, bot);
 
-    //console.log('Just drew image data for sn=' + sectionNumber + ' left=' + left + ' bot =' + bot  + '.');
+    console.log('Just drew image data for sn=' + sectionNumber + ' left=' + left + ' bot =' + bot  + '.');
   }
 
   ngOnInit(): void {
@@ -151,11 +160,12 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
         this.workers[ptr].terminate();
       }
 
+      this.buildWorkingData();
+
     }
     else {
       console.log("m-map-display.component is handling ngOnChanges -- the view has NOT been initialized.");
     }
-    this.buildWorkingData();
   }
 
   ngAfterViewInit() {
@@ -163,8 +173,10 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
       this.viewInitialized = true;
       console.log("Initializing the canvas size and building the Map Working Data here once because we are finally ready.");
 
+      this.canvasElement = this.canvasRef.nativeElement as HTMLCanvasElement;
       // Get the size of our canvas.
-      this.canvasSize = this.initMapDisplay();
+      this.canvasSize = this.initMapDisplay(this.canvasElement);
+      //this.registerZoomEventHandlers(this.canvasElement);
 
       //this.canvasSize = new CanvasSize(24000, 16000);
       console.log("The initial canvas size is W = " + this.canvasSize.width + " H = " + this.canvasSize.height);
@@ -196,23 +208,42 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
       this.sections = new Array<IMapWorkingData>(1);
       this.sections[0] = new MapWorkingData(this.canvasSize, this.mapInfo, this.colorMap, new Point(0, 0));
 
-      this.progresslvy();
+      this.progressively();
     }
   }
 
-  private initMapDisplay(): ICanvasSize {
+  private initMapDisplay(ce: HTMLCanvasElement): ICanvasSize {
 
     // Set our canvas size = to the number of pixels actually used to display our canvas HTML element.
+    //let ce: HTMLCanvasElement = canvasRef.nativeElement as HTMLCanvasElement;
+
+    //const result: ICanvasSize = new CanvasSize(
+    //  canvasRef.nativeElement.offsetWidth,
+    //  canvasRef.nativeElement.offsetHeight
+    //);
+
+    //// Set the internal canvas's bitmap equal to the pixels on the screen. (Zoom = 1)
+    //canvasRef.nativeElement.width = result.width;
+    //canvasRef.nativeElement.height = result.height;
+
+    console.log('Doing initMapDisplay.');
     const result: ICanvasSize = new CanvasSize(
-      this.canvasRef.nativeElement.offsetWidth,
-      this.canvasRef.nativeElement.offsetHeight
+      ce.offsetWidth,
+      ce.offsetHeight
     );
 
     // Set the internal canvas's bitmap equal to the pixels on the screen. (Zoom = 1)
-    this.canvasRef.nativeElement.width = result.width;
-    this.canvasRef.nativeElement.height = result.height;
+    ce.width = result.width;
+    ce.height = result.height;
 
     return result;
+  }
+
+  private registerZoomEventHandlers(ce: HTMLCanvasElement): void {
+
+    //ce.addEventListener("mousedown", this.onMousedown);
+    //ce.addEventListener("mousemove", this.onMouseMove);
+    //ce.addEventListener("mouseup", this.onMouseUp);
   }
 
   // Worker stuff
@@ -284,8 +315,8 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     return result;
   }
 
-  private progresslvy(): void {
-
+  private progressively(): void {
+    console.log('Doing progresslvy');
     const that = this;
     let alive: boolean = true;
 
@@ -313,5 +344,83 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
       }
     }
   }
+
+  // --- Zoom Box ----
+
+  //onMousedown(e: MouseEvent): void {
+  //  if (this.box == null) {
+  //    console.log('Just aquired the zoom box.');
+  //    this.box = new Box(new Point(e.clientX, e.clientY), new Point(0, 0));
+  //  }
+  //  else {
+  //    console.log('Already have box.');
+  //  }
+  //}
+
+  //onMouseMove(e: MouseEvent): void {
+  //  if (this.box != null) {
+  //    let ctx: CanvasRenderingContext2D = this.canvasElement.getContext('2d');
+
+  //    ctx.lineWidth = 1;
+
+  //    // clear out old box first
+  //    ctx.clearRect(0, 0, this.canvasSize.width, this.canvasSize.height);
+
+  //    // draw new box
+  //    ctx.strokeStyle = '#FF3B03';
+
+  //    this.box.end = new Point(e.clientX, e.clientY);
+
+  //    ctx.strokeRect(this.box.start.x, this.box.start.y, this.box.width, this.box.height);
+  //  }
+  //}
+
+  //onMouseUp(e: MouseEvent): void {
+  //  this.box = null;
+
+//  if(box != null ) {
+//  // Zoom out?
+//  if (e.shiftKey) {
+//    box = null;
+//    zoomOut(e);
+//    return;
+//  }
+
+//  /*
+//   * Cleaer entire canvas
+//   */
+//  var c = ccanvas.getContext('2d');
+//  c.clearRect(0, 0, ccanvas.width, ccanvas.height);
+
+//  /*
+//   * Calculate new rectangle to render
+//   */
+//  var x = Math.min(box[0], box[2]) + Math.abs(box[0] - box[2]) / 2.0;
+//  var y = Math.min(box[1], box[3]) + Math.abs(box[1] - box[3]) / 2.0;
+
+//  var dx = (xRange[1] - xRange[0]) / (0.5 + (canvas.width - 1));
+//  var dy = (yRange[1] - yRange[0]) / (0.5 + (canvas.height - 1));
+
+//  x = xRange[0] + x * dx;
+//  y = yRange[0] + y * dy;
+
+//  lookAt = [x, y];
+
+//  /*
+//   * This whole code is such a mess ...
+//   */
+
+//  var xf = Math.abs(Math.abs(box[0] - box[2]) / canvas.width);
+//  var yf = Math.abs(Math.abs(box[1] - box[3]) / canvas.height);
+
+//  zoom[0] *= Math.max(xf, yf); // retain aspect ratio
+//  zoom[1] *= Math.max(xf, yf);
+
+//  box = null;
+//  draw(getColorPicker(), getSamples());
+//}
+
+  //}
+
 
 }
