@@ -20,6 +20,7 @@ export interface IBox {
 }
 
 export interface IMapInfo {
+  coords: IBox;
   bottomLeft: IPoint;
   topRight: IPoint;
   maxInterations: number;
@@ -73,6 +74,13 @@ export interface IMapWorkingData {
 
 export class Point implements IPoint {
   constructor(public x: number, public y: number) { }
+
+  public static fromStringVals(strX: string, strY: string): IPoint {
+    let xNum = parseFloat(strX);
+    let yNum = parseFloat(strY);
+    let result: IPoint = new Point(xNum, yNum);
+    return result;
+  }
 }
 
 export class Box implements IBox {
@@ -168,11 +176,26 @@ export class CanvasSize implements ICanvasSize {
 }
 
 export class MapInfo implements IMapInfo {
-  constructor(public bottomLeft: IPoint, public topRight: IPoint, public maxInterations: number, public iterationsPerStep: number) {
+  constructor(public coords: IBox, public maxInterations: number, public iterationsPerStep: number) {
+  }
+
+  public static fromPoints(bottomLeft: IPoint, topRight: IPoint, maxInterations: number, iterationsPerStep: number): IMapInfo {
+
+    let coords: IBox = new Box(bottomLeft, topRight);
+    let result: IMapInfo = new MapInfo(coords, maxInterations, iterationsPerStep);
+    return result;
+  }
+
+  public get bottomLeft(): IPoint {
+    return this.coords.start;
+  }
+
+  public get topRight(): IPoint {
+    return this.coords.end;
   }
 
   public toString(): string {
-    return 'sx:' + this.bottomLeft.x + ' ex:' + this.topRight.x + ' sy:' + this.bottomLeft.y + ' ey:' + this.topRight.y + ' mi:' + this.maxInterations + ' ips:' + this.iterationsPerStep + '.';
+    return 'sx:' + this.coords.start.x + ' ex:' + this.coords.end.x + ' sy:' + this.coords.start.y + ' ey:' + this.coords.end.y + ' mi:' + this.maxInterations + ' ips:' + this.iterationsPerStep + '.';
   }
 }
 
@@ -389,7 +412,8 @@ export class MapWorkingData implements IMapWorkingData {
       let secBotLeft = new Point(left, secBottom);
       let secTopRight = new Point(right, secTop);
 
-      let secMapInfo = new MapInfo(secBotLeft, secTopRight, mapInfo.maxInterations, mapInfo.iterationsPerStep);
+      let coords: IBox = new Box(secBotLeft, secTopRight);
+      let secMapInfo = new MapInfo(coords, mapInfo.maxInterations, mapInfo.iterationsPerStep);
 
       let yOffset = ptr * sectionHeightWN;
       let secAnchor: IPoint = new Point(0, yOffset);
@@ -410,7 +434,8 @@ export class MapWorkingData implements IMapWorkingData {
     let secTop = yVals[topPtr];
     let secTopRight = new Point(right, secTop);
 
-    let secMapInfo = new MapInfo(secBotLeft, secTopRight, mapInfo.maxInterations, mapInfo.iterationsPerStep);
+    let coords: IBox = new Box(secBotLeft, secTopRight);
+    let secMapInfo = new MapInfo(coords, mapInfo.maxInterations, mapInfo.iterationsPerStep);
 
     let yOffset = ptr * sectionHeightWN;
     let secAnchor: IPoint = new Point(0, yOffset);

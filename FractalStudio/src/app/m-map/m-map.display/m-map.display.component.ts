@@ -1,5 +1,4 @@
-import { Component, OnInit, AfterViewInit, ElementRef, ViewChild, Input } from '@angular/core';
-import { Logger } from '../../logger.service';
+import { Component, OnInit, AfterViewInit, ElementRef, ViewChild, Input, EventEmitter, Output } from '@angular/core';
 
 import {
   IPoint, Point, IBox, Box, ICanvasSize, CanvasSize,
@@ -9,21 +8,15 @@ import {
   ColorMap, ColorMapEntry, ColorNumbers
 } from '../m-map-common';
 
-import { MMapService } from '../m-map.service';
-import * as math from 'mathjs';
-
 @Component({
   selector: 'app-m-map-display',
   templateUrl: './m-map.display.component.html',
   styleUrls: ['./m-map.display.component.css']
-  //,
-  //inputs: ['canvasWidth', 'canvasHeight']
 })
 export class MMapDisplayComponent implements AfterViewInit, OnInit {
+  @Output() zoomed = new EventEmitter<IMapInfo>();
 
   @Input('mapInfo') mapInfo: IMapInfo;
-  //@Input('canvas-width') canvasWidth: number;
-  //@Input('canvas-height') canvasHeight: number;
 
   @ViewChild('myCanvas') canvasRef: ElementRef;
   @ViewChild('myControlCanvas') canvasControlRef: ElementRef;
@@ -43,13 +36,12 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
   private sections: IMapWorkingData[];
 
   private zoomBox: IBox;
-  //private oldX: number;
   private canvasElement: HTMLCanvasElement;
   private canvasControlElement: HTMLCanvasElement;
 
   private useWorkers: boolean;
 
-  constructor(private logger: Logger, private mService: MMapService) {
+  constructor() {
     this.componentInitialized = false;
     this.viewInitialized = false;
     console.log('m-map.display is being constructed.');
@@ -127,7 +119,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
     ctx.putImageData(imageData, left, bot);
 
-    console.log('Just drew image data for sn=' + sectionNumber + ' left=' + left + ' bot =' + bot  + '.');
+    //console.log('Just drew image data for sn=' + sectionNumber + ' left=' + left + ' bot =' + bot  + '.');
   }
 
   ngOnInit(): void {
@@ -185,10 +177,10 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
       // Create a MapWorkingData for each section.
       this.sections = MapWorkingData.getWorkingDataSections(this.canvasSize, this.mapInfo, this.colorMap, this.numberOfSections);
 
-      let ptr: number = 0;
-      for (ptr = 0; ptr < this.numberOfSections; ptr++) {
-        console.log('Section Number: ' + ptr + ' bot=' + this.sections[ptr].sectionAnchor.y + '.');
-      }
+      //let ptr: number = 0;
+      //for (ptr = 0; ptr < this.numberOfSections; ptr++) {
+      //  console.log('Section Number: ' + ptr + ' bot=' + this.sections[ptr].sectionAnchor.y + '.');
+      //}
 
       // initialized our workers array (this.workers)
       this.workers = this.initWebWorkers(this.numberOfSections);
@@ -278,6 +270,9 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
             console.log("Done.");
           }
         }
+        else if (plainMsg.messageKind === 'StartResponse') {
+          //console.log('Received StartRespose from a web worker.');
+        }
         else {
           console.log('Received message from a web worker, The message = ' + plainMsg.messageKind + '.');
         }
@@ -346,7 +341,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     // Determine if the height or the width of the zoom box will be used to calculate the new coordinates.
     if (nBox.width * 1.5 > nBox.height) {
       // Using the width will result in the smallest change to the resulting dimensions, use it.
-      console.log('Using Width, adjusting height.');
+      //console.log('Using Width, adjusting height.');
       nw = nBox.width;
       nh = this.round(nBox.width / 1.5);
       nx = nBox.start.x;
@@ -354,13 +349,13 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
       // Since we are changing the height, move the starting position 1/2 the distance of the change
       // this will center the new height around the old box's vertical extent.
       let vAdj = this.round((nh - nBox.height) / 2);
-      console.log('Moving start y back by ' + vAdj + '.');
+      //console.log('Moving start y back by ' + vAdj + '.');
       ny = nBox.start.y - vAdj;
       //ny = nBox.start.y;
     }
     else {
       // Using the height will result in the smallest change to the resulting dimensions, use it.
-      console.log('Using height, adjusting width.');
+      //console.log('Using height, adjusting width.');
       nw = this.round(nBox.height * 1.5);
       nh = nBox.height;
       ny = nBox.start.y;
@@ -368,7 +363,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
       // Since we are changing the width, move the starting position 1/2 the distance of the change
       // this will center the new width around the old box's horizontal extent.
       let hAdj = this.round((nw - nBox.width) / 2);
-      console.log('Moving start x back by ' + hAdj + '.');
+      //console.log('Moving start x back by ' + hAdj + '.');
       nx = nBox.start.x - hAdj;
       //nx = nBox.start.x;
     }
@@ -381,22 +376,20 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
       console.log('The new zoom box has the wrong aspect ratio.');
     }
 
-    console.log('Original Zoom Box: ' + box.toString());
-    console.log('Normalized Zoom Box: ' + nBox.toString());
+    //console.log('Original Zoom Box: ' + box.toString());
+    //console.log('Normalized Zoom Box: ' + nBox.toString());
+    //console.log('Proportioned Zoom Box: ' + zBox.toString());
 
-
-    console.log('Current MapInfo = ' + this.mapInfo.toString());
-    console.log('Canvas = w:' + this.canvasSize.width + ' h:' + this.canvasSize.height + '.');
-    console.log('Proportioned Zoom Box: ' + zBox.toString());
+    //console.log('Current MapInfo = ' + this.mapInfo.toString());
+    //console.log('Canvas = w:' + this.canvasSize.width + ' h:' + this.canvasSize.height + '.');
 
     let unitExtentX: number = (this.mapInfo.topRight.x - this.mapInfo.bottomLeft.x) / this.canvasSize.width;
     let unitExtentY: number = (this.mapInfo.topRight.y - this.mapInfo.bottomLeft.y) / this.canvasSize.height;
 
-    console.log('unit x: ' + unitExtentX + ' unit y' + unitExtentY);
+    //console.log('unit x: ' + unitExtentX + ' unit y' + unitExtentY);
 
     let msx = this.mapInfo.bottomLeft.x + zBox.start.x * unitExtentX;
     let mex = this.mapInfo.bottomLeft.x + zBox.end.x * unitExtentX;
-
     //console.log('new map sx: ' + msx + ' new map ex: ' + mex + '.');
 
     // Canvas origin is the top, right -- map coordinate origin is the bottom, right.
@@ -404,22 +397,20 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     let invCanvasSY = this.canvasSize.height - zBox.end.y;
     let invCanvasEY = this.canvasSize.height - zBox.start.y;
 
-    console.log('Inverted Canvas sy:' + invCanvasSY + ' ey:' + invCanvasEY + '.');
+    //console.log('Inverted Canvas sy:' + invCanvasSY + ' ey:' + invCanvasEY + '.');
 
     let msy = this.mapInfo.bottomLeft.y + invCanvasSY * unitExtentY;
     let mey = this.mapInfo.bottomLeft.y + invCanvasEY * unitExtentY;
-
     //console.log('new map sy: ' + msy + ' new map ey: ' + mey + '.');
 
-    let newMapInfo: IMapInfo = new MapInfo(new Point(msx, msy), new Point(mex, mey),
-      this.mapInfo.maxInterations, this.mapInfo.iterationsPerStep);
+    let coords: IBox = new Box(new Point(msx, msy), new Point(mex, mey));
+    let newMapInfo: IMapInfo = new MapInfo(coords, this.mapInfo.maxInterations, this.mapInfo.iterationsPerStep);
 
-    console.log('New MapInfo = ' + newMapInfo.toString());
+    //console.log('New MapInfo = ' + newMapInfo.toString());
 
     unitExtentX = (newMapInfo.topRight.x - newMapInfo.bottomLeft.x) / this.canvasSize.width;
     unitExtentY = (newMapInfo.topRight.y - newMapInfo.bottomLeft.y) / this.canvasSize.height;
-    console.log('unit x: ' + unitExtentX + ' unit y' + unitExtentY);
-
+    //console.log('unit x: ' + unitExtentX + ' unit y' + unitExtentY);
     
     let ptr: number = 0;
     for (; ptr < this.workers.length; ptr++) {
@@ -427,7 +418,9 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     }
 
     this.mapInfo = newMapInfo;
-    this.buildWorkingData();
+    this.zoomed.emit(this.mapInfo);
+
+    //this.buildWorkingData();
   }
 
   private round(x: number): number {
@@ -440,9 +433,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
   private static getMousePos(cce: HTMLCanvasElement, e: MouseEvent): IPoint {
     const clientRect = cce.getBoundingClientRect();
-
     const result: IPoint = new Point(e.clientX - clientRect.left, e.clientY - clientRect.top)
-
     return result;
   }
 
@@ -457,7 +448,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     }
     else {
       if (that.zoomBox == null) {
-        console.log('Just aquired the zoom box.');
+        //console.log('Just aquired the zoom box.');
 
         that.zoomBox = new Box(mousePos, new Point(0, 0));
         //that.oldX = e.clientX;
@@ -465,7 +456,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
       else {
         // The user must have let go of the down button after moving the mouse
         // outside of the canvas, and is now pressing the down button again -- to excute the zoom. 
-        console.log('Already have box. Zooming');
+        //console.log('Already have box. Zooming');
 
         // Clear the control canvas.
         let ctx: CanvasRenderingContext2D = cce.getContext('2d');
@@ -496,11 +487,6 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
       let mousePos = MMapDisplayComponent.getMousePos(cce, e);
       that.zoomBox.end = mousePos;
 
-      //if (that.oldX - e.clientX > 20) {
-      //  console.log('Moving - end = ' + e.clientX + ' ' + e.clientY + '.');
-      //  that.oldX = e.clientX;
-      //}
-
       ctx.strokeRect(that.zoomBox.start.x, that.zoomBox.start.y, that.zoomBox.width, that.zoomBox.height);
     }
   }
@@ -512,7 +498,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
       return;
     }
 
-    console.log('Handling mouse up.');
+    //console.log('Handling mouse up.');
 
     let cce = that.canvasControlElement;
     let ctx: CanvasRenderingContext2D = cce.getContext('2d');
@@ -523,52 +509,6 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     that.zoomIn(that.zoomBox);
 
     that.zoomBox = null;
-
-
-
-
-//  if(box != null ) {
-//  // Zoom out?
-//  if (e.shiftKey) {
-//    box = null;
-//    zoomOut(e);
-//    return;
-//  }
-
-//  /*
-//   * Cleaer entire canvas
-//   */
-//  var c = ccanvas.getContext('2d');
-//  c.clearRect(0, 0, ccanvas.width, ccanvas.height);
-
-//  /*
-//   * Calculate new rectangle to render
-//   */
-//  var x = Math.min(box[0], box[2]) + Math.abs(box[0] - box[2]) / 2.0;
-//  var y = Math.min(box[1], box[3]) + Math.abs(box[1] - box[3]) / 2.0;
-
-//  var dx = (xRange[1] - xRange[0]) / (0.5 + (canvas.width - 1));
-//  var dy = (yRange[1] - yRange[0]) / (0.5 + (canvas.height - 1));
-
-//  x = xRange[0] + x * dx;
-//  y = yRange[0] + y * dy;
-
-//  lookAt = [x, y];
-
-//  /*
-//   * This whole code is such a mess ...
-//   */
-
-//  var xf = Math.abs(Math.abs(box[0] - box[2]) / canvas.width);
-//  var yf = Math.abs(Math.abs(box[1] - box[3]) / canvas.height);
-
-//  zoom[0] *= Math.max(xf, yf); // retain aspect ratio
-//  zoom[1] *= Math.max(xf, yf);
-
-//  box = null;
-//  draw(getColorPicker(), getSamples());
-//}
-
   }
 
 

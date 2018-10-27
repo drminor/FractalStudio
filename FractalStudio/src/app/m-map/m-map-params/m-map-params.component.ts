@@ -1,7 +1,7 @@
-import { Component, OnInit, EventEmitter, Output } from '@angular/core';
+import { Component, OnInit, EventEmitter, Output, Input } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 
-import { IPoint, Point, ICanvasSize, CanvasSize, IMapInfo, MapInfo, ColorMap, ColorMapEntry} from '../m-map-common';
+import { IPoint, Point, IMapInfo, MapInfo, ColorMap, ColorMapEntry, IBox, Box} from '../m-map-common';
 
 @Component({
   selector: 'app-m-map-params',
@@ -10,59 +10,74 @@ import { IPoint, Point, ICanvasSize, CanvasSize, IMapInfo, MapInfo, ColorMap, Co
 })
 export class MMapParamsComponent implements OnInit {
   @Output() mapInfoUpdated = new EventEmitter<IMapInfo>();
+  @Output() goBack = new EventEmitter<number>();
+
+  @Input('mapInfo') mapInfo: IMapInfo;
 
   mapCoordsForm = new FormGroup({
-    startX: new FormControl('-2'),
-    endX: new FormControl('1'),
-    startY: new FormControl('-1'),
-    endY: new FormControl('1'),
-    maxIterations: new FormControl('500'),
-    iterationsPerStep: new FormControl('10')
+    startX: new FormControl(),
+    endX: new FormControl(),
+    startY: new FormControl(),
+    endY: new FormControl(),
+    maxIterations: new FormControl(),
+    iterationsPerStep: new FormControl()
   });
 
-  constructor() {
-    //this.mapCoordsForm.controls["startX"].setValue('-7');
+  constructor() { }
+
+  private updateForm(mapInfo: IMapInfo): void {
+    this.mapCoordsForm.controls["startX"].setValue(mapInfo.coords.start.x);
+    this.mapCoordsForm.controls["endX"].setValue(mapInfo.coords.end.x);
+    this.mapCoordsForm.controls["startY"].setValue(mapInfo.coords.start.y);
+    this.mapCoordsForm.controls["endY"].setValue(mapInfo.coords.end.y);
+
+    this.mapCoordsForm.controls["maxIterations"].setValue(mapInfo.maxInterations);
+    this.mapCoordsForm.controls["iterationsPerStep"].setValue(mapInfo.iterationsPerStep);
   }
 
-  private getMapInfo(coords: FormGroup): IMapInfo {
+  private getMapInfo(frm: FormGroup): IMapInfo {
     let result: IMapInfo;
 
-    let botLeft: IPoint = this.getPoint(coords.controls["startX"].value, coords.controls["startY"].value);
-    let topRight: IPoint = this.getPoint(coords.controls["endX"].value, coords.controls["endY"].value);
+    let botLeft: IPoint = Point.fromStringVals(frm.controls["startX"].value, frm.controls["startY"].value);
+    let topRight: IPoint = Point.fromStringVals(frm.controls["endX"].value, frm.controls["endY"].value);
 
-    let maxIterations = parseInt(coords.controls["maxIterations"].value);
-    let iterationsPerStep = parseInt(coords.controls["iterationsPerStep"].value);
+    let coords: IBox = new Box(botLeft, topRight);
 
-    result = new MapInfo(botLeft, topRight, maxIterations, iterationsPerStep);
+    let maxIterations = parseInt(frm.controls["maxIterations"].value);
+    let iterationsPerStep = parseInt(frm.controls["iterationsPerStep"].value);
+
+    result = new MapInfo(coords, maxIterations, iterationsPerStep);
 
     return result;
   }
 
-  private getPoint(x: string, y: string): IPoint {
-    let xNum = parseFloat(x);
-    let yNum = parseFloat(y);
-    let result: IPoint = new Point(xNum, yNum);
-
-    return result;
+  ngOnChanges() {
+    console.log('Params is handling ngOnChanges.'); // and is pushing the new MapInfo on the stack. The stack now has ' + this.history.length + ' items.');
+    this.updateForm(this.mapInfo);
   }
 
   onSubmit() {
     console.warn(this.mapCoordsForm.value);
     let mapInfo: IMapInfo = this.getMapInfo(this.mapCoordsForm);
+    console.log('Params is handling form submit.'); // The stack now has ' + this.history.length + ' items.');
+
     this.mapInfoUpdated.emit(mapInfo);
+  }
+
+  onGoBack() {
+    this.goBack.emit(1);
+  }
+
+  onReset() {
+    this.goBack.emit(-1);
   }
 
   onDownloadImage(): void {
     //window.location = canvas.toDataURL('image/png');
   }
 
-
-
-
-
   ngOnInit() {
   }
 
-  
 
 }

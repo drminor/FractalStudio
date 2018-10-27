@@ -1,49 +1,56 @@
 import { Component, OnInit, AfterViewInit } from '@angular/core';
-import { Logger } from './logger.service';
 
-import { IMapInfo, IPoint, Point, MapInfo } from './m-map/m-map-common';
+import { IMapInfo, IPoint, Point, MapInfo, IBox, Box } from './m-map/m-map-common';
 
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']
 })
-export class AppComponent implements AfterViewInit, OnInit {
+export class AppComponent {
 
-  public mapInfo: IMapInfo;
+  private mapInfo: IMapInfo;
 
-  private viewInitialized: boolean;
+  history: IMapInfo[] = [];
 
-  constructor(private logger: Logger) {
 
-    this.viewInitialized = false;
-
+  constructor() {
     const bottomLeft: IPoint = new Point(-2, -1);
     const topRight: IPoint = new Point(1, 1);
 
-    const iterationsPerStep = 10;
+    const coords: IBox = new Box(bottomLeft, topRight);
 
+    const iterationsPerStep = 10;
     const maxInterations = 500;
-    this.mapInfo = new MapInfo(bottomLeft, topRight, maxInterations, iterationsPerStep);
+    this.mapInfo = new MapInfo(coords, maxInterations, iterationsPerStep);
   }
 
   onMapInfoUpdated(mapInfo: IMapInfo) {
-    console.log('Received the updated mapinfo ' + mapInfo.bottomLeft.x + '.');
+    console.log('Received the updated mapinfo from Param Form ' + mapInfo.bottomLeft.x + '.');
+    this.history.push(this.mapInfo);
     this.mapInfo = mapInfo;
   }
 
-  ngOnInit(): void {
-    console.log("We are inited.");
+  onZoomed(mapInfo: IMapInfo) {
+    console.log('Received the updated mapinfo from zoom ' + mapInfo.bottomLeft.x + '.');
+    this.history.push(this.mapInfo);
+    this.mapInfo = mapInfo;
   }
 
-  ngOnChanges() {
-    if (!this.viewInitialized) return;
-  }
-
-  ngAfterViewInit() {
-    if (!this.viewInitialized) {
-      this.viewInitialized = true;
-      console.log("About to draw from AfterViewInit.");
+  onGoBack(steps: number) {
+    if (steps === -1) {
+      if (this.history.length > 0) {
+        this.mapInfo = this.history[0];
+        this.history = [];
+      }
+    }
+    else if (steps === 1) {
+      if (this.history.length > 0) {
+        this.mapInfo = this.history.pop();
+      }
+    }
+    else {
+      throw new RangeError('Steps must be 1 or -1.');
     }
   }
 

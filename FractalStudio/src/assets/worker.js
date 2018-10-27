@@ -24,9 +24,8 @@ var CanvasSize = /** @class */ (function () {
   return CanvasSize;
 }());
 var MapInfo = /** @class */ (function () {
-  function MapInfo(bottomLeft, topRight, maxInterations) {
-    this.bottomLeft = bottomLeft;
-    this.topRight = topRight;
+  function MapInfo(coords, maxInterations) {
+    this.coords = coords;
     this.maxInterations = maxInterations;
   }
   return MapInfo;
@@ -44,12 +43,12 @@ var MapWorkingData = /** @class */ (function () {
     this.cnts = new Uint16Array(this.elementCount);
     this.flags = new Uint8Array(this.elementCount);
     // X coordinates get larger as one moves from the left of the map to  the right.
-    this.xVals = MapWorkingData.buildVals(this.canvasSize.width, this.mapInfo.bottomLeft.x, this.mapInfo.topRight.x);
+    this.xVals = MapWorkingData.buildVals(this.canvasSize.width, this.mapInfo.coords.start.x, this.mapInfo.coords.end.x);
     // Y coordinates get larger as one moves from the bottom of the map to the top.
     // But ImageData "blocks" are drawn from top to bottom.
     //this.yVals = MapWorkingData.buildVals(this.canvasSize.height, this.mapInfo.bottomLeft.y, this.mapInfo.topRight.y);
     // if we only have a single section, then we must reverse the y values.
-    this.yVals = MapWorkingData.buildVals(this.canvasSize.height, this.mapInfo.bottomLeft.y, this.mapInfo.topRight.y);
+    this.yVals = MapWorkingData.buildVals(this.canvasSize.height, this.mapInfo.coords.start.y, this.mapInfo.coords.end.y);
     this.curInterations = 0;
     //this.pixelData = new Uint8ClampedArray(this.elementCount * 4);
   }
@@ -619,7 +618,7 @@ onmessage = function (e) {
     sectionNumber = startMsg.sectionNumber;
     console.log('Worker created MapWorkingData with element count = ' + mapWorkingData.elementCount);
     var responseMsg = new WebWorkerMessage('StartResponse');
-    console.log('Posting ' + responseMsg.messageKind + ' back to main script');
+    //console.log('Posting ' + responseMsg.messageKind + ' back to main script');
     self.postMessage(responseMsg);
   }
   else if (plainMsg.messageKind === 'Iterate') {
