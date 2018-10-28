@@ -566,6 +566,18 @@ export class ColorMap {
     return result;
   }
 
+  public insertColorMapEntry(entry: ColorMapEntry, index: number) {
+    if (index <= 0) {
+      this.ranges.unshift(entry);
+    }
+    else if (index > this.ranges.length - 1) {
+      this.ranges.push(entry);
+    }
+    else {
+      this.ranges.splice(index, 0, entry);
+    }
+  }
+
   public getColor(countValue: number): number {
     let result: number;
     let index = this.searchInsert(countValue);
@@ -984,6 +996,13 @@ export class WebWorkerUpdateColorMapRequest implements IWebWorkerUpdateColorMapR
 
 //    mapWorkingData.colorMap = upColorMapReq.getColorMap();
 //    console.log('WebWorker received an UpdateColorMapRequest with ' + mapWorkingData.colorMap.ranges.length + ' entries.');
+
+//    let pixelData = mapWorkingData.getPixelData();
+
+//    imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, pixelData);
+
+//    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
+//    self.postMessage(imageDataResponse, "*", [pixelData.buffer]);
 //  }
 //  else {
 //    console.log('Received unknown message kind: ' + plainMsg.messageKind);

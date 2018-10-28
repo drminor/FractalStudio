@@ -10,16 +10,26 @@
 
 <!--<h2>Map Output Section</h2>-->
 
-<div style="position:relative; width:700px; height:470px; padding:3px 3px 3px 3px; border: 2px solid black">
-  <div style="position:relative; width:690px; height:460px; margin:5px">
-    <app-m-map-display [mapCoords]="mapCoords"
-                       [maxIterations]="maxIterations"
-                       [iterationsPerStep]="iterationsPerStep"
-                       (zoomed)="onZoomed($event)">
+<section>
+    <div style="float:left; position:relative; width:700px; height:470px; padding:3px 3px 3px 3px; border: 2px solid black">
+      <div style="position:relative; width:690px; height:460px; margin:5px">
+        <app-m-map-display [mapCoords]="mapCoords"
+                           [maxIterations]="maxIterations"
+                           [iterationsPerStep]="iterationsPerStep"
+                           [colorMap]="colorMap"
+                           (zoomed)="onZoomed($event)">
 
-    </app-m-map-display>
-  </div>
-</div>
+        </app-m-map-display>
+      </div>
+    </div>
+
+    <div style="margin-left:712px; width:300px; padding:3px 3px 3px 3px; border: 2px solid black">
+      <p>This is filler</p>
+      <p>This is filler</p>
+
+    </div>
+</section>
+
 
 <!--<div style="position:relative; width:1060px; height:710px; padding:3px 3px 3px 3px; border: 2px solid black">
   <div style="position:relative; width:1050px; height:700px; margin:5px">

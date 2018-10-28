@@ -72,6 +72,10 @@ export class MMapParamsComponent implements OnInit {
     this.goBack.emit(-1);
   }
 
+  onTest() {
+    this.goBack.emit(2);
+  }
+
   onDownloadImage(): void {
     //window.location = canvas.toDataURL('image/png');
   }

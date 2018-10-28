@@ -642,6 +642,11 @@ onmessage = function (e) {
     var upColorMapReq = WebWorkerUpdateColorMapRequest.FromEventData(e.data);
     mapWorkingData.colorMap = upColorMapReq.getColorMap();
     console.log('WebWorker received an UpdateColorMapRequest with ' + mapWorkingData.colorMap.ranges.length + ' entries.');
+
+    pixelData = mapWorkingData.getPixelData();
+    imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, pixelData);
+    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
+    self.postMessage(imageDataResponse, [pixelData.buffer]);
   }
   else {
     console.log('Received unknown message kind: ' + plainMsg.messageKind);

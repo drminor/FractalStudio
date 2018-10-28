@@ -62,11 +62,20 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     }
   }
 
+  @Input('colorMap')
+  set colorMap(cMap: ColorMap) {
+    this._colorMap = cMap;
+
+    if (this.viewInitialized) {
+      this.updateWorkersColorMap();
+    }
+  }
+
   @ViewChild('myCanvas') canvasRef: ElementRef;
   @ViewChild('myControlCanvas') canvasControlRef: ElementRef;
 
   // Will get as input, soon.
-  private colorMap: ColorMap;
+  private _colorMap: ColorMap;
 
   public alive: boolean;
 
@@ -93,7 +102,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
     this._mapInfo = new MapInfo(null, 0, 0);
 
-    this.colorMap = null;
+    this._colorMap = null;
     this.workers = [];
     this.sections = [];
 
@@ -121,8 +130,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     ranges[3] = new ColorMapEntry(200, cNumGenerator.blue);
     ranges[4] = new ColorMapEntry(500, cNumGenerator.getColorNumber(100, 200, 50));
     ranges[5] = new ColorMapEntry(800, cNumGenerator.getColorNumber(50, 240, 10));
-    ranges[5] = new ColorMapEntry(1200, cNumGenerator.getColorNumber(245, 0, 80));
-
+    ranges[6] = new ColorMapEntry(1200, cNumGenerator.getColorNumber(245, 0, 80));
 
     let result: ColorMap = new ColorMap(ranges, cNumGenerator.black);
     return result;
@@ -228,7 +236,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
       console.log("The initial canvas size is W = " + this.canvasSize.width + " H = " + this.canvasSize.height);
 
       // Now that we know the size of our canvas,
-      this.colorMap = this.buildColorMap();
+      //this._colorMap = this.buildColorMap();
       this.buildWorkingData();
     }
   }
@@ -240,7 +248,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
       this.terminateWorkers();
 
       // Create a MapWorkingData for each section.
-      this.sections = MapWorkingData.getWorkingDataSections(this.canvasSize, this._mapInfo, this.colorMap, this.numberOfSections);
+      this.sections = MapWorkingData.getWorkingDataSections(this.canvasSize, this._mapInfo, this._colorMap, this.numberOfSections);
 
       //let ptr: number = 0;
       //for (ptr = 0; ptr < this.numberOfSections; ptr++) {
@@ -256,7 +264,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
         throw new RangeError('The number of sections must be set to 1, if useWorkers = false.');
       }
       this.sections = new Array<IMapWorkingData>(1);
-      this.sections[0] = new MapWorkingData(this.canvasSize, this._mapInfo, this.colorMap, new Point(0, 0));
+      this.sections[0] = new MapWorkingData(this.canvasSize, this._mapInfo, this._colorMap, new Point(0, 0));
 
       this.progressively();
     }
@@ -355,7 +363,6 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
   }
 
   private doMoreIterations() {
-
     let ptr: number = 0;
 
     for (ptr = 0; ptr < this.numberOfSections; ptr++) {
@@ -365,6 +372,18 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
       let iterateRequest = WebWorkerIterateRequest.CreateRequest(this._mapInfo.iterationsPerStep);
       webWorker.postMessage(iterateRequest);
       mapWorkingData.curInterations += this._mapInfo.iterationsPerStep;
+    }
+  }
+
+  private updateWorkersColorMap() {
+    let ptr: number = 0;
+
+    let upColorMapMsg = WebWorkerUpdateColorMapRequest.CreateRequest(this._colorMap);
+
+    for (ptr = 0; ptr < this.numberOfSections; ptr++) {
+      let webWorker = this.workers[ptr];
+      webWorker.postMessage(upColorMapMsg);
+
     }
   }
 
