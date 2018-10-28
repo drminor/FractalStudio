@@ -9,7 +9,10 @@ import { IMapInfo, IPoint, Point, MapInfo, IBox, Box } from './m-map/m-map-commo
 })
 export class AppComponent {
 
-  private mapInfo: IMapInfo;
+  mapInfo: IMapInfo;
+  mapCoords: IBox;
+  maxIterations: number;
+  iterationsPerStep: number;
 
   history: IMapInfo[] = [];
 
@@ -18,23 +21,29 @@ export class AppComponent {
     const bottomLeft: IPoint = new Point(-2, -1);
     const topRight: IPoint = new Point(1, 1);
 
-    const coords: IBox = new Box(bottomLeft, topRight);
+    this.mapCoords = new Box(bottomLeft, topRight);
 
-    const iterationsPerStep = 10;
-    const maxInterations = 500;
-    this.mapInfo = new MapInfo(coords, maxInterations, iterationsPerStep);
+    this.iterationsPerStep = 10;
+    this.maxIterations = 50;
+    this.mapInfo = new MapInfo(this.mapCoords, this.maxIterations, this.iterationsPerStep);
   }
 
   onMapInfoUpdated(mapInfo: IMapInfo) {
     console.log('Received the updated mapinfo from Param Form ' + mapInfo.bottomLeft.x + '.');
     this.history.push(this.mapInfo);
     this.mapInfo = mapInfo;
+
+    this.mapCoords = mapInfo.coords;
+    this.maxIterations = mapInfo.maxInterations;
+    this.iterationsPerStep = mapInfo.iterationsPerStep;
   }
 
-  onZoomed(mapInfo: IMapInfo) {
-    console.log('Received the updated mapinfo from zoom ' + mapInfo.bottomLeft.x + '.');
+  onZoomed(mapCoords: IBox) {
+    console.log('Received the updated mapinfo from zoom ' + mapCoords.start.x + '.');
     this.history.push(this.mapInfo);
-    this.mapInfo = mapInfo;
+    this.mapInfo = new MapInfo(mapCoords, this.mapInfo.maxInterations, this.mapInfo.iterationsPerStep);
+
+    this.mapCoords = mapCoords;
   }
 
   onGoBack(steps: number) {
@@ -52,6 +61,9 @@ export class AppComponent {
     else {
       throw new RangeError('Steps must be 1 or -1.');
     }
+    this.mapCoords = this.mapInfo.coords;
+    this.maxIterations = this.mapInfo.maxInterations;
+    this.iterationsPerStep = this.mapInfo.iterationsPerStep;
   }
 
 }

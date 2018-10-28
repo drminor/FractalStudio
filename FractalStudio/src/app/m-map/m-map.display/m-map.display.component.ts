@@ -14,9 +14,53 @@ import {
   styleUrls: ['./m-map.display.component.css']
 })
 export class MMapDisplayComponent implements AfterViewInit, OnInit {
-  @Output() zoomed = new EventEmitter<IMapInfo>();
+  @Output() zoomed = new EventEmitter<IBox>();
 
-  @Input('mapInfo') mapInfo: IMapInfo;
+  private _mapInfo: IMapInfo;
+
+  @Input('mapCoords')
+  set mapCoords(mapCoords: IBox) {
+    this._mapInfo.coords = mapCoords;
+    console.log('The Map Coordinatees are being updated. The new MapInfo is:' + this._mapInfo.toString());
+
+    if (this.viewInitialized) {
+      this.buildWorkingData();
+    }
+  }
+
+  @Input('maxIterations')
+  set maxIterations(maxIters: number) {
+
+    if (this.viewInitialized) {
+
+      if (this._mapInfo.maxInterations < maxIters) {
+        this._mapInfo.maxInterations = maxIters;
+        console.log('The Maximum Iterations is being increased. Will perform the additional interations. The new MapInfo is:' + this._mapInfo.toString());
+        this.doMoreIterations();
+      }
+      else if (this._mapInfo.maxInterations > maxIters) {
+        this._mapInfo.maxInterations = maxIters;
+        console.log('The Maximum Iterations is being decreased. Will rebuild the map. The new MapInfo is:' + this._mapInfo.toString());
+        this.buildWorkingData();
+      }
+      else {
+        console.log('The Maximum Iterations is being set to the same value it currently has. The new MapInfo is:' + this._mapInfo.toString());
+      }
+    }
+    else {
+      // The view is not ready, just save the new value.
+      this._mapInfo.maxInterations = maxIters;
+      console.log('The Maximum Iterations is being updated. The view has not been initialized. The new MapInfo is:' + this._mapInfo.toString());
+    }
+  }
+
+  @Input('iterationsPerStep')
+  set iterationsPerStep(itersPerStep: number) {
+    if (this._mapInfo.iterationsPerStep != itersPerStep) {
+      this._mapInfo.iterationsPerStep = itersPerStep;
+      console.log('The Iterations Per Step is being updated. The new MapInfo is:' + this._mapInfo.toString());
+    }
+  }
 
   @ViewChild('myCanvas') canvasRef: ElementRef;
   @ViewChild('myControlCanvas') canvasControlRef: ElementRef;
@@ -42,11 +86,14 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
   private useWorkers: boolean;
 
   constructor() {
-    this.componentInitialized = false;
-    this.viewInitialized = false;
     console.log('m-map.display is being constructed.');
 
-    this.colorMap = this.buildColorMap();
+    this.componentInitialized = false;
+    this.viewInitialized = false;
+
+    this._mapInfo = new MapInfo(null, 0, 0);
+
+    this.colorMap = null;
     this.workers = [];
     this.sections = [];
 
@@ -72,6 +119,10 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     ranges[1] = new ColorMapEntry(20, cNumGenerator.red);
     ranges[2] = new ColorMapEntry(50, cNumGenerator.green);
     ranges[3] = new ColorMapEntry(200, cNumGenerator.blue);
+    ranges[4] = new ColorMapEntry(500, cNumGenerator.getColorNumber(100, 200, 50));
+    ranges[5] = new ColorMapEntry(800, cNumGenerator.getColorNumber(50, 240, 10));
+    ranges[5] = new ColorMapEntry(1200, cNumGenerator.getColorNumber(245, 0, 80));
+
 
     let result: ColorMap = new ColorMap(ranges, cNumGenerator.black);
     return result;
@@ -122,6 +173,13 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     //console.log('Just drew image data for sn=' + sectionNumber + ' left=' + left + ' bot =' + bot  + '.');
   }
 
+  private terminateWorkers(): void {
+    let ptr: number = 0;
+    for (; ptr < this.workers.length; ptr++) {
+      this.workers[ptr].terminate();
+    }
+  }
+
   ngOnInit(): void {
     if (!this.componentInitialized) {
       this.componentInitialized = true;
@@ -134,18 +192,20 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
   }
 
   ngOnChanges() {
-    if (this.viewInitialized) {
-      console.log("m-map-display.component is handling ngOnChanges -- the view has been initialized.");
+    //console.log('The MapInfo = ' + this._mapInfo.toString());
+    //if (this.viewInitialized) {
+    //  console.log("m-map-display.component is handling ngOnChanges -- the view has been initialized.");
 
-      let ptr: number = 0;
-      for (; ptr < this.workers.length; ptr++) {
-        this.workers[ptr].terminate();
-      }
-      this.buildWorkingData();
-    }
-    else {
-      console.log("m-map-display.component is handling ngOnChanges -- the view has NOT been initialized.");
-    }
+    //  let ptr: number = 0;
+    //  for (; ptr < this.workers.length; ptr++) {
+    //    this.workers[ptr].terminate();
+    //  }
+    //  this.colorMap = this.buildColorMap();
+    //  this.buildWorkingData();
+    //}
+    //else {
+    //  console.log("m-map-display.component is handling ngOnChanges -- the view has NOT been initialized.");
+    //}
   }
 
   ngAfterViewInit() {
@@ -168,14 +228,19 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
       console.log("The initial canvas size is W = " + this.canvasSize.width + " H = " + this.canvasSize.height);
 
       // Now that we know the size of our canvas,
+      this.colorMap = this.buildColorMap();
       this.buildWorkingData();
     }
   }
 
   private buildWorkingData(): void {
     if (this.useWorkers) {
+
+      // Clear existing workers, if any
+      this.terminateWorkers();
+
       // Create a MapWorkingData for each section.
-      this.sections = MapWorkingData.getWorkingDataSections(this.canvasSize, this.mapInfo, this.colorMap, this.numberOfSections);
+      this.sections = MapWorkingData.getWorkingDataSections(this.canvasSize, this._mapInfo, this.colorMap, this.numberOfSections);
 
       //let ptr: number = 0;
       //for (ptr = 0; ptr < this.numberOfSections; ptr++) {
@@ -191,7 +256,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
         throw new RangeError('The number of sections must be set to 1, if useWorkers = false.');
       }
       this.sections = new Array<IMapWorkingData>(1);
-      this.sections[0] = new MapWorkingData(this.canvasSize, this.mapInfo, this.colorMap, new Point(0, 0));
+      this.sections[0] = new MapWorkingData(this.canvasSize, this._mapInfo, this.colorMap, new Point(0, 0));
 
       this.progressively();
     }
@@ -226,8 +291,6 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     ce.addEventListener("mouseup", (evt) => {
       this.onMouseUp(this, evt);
     });
-
-    //ce.addEventListener("b
   }
 
   // Worker stuff
@@ -252,11 +315,11 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
           let mapWorkingData: IMapWorkingData = this.sections[sectionNumber];
           let imageData: ImageData = updatedMapDataMsg.getImageData(mapWorkingData.canvasSize);
 
-          if (mapWorkingData.curInterations < mapWorkingData.mapInfo.maxInterations) {
+          if (mapWorkingData.curInterations < this._mapInfo.maxInterations) {
 
-            let iterateRequest = WebWorkerIterateRequest.CreateRequest(mapWorkingData.mapInfo.iterationsPerStep);
+            let iterateRequest = WebWorkerIterateRequest.CreateRequest(this._mapInfo.iterationsPerStep);
             this.workers[sectionNumber].postMessage(iterateRequest);
-            mapWorkingData.curInterations += mapWorkingData.mapInfo.iterationsPerStep;
+            mapWorkingData.curInterations += this._mapInfo.iterationsPerStep;
 
             // Call draw after sending the request to get the next ImageData.
             this.draw(imageData, sectionNumber);
@@ -283,12 +346,26 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
       let startRequestMsg = WebWorkerStartRequest.CreateRequest(mapWorkingData, ptr);
       webWorker.postMessage(startRequestMsg);
 
-      let iterateRequest = WebWorkerIterateRequest.CreateRequest(mapWorkingData.mapInfo.iterationsPerStep);
+      let iterateRequest = WebWorkerIterateRequest.CreateRequest(this._mapInfo.iterationsPerStep);
       webWorker.postMessage(iterateRequest);
-      mapWorkingData.curInterations += mapWorkingData.mapInfo.iterationsPerStep;
+      mapWorkingData.curInterations += this._mapInfo.iterationsPerStep;
     }
 
     return result;
+  }
+
+  private doMoreIterations() {
+
+    let ptr: number = 0;
+
+    for (ptr = 0; ptr < this.numberOfSections; ptr++) {
+      let webWorker = this.workers[ptr];
+      let mapWorkingData = this.sections[ptr];
+
+      let iterateRequest = WebWorkerIterateRequest.CreateRequest(this._mapInfo.iterationsPerStep);
+      webWorker.postMessage(iterateRequest);
+      mapWorkingData.curInterations += this._mapInfo.iterationsPerStep;
+    }
   }
 
   private progressively(): void {
@@ -383,13 +460,13 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     //console.log('Current MapInfo = ' + this.mapInfo.toString());
     //console.log('Canvas = w:' + this.canvasSize.width + ' h:' + this.canvasSize.height + '.');
 
-    let unitExtentX: number = (this.mapInfo.topRight.x - this.mapInfo.bottomLeft.x) / this.canvasSize.width;
-    let unitExtentY: number = (this.mapInfo.topRight.y - this.mapInfo.bottomLeft.y) / this.canvasSize.height;
+    let unitExtentX: number = (this._mapInfo.topRight.x - this._mapInfo.bottomLeft.x) / this.canvasSize.width;
+    let unitExtentY: number = (this._mapInfo.topRight.y - this._mapInfo.bottomLeft.y) / this.canvasSize.height;
 
     //console.log('unit x: ' + unitExtentX + ' unit y' + unitExtentY);
 
-    let msx = this.mapInfo.bottomLeft.x + zBox.start.x * unitExtentX;
-    let mex = this.mapInfo.bottomLeft.x + zBox.end.x * unitExtentX;
+    let msx = this._mapInfo.bottomLeft.x + zBox.start.x * unitExtentX;
+    let mex = this._mapInfo.bottomLeft.x + zBox.end.x * unitExtentX;
     //console.log('new map sx: ' + msx + ' new map ex: ' + mex + '.');
 
     // Canvas origin is the top, right -- map coordinate origin is the bottom, right.
@@ -399,12 +476,12 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
     //console.log('Inverted Canvas sy:' + invCanvasSY + ' ey:' + invCanvasEY + '.');
 
-    let msy = this.mapInfo.bottomLeft.y + invCanvasSY * unitExtentY;
-    let mey = this.mapInfo.bottomLeft.y + invCanvasEY * unitExtentY;
+    let msy = this._mapInfo.bottomLeft.y + invCanvasSY * unitExtentY;
+    let mey = this._mapInfo.bottomLeft.y + invCanvasEY * unitExtentY;
     //console.log('new map sy: ' + msy + ' new map ey: ' + mey + '.');
 
     let coords: IBox = new Box(new Point(msx, msy), new Point(mex, mey));
-    let newMapInfo: IMapInfo = new MapInfo(coords, this.mapInfo.maxInterations, this.mapInfo.iterationsPerStep);
+    let newMapInfo: IMapInfo = new MapInfo(coords, this._mapInfo.maxInterations, this._mapInfo.iterationsPerStep);
 
     //console.log('New MapInfo = ' + newMapInfo.toString());
 
@@ -417,8 +494,8 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
       this.workers[ptr].terminate();
     }
 
-    this.mapInfo = newMapInfo;
-    this.zoomed.emit(this.mapInfo);
+    this._mapInfo = newMapInfo;
+    this.zoomed.emit(this._mapInfo.coords);
 
     //this.buildWorkingData();
   }

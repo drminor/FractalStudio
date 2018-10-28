@@ -654,7 +654,7 @@ export class ColorNumbers {
     this.blue = this.getColorNumber(0, 0, 255);
   }
 
-  private getColorNumber(r: number, g: number, b: number): number {
+  public getColorNumber(r: number, g: number, b: number): number {
 
     if (r > 255 || r < 0) throw new RangeError('R must be between 0 and 255.');
     if (g > 255 || g < 0) throw new RangeError('G must be between 0 and 255.');

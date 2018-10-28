@@ -3,14 +3,21 @@
 <div style="margin-bottom:20px">
   <app-m-map-params [mapInfo]="mapInfo"
                     (mapInfoUpdated)="onMapInfoUpdated($event)"
-                    (goBack)="onGoBack($event)"></app-m-map-params>
+                    (goBack)="onGoBack($event)">
+
+  </app-m-map-params>
 </div>
 
 <!--<h2>Map Output Section</h2>-->
 
 <div style="position:relative; width:700px; height:470px; padding:3px 3px 3px 3px; border: 2px solid black">
   <div style="position:relative; width:690px; height:460px; margin:5px">
-    <app-m-map-display [mapInfo]="mapInfo" (zoomed)="onZoomed($event)"></app-m-map-display>
+    <app-m-map-display [mapCoords]="mapCoords"
+                       [maxIterations]="maxIterations"
+                       [iterationsPerStep]="iterationsPerStep"
+                       (zoomed)="onZoomed($event)">
+
+    </app-m-map-display>
   </div>
 </div>
 
