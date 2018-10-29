@@ -220,7 +220,7 @@ export class MapWorkingData implements IMapWorkingData {
 
   //public pixelData: Uint8ClampedArray;
 
-  constructor(public canvasSize: ICanvasSize, public mapInfo: IMapInfo, public colorMap: ColorMap, public sectionAnchor: IPoint) {
+  constructor(public canvasSize: ICanvasSize, public mapInfo: IMapInfo, public colorMap: ColorMap, public sectionAnchor: IPoint, forSubDivision: boolean) {
 
     this.elementCount = this.getNumberOfElementsForCanvas(this.canvasSize);
 
@@ -237,8 +237,13 @@ export class MapWorkingData implements IMapWorkingData {
     // But ImageData "blocks" are drawn from top to bottom.
     //this.yVals = MapWorkingData.buildVals(this.canvasSize.height, this.mapInfo.bottomLeft.y, this.mapInfo.topRight.y);
 
-    // if we only have a single section, then we must reverse the y values.
-    this.yVals = MapWorkingData.buildVals(this.canvasSize.height, this.mapInfo.bottomLeft.y, this.mapInfo.topRight.y);
+    if (forSubDivision) {
+      this.yVals = MapWorkingData.buildVals(this.canvasSize.height, this.mapInfo.bottomLeft.y, this.mapInfo.topRight.y);
+    }
+    else {
+      // if we only have a single section, then we must reverse the y values.
+      this.yVals = MapWorkingData.buildValsRev(this.canvasSize.height, this.mapInfo.bottomLeft.y, this.mapInfo.topRight.y);
+    }
 
     this.curIterations = 0;
 
@@ -417,7 +422,7 @@ export class MapWorkingData implements IMapWorkingData {
 
       let yOffset = ptr * sectionHeightWN;
       let secAnchor: IPoint = new Point(0, yOffset);
-      result[ptr] = new MapWorkingData(secCanvasSize, secMapInfo, colorMap, secAnchor);
+      result[ptr] = new MapWorkingData(secCanvasSize, secMapInfo, colorMap, secAnchor, true);
 
       // The next bottomPtr should point to one immediately following the last top.
       bottomPtr = topPtr + 1;
@@ -440,7 +445,7 @@ export class MapWorkingData implements IMapWorkingData {
     let yOffset = ptr * sectionHeightWN;
     let secAnchor: IPoint = new Point(0, yOffset);
 
-    result[ptr] = new MapWorkingData(secCanvasSize, secMapInfo, colorMap, secAnchor);
+    result[ptr] = new MapWorkingData(secCanvasSize, secMapInfo, colorMap, secAnchor, true);
 
     return result;
   }

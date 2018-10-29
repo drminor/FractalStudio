@@ -128,8 +128,8 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     let w: number = 1200;
     let h: number = 800;
 
-    w = 2400;
-    h = 1600;
+    //w = 2400;
+    //h = 1600;
 
     //w = 3000;
     //h = 2000;
@@ -140,7 +140,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
     let cs = new CanvasSize(w, h);
 
-    let mapWorkingData = new MapWorkingData(cs, this._mapInfo, this._colorMap, new Point(0, 0));
+    let mapWorkingData = new MapWorkingData(cs, this._mapInfo, this._colorMap, new Point(0, 0), false);
 
     mapWorkingData.doIterationsForAll(this._mapInfo.maxIterations);
     let pixelData = mapWorkingData.getPixelData();
@@ -278,7 +278,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
         throw new RangeError('The number of sections must be set to 1, if useWorkers = false.');
       }
       this.sections = new Array<IMapWorkingData>(1);
-      this.sections[0] = new MapWorkingData(this.canvasSize, this._mapInfo, this._colorMap, new Point(0, 0));
+      this.sections[0] = new MapWorkingData(this.canvasSize, this._mapInfo, this._colorMap, new Point(0, 0), false);
 
       this.progressively();
     }
