@@ -14,10 +14,26 @@ import {
   styleUrls: ['./m-map.display.component.css']
 })
 export class MMapDisplayComponent implements AfterViewInit, OnInit {
-  @Output() zoomed = new EventEmitter<IBox>();
-  @Output() haveImageData = new EventEmitter<string>();
 
   private _mapInfo: IMapInfo;
+  private _colorMap: ColorMap;
+
+  public alive: boolean;
+
+  private viewInitialized: boolean;
+  private componentInitialized: boolean;
+  private canvasSize: ICanvasSize;
+
+  // Array of WebWorkers
+  private workers: Worker[];
+  private numberOfSections: number;
+  private sections: IMapWorkingData[];
+
+  private zoomBox: IBox;
+  private canvasElement: HTMLCanvasElement;
+  private canvasControlElement: HTMLCanvasElement;
+
+  private useWorkers: boolean;
 
   @Input('mapCoords')
   set mapCoords(mapCoords: IBox) {
@@ -68,6 +84,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     this._colorMap = cMap;
 
     if (this.viewInitialized) {
+      console.log('m-map.display.component is receiving a updated color map.');
       this.updateWorkersColorMap();
     }
   }
@@ -75,27 +92,9 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
   @ViewChild('myCanvas') canvasRef: ElementRef;
   @ViewChild('myControlCanvas') canvasControlRef: ElementRef;
   @ViewChild('myHiddenCanvas') canvasHiddenRef: ElementRef;
-  
 
-  // Will get as input, soon.
-  private _colorMap: ColorMap;
-
-  public alive: boolean;
-
-  private viewInitialized: boolean;
-  private componentInitialized: boolean;
-  private canvasSize: ICanvasSize;
-
-  // Array of WebWorkers
-  private workers: Worker[];
-  private numberOfSections: number;
-  private sections: IMapWorkingData[];
-
-  private zoomBox: IBox;
-  private canvasElement: HTMLCanvasElement;
-  private canvasControlElement: HTMLCanvasElement;
-
-  private useWorkers: boolean;
+  @Output() zoomed = new EventEmitter<IBox>();
+  @Output() haveImageData = new EventEmitter<string>();
 
   constructor() {
     console.log('m-map.display is being constructed.');

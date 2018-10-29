@@ -235,7 +235,6 @@ export class MapWorkingData implements IMapWorkingData {
 
     // Y coordinates get larger as one moves from the bottom of the map to the top.
     // But ImageData "blocks" are drawn from top to bottom.
-    //this.yVals = MapWorkingData.buildVals(this.canvasSize.height, this.mapInfo.bottomLeft.y, this.mapInfo.topRight.y);
 
     if (forSubDivision) {
       this.yVals = MapWorkingData.buildVals(this.canvasSize.height, this.mapInfo.bottomLeft.y, this.mapInfo.topRight.y);

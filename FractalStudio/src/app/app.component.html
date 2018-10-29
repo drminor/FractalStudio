@@ -1,5 +1,5 @@
 
-<h2>The Mandlebrodt Set</h2>
+<h2 style="margin-bottom:5px  ">The Mandlebrodt Set</h2>
 <div style="margin-bottom:20px">
   <app-m-map-params [mapInfo]="mapInfo"
                     (mapInfoUpdated)="onMapInfoUpdated($event)"
@@ -27,8 +27,7 @@
     </div>
 
     <div style="margin-left:712px; width:300px; padding:3px 3px 3px 3px; border: 2px solid black">
-      <p>This is filler</p>
-      <p>This is filler</p>
+    <app-color-map-editor [colorMap]="colorMap" (colorMapUpdated)="onColorMapUpdated($event)"></app-color-map-editor>
 
     </div>
 </section>

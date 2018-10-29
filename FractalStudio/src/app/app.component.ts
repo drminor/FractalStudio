@@ -39,19 +39,23 @@ export class AppComponent {
 
     this.mapCoords = new Box(bottomLeft, topRight);
 
+    this.maxIterations = 130;
     this.iterationsPerStep = 10;
-    this.maxIterations = 50;
     this.mapInfo = new MapInfo(this.mapCoords, this.maxIterations, this.iterationsPerStep);
 
     this.colorMap = this.buildColorMap();
   }
 
+  onColorMapUpdated(colorMap: ColorMap) {
+    console.log('App Component is handling onColorMapUpdated.');
+    this.colorMap = colorMap;
+  }
+
   onHaveImageData(dataUrl: string) {
     console.log('We got the image Uri.');
     this.dataUri = dataUrl;
-    //let anchorTag = this.downloadRef.nativeElement as HTMLHRElement;
     this.updateDownloadLinkVisibility(true);
-    //anchorTag.hidden = false;
+    //let anchorTag = this.downloadRef.nativeElement as HTMLHRElement;
     //anchorTag.click();
   }
 
@@ -60,10 +64,6 @@ export class AppComponent {
     this.history.push(this.mapInfo);
     this.updateDownloadLinkVisibility(false);
     this.mapInfo = mapInfo;
-
-    //this.mapCoords = mapInfo.coords;
-    //this.maxIterations = mapInfo.maxInterations;
-    //this.iterationsPerStep = mapInfo.iterationsPerStep;
   }
 
   onZoomed(mapCoords: IBox) {

@@ -1,0 +1,21 @@
+<div>
+  <h3>Color Map</h3>
+
+  <form [formGroup]="colorMapForm"  (ngSubmit)="onSubmit()">
+
+    <button type="submit" [disabled]="!colorMapForm.valid">Apply</button>
+
+    <div formArrayName="cEntries">
+      <div *ngFor="let colEntry of colorMapForm.get('cEntries').controls; let i=index">
+        <!--<div *ngFor="let colEntry of colorEntryForms.controls; let i=index">-->
+
+        <div [formGroupName]="i">
+          <label>CutOff: <input type="text" formControlName="cutOff"></label>
+          <br />
+          <label>Color: <input type="text" formControlName="cNum"></label>
+        </div>
+      </div>
+    </div>
+  </form>
+
+</div>
