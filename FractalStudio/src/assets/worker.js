@@ -24,9 +24,9 @@ var CanvasSize = /** @class */ (function () {
   return CanvasSize;
 }());
 var MapInfo = /** @class */ (function () {
-  function MapInfo(coords, maxInterations) {
+  function MapInfo(coords, maxIterations) {
     this.coords = coords;
-    this.maxInterations = maxInterations;
+    this.maxIterations = maxIterations;
   }
   return MapInfo;
 }());
@@ -177,7 +177,7 @@ var MapWorkingData = /** @class */ (function () {
       var secTop_1 = yVals[topPtr];
       var secBotLeft_1 = new Point(left, secBottom_1);
       var secTopRight_1 = new Point(right, secTop_1);
-      var secMapInfo_1 = new MapInfo(secBotLeft_1, secTopRight_1, mapInfo.maxInterations);
+      var secMapInfo_1 = new MapInfo(secBotLeft_1, secTopRight_1, mapInfo.maxIterations);
       var yOffset_1 = ptr * sectionHeightWN;
       var secAnchor_1 = new Point(0, yOffset_1);
       result[ptr] = new MapWorkingData(secCanvasSize_1, secMapInfo_1, colorMap, secAnchor_1);
@@ -192,7 +192,7 @@ var MapWorkingData = /** @class */ (function () {
     topPtr = yVals.length - 1;
     var secTop = yVals[topPtr];
     var secTopRight = new Point(right, secTop);
-    var secMapInfo = new MapInfo(secBotLeft, secTopRight, mapInfo.maxInterations);
+    var secMapInfo = new MapInfo(secBotLeft, secTopRight, mapInfo.maxIterations);
     var yOffset = ptr * sectionHeightWN;
     var secAnchor = new Point(0, yOffset);
     result[ptr] = new MapWorkingData(secCanvasSize, secMapInfo, colorMap, secAnchor);

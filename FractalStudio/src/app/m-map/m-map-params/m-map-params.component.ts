@@ -31,7 +31,7 @@ export class MMapParamsComponent implements OnInit {
     this.mapCoordsForm.controls["startY"].setValue(mapInfo.coords.start.y);
     this.mapCoordsForm.controls["endY"].setValue(mapInfo.coords.end.y);
 
-    this.mapCoordsForm.controls["maxIterations"].setValue(mapInfo.maxInterations);
+    this.mapCoordsForm.controls["maxIterations"].setValue(mapInfo.maxIterations);
     this.mapCoordsForm.controls["iterationsPerStep"].setValue(mapInfo.iterationsPerStep);
   }
 

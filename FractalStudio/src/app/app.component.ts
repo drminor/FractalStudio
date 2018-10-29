@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
 
 import { IMapInfo, IPoint, Point, MapInfo, IBox, Box, ColorMap, ColorNumbers, ColorMapEntry } from './m-map/m-map-common';
 
@@ -9,15 +9,29 @@ import { IMapInfo, IPoint, Point, MapInfo, IBox, Box, ColorMap, ColorNumbers, Co
 })
 export class AppComponent {
 
-  mapInfo: IMapInfo;
+  @ViewChild('download') downloadRef: ElementRef;
+
+  private _mapInfo: IMapInfo;
+
+  get mapInfo(): IMapInfo {
+    return this._mapInfo;
+  }
+
+  set mapInfo(mapInfo: IMapInfo) {
+    this._mapInfo = mapInfo;
+    this.mapCoords = mapInfo.coords;
+    this.maxIterations = mapInfo.maxIterations;
+    this.iterationsPerStep = mapInfo.iterationsPerStep;
+  }
+
   mapCoords: IBox;
   maxIterations: number;
   iterationsPerStep: number;
 
   colorMap: ColorMap;
+  dataUri: string;
 
   history: IMapInfo[] = [];
-
 
   constructor() {
     const bottomLeft: IPoint = new Point(-2, -1);
@@ -32,22 +46,33 @@ export class AppComponent {
     this.colorMap = this.buildColorMap();
   }
 
+  onHaveImageData(dataUrl: string) {
+    console.log('We got the image Uri.');
+    this.dataUri = dataUrl;
+    //let anchorTag = this.downloadRef.nativeElement as HTMLHRElement;
+    this.updateDownloadLinkVisibility(true);
+    //anchorTag.hidden = false;
+    //anchorTag.click();
+  }
+
   onMapInfoUpdated(mapInfo: IMapInfo) {
     console.log('Received the updated mapinfo from Param Form ' + mapInfo.bottomLeft.x + '.');
     this.history.push(this.mapInfo);
+    this.updateDownloadLinkVisibility(false);
     this.mapInfo = mapInfo;
 
-    this.mapCoords = mapInfo.coords;
-    this.maxIterations = mapInfo.maxInterations;
-    this.iterationsPerStep = mapInfo.iterationsPerStep;
+    //this.mapCoords = mapInfo.coords;
+    //this.maxIterations = mapInfo.maxInterations;
+    //this.iterationsPerStep = mapInfo.iterationsPerStep;
   }
 
   onZoomed(mapCoords: IBox) {
     console.log('Received the updated mapinfo from zoom ' + mapCoords.start.x + '.');
     this.history.push(this.mapInfo);
-    this.mapInfo = new MapInfo(mapCoords, this.mapInfo.maxInterations, this.mapInfo.iterationsPerStep);
+    this.updateDownloadLinkVisibility(false);
+    this.mapInfo = new MapInfo(mapCoords, this.mapInfo.maxIterations, this.mapInfo.iterationsPerStep);
 
-    this.mapCoords = mapCoords;
+    //this.mapCoords = mapCoords;
   }
 
   // Handles Back and Reset operations.
@@ -69,9 +94,17 @@ export class AppComponent {
     else {
       throw new RangeError('Steps must be 1 or -1.');
     }
-    this.mapCoords = this.mapInfo.coords;
-    this.maxIterations = this.mapInfo.maxInterations;
-    this.iterationsPerStep = this.mapInfo.iterationsPerStep;
+
+    this.updateDownloadLinkVisibility(false);
+
+    //this.mapCoords = this.mapInfo.coords;
+    //this.maxIterations = this.mapInfo.maxInterations;
+    //this.iterationsPerStep = this.mapInfo.iterationsPerStep;
+  }
+
+  private updateDownloadLinkVisibility(show: boolean): void {
+    let anchorTag = this.downloadRef.nativeElement as HTMLHRElement;
+    anchorTag.hidden = !show;
   }
 
   private doTest(): void {

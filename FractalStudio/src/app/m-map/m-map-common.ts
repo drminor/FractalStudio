@@ -23,7 +23,7 @@ export interface IMapInfo {
   coords: IBox;
   bottomLeft: IPoint;
   topRight: IPoint;
-  maxInterations: number;
+  maxIterations: number;
   iterationsPerStep: number;
 
   toString(): string
@@ -54,7 +54,7 @@ export interface IMapWorkingData {
   // Flag for each point. If set then the point has grown more than 2.
   flags: Uint8Array;
 
-  curInterations: number;
+  curIterations: number;
 
   //pixelData: Uint8ClampedArray;
 
@@ -62,8 +62,8 @@ export interface IMapWorkingData {
 
   //getLinearIndex(x: number, y: number): number;
   getLinearIndex(c: IPoint): number;
-  doInterationsForAll(iterCount: number): boolean;
-  doInterationsForLine(iterCount: number, y: number): boolean;
+  doIterationsForAll(iterCount: number): boolean;
+  doIterationsForLine(iterCount: number, y: number): boolean;
 
   //getImageData(): ImageData;
   getPixelData(): Uint8ClampedArray;
@@ -176,13 +176,13 @@ export class CanvasSize implements ICanvasSize {
 }
 
 export class MapInfo implements IMapInfo {
-  constructor(public coords: IBox, public maxInterations: number, public iterationsPerStep: number) {
+  constructor(public coords: IBox, public maxIterations: number, public iterationsPerStep: number) {
   }
 
-  public static fromPoints(bottomLeft: IPoint, topRight: IPoint, maxInterations: number, iterationsPerStep: number): IMapInfo {
+  public static fromPoints(bottomLeft: IPoint, topRight: IPoint, maxIterations: number, iterationsPerStep: number): IMapInfo {
 
     let coords: IBox = new Box(bottomLeft, topRight);
-    let result: IMapInfo = new MapInfo(coords, maxInterations, iterationsPerStep);
+    let result: IMapInfo = new MapInfo(coords, maxIterations, iterationsPerStep);
     return result;
   }
 
@@ -195,7 +195,7 @@ export class MapInfo implements IMapInfo {
   }
 
   public toString(): string {
-    return 'sx:' + this.coords.start.x + ' ex:' + this.coords.end.x + ' sy:' + this.coords.start.y + ' ey:' + this.coords.end.y + ' mi:' + this.maxInterations + ' ips:' + this.iterationsPerStep + '.';
+    return 'sx:' + this.coords.start.x + ' ex:' + this.coords.end.x + ' sy:' + this.coords.start.y + ' ey:' + this.coords.end.y + ' mi:' + this.maxIterations + ' ips:' + this.iterationsPerStep + '.';
   }
 }
 
@@ -216,7 +216,7 @@ export class MapWorkingData implements IMapWorkingData {
   public xVals: number[];
   public yVals: number[];
 
-  public curInterations: number;
+  public curIterations: number;
 
   //public pixelData: Uint8ClampedArray;
 
@@ -240,7 +240,7 @@ export class MapWorkingData implements IMapWorkingData {
     // if we only have a single section, then we must reverse the y values.
     this.yVals = MapWorkingData.buildVals(this.canvasSize.height, this.mapInfo.bottomLeft.y, this.mapInfo.topRight.y);
 
-    this.curInterations = 0;
+    this.curIterations = 0;
 
     //this.pixelData = new Uint8ClampedArray(this.elementCount * 4);
   }
@@ -347,7 +347,7 @@ export class MapWorkingData implements IMapWorkingData {
 
   // Updates each element for a given line by performing a single interation.
   // Returns true if at least one point is not done.
-  public doInterationsForLine(iterCount: number, y: number): boolean {
+  public doIterationsForLine(iterCount: number, y: number): boolean {
 
     let stillAlive: boolean = false; // Assume all done until one is found that is not done.
 
@@ -363,7 +363,7 @@ export class MapWorkingData implements IMapWorkingData {
 
   // Updates each element by performing a single interation.
   // Returns true if at least one point is not done.
-  public doInterationsForAll(iterCount: number): boolean {
+  public doIterationsForAll(iterCount: number): boolean {
 
     let stillAlive: boolean = false; // Assume all done until one is found that is not done.
 
@@ -413,7 +413,7 @@ export class MapWorkingData implements IMapWorkingData {
       let secTopRight = new Point(right, secTop);
 
       let coords: IBox = new Box(secBotLeft, secTopRight);
-      let secMapInfo = new MapInfo(coords, mapInfo.maxInterations, mapInfo.iterationsPerStep);
+      let secMapInfo = new MapInfo(coords, mapInfo.maxIterations, mapInfo.iterationsPerStep);
 
       let yOffset = ptr * sectionHeightWN;
       let secAnchor: IPoint = new Point(0, yOffset);
@@ -435,7 +435,7 @@ export class MapWorkingData implements IMapWorkingData {
     let secTopRight = new Point(right, secTop);
 
     let coords: IBox = new Box(secBotLeft, secTopRight);
-    let secMapInfo = new MapInfo(coords, mapInfo.maxInterations, mapInfo.iterationsPerStep);
+    let secMapInfo = new MapInfo(coords, mapInfo.maxIterations, mapInfo.iterationsPerStep);
 
     let yOffset = ptr * sectionHeightWN;
     let secAnchor: IPoint = new Point(0, yOffset);
@@ -968,7 +968,7 @@ export class WebWorkerUpdateColorMapRequest implements IWebWorkerUpdateColorMapR
 //  else if (plainMsg.messageKind === 'Iterate') {
 //    let iterateRequestMsg = WebWorkerIterateRequest.FromEventData(e.data);
 //    let iterCount = iterateRequestMsg.iterateCount;
-//    mapWorkingData.doInterationsForAll(iterCount);
+//    mapWorkingData.doIterationsForAll(iterCount);
 //    pixelData = mapWorkingData.getPixelData();
 
 //    imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, pixelData);
@@ -977,7 +977,7 @@ export class WebWorkerUpdateColorMapRequest implements IWebWorkerUpdateColorMapR
 //    self.postMessage(imageDataResponse, "*", [pixelData.buffer]);
 //  }
 //  else if (plainMsg.messageKind === 'GetImageData') {
-//    mapWorkingData.doInterationsForAll(1);
+//    mapWorkingData.doIterationsForAll(1);
 
 //    //let dataRequest = WebWorkerImageDataRequest.FromEventData(e.data);
 
