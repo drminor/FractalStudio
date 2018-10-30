@@ -121,14 +121,23 @@ export class AppComponent {
 
     let cNumGenerator = new ColorNumbers();
 
-    let ranges: ColorMapEntry[] = new Array<ColorMapEntry>(4);
-    ranges[0] = new ColorMapEntry(10, cNumGenerator.white);
-    ranges[1] = new ColorMapEntry(20, cNumGenerator.red);
-    ranges[2] = new ColorMapEntry(50, cNumGenerator.green);
-    ranges[3] = new ColorMapEntry(200, cNumGenerator.blue);
-    ranges[4] = new ColorMapEntry(500, cNumGenerator.getColorNumber(100, 200, 50));
-    ranges[5] = new ColorMapEntry(800, cNumGenerator.getColorNumber(50, 240, 10));
-    ranges[6] = new ColorMapEntry(1200, cNumGenerator.getColorNumber(245, 0, 80));
+    let ranges: ColorMapEntry[] = new Array<ColorMapEntry>(13);
+    ranges[0] = new ColorMapEntry(3, cNumGenerator.white);
+    ranges[1] = new ColorMapEntry(5, cNumGenerator.red);
+    ranges[2] = new ColorMapEntry(8, cNumGenerator.green);
+    ranges[3] = new ColorMapEntry(13, cNumGenerator.blue);
+
+    ranges[4] = new ColorMapEntry(21, cNumGenerator.red);
+    ranges[5] = new ColorMapEntry(34, cNumGenerator.green);
+    ranges[6] = new ColorMapEntry(55, cNumGenerator.blue);
+
+    ranges[7] = new ColorMapEntry(79, cNumGenerator.red);
+    ranges[8] = new ColorMapEntry(100, cNumGenerator.green);
+    ranges[9] = new ColorMapEntry(200, cNumGenerator.blue);
+
+    ranges[10] = new ColorMapEntry(500, cNumGenerator.getColorNumber(100, 200, 50));
+    ranges[11] = new ColorMapEntry(800, cNumGenerator.getColorNumber(50, 240, 10));
+    ranges[12] = new ColorMapEntry(1200, cNumGenerator.getColorNumber(245, 0, 80));
 
     let result: ColorMap = new ColorMap(ranges, cNumGenerator.black);
     return result;

@@ -1,19 +1,25 @@
 <div>
-  <h3>Color Map</h3>
+  <h3 style="text-align:center; margin:0px 0px 8px 0px">Color Map</h3>
 
   <form [formGroup]="colorMapForm"  (ngSubmit)="onSubmit()">
 
-    <button type="submit" [disabled]="!colorMapForm.valid">Apply</button>
+    <button type="submit" [disabled]="!colorMapForm.valid" style="width:65px; height:35px; margin: 0px 0px 25px 25px">Apply</button>
 
-    <div formArrayName="cEntries">
+    <div formArrayName="cEntries" style="margin-left:10px">
       <div *ngFor="let colEntry of colorMapForm.get('cEntries').controls; let i=index">
-        <!--<div *ngFor="let colEntry of colorEntryForms.controls; let i=index">-->
 
-        <div [formGroupName]="i">
-          <label>CutOff: <input type="text" formControlName="cutOff"></label>
+        <div [formGroupName]="i" style="width:150px; border: 1px solid grey; padding: 3px 3px 3px 18px; margin-bottom:2px">
+          <label>CutOff: <input type="text" formControlName="cutOff" size="5"></label>
           <br />
-          <label>Color: <input type="text" formControlName="cNum"></label>
+          <!--<label>Color: <input type="text" formControlName="cNum"></label>-->
+          <!--<div style="height:25px; background-color:#14de7b"></div>-->
+
+          <!-- Clickable Color Block -->
+          <div style="position:relative; width:55px; height:25px; margin:5px">
+            <div [ngStyle]="getColorBlockStyle(i)" (click)="onEditColor(i)"></div>
+          </div>
         </div>
+
       </div>
     </div>
   </form>

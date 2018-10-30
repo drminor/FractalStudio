@@ -17,7 +17,6 @@ export class ColorMapEditorComponent {
     console.log("The color map editor's color map is being set.");
     let colorMapEntryForms: FormGroup[] = this.buildColorMapEntryForms(this._colorMap.ranges);
     this.updateForm(colorMapEntryForms);
-    //this.colorMapForm.controls.cEntries = new FormArray(this.buildColorMapEntryForms(this._colorMap.ranges));
   }
 
   @Output() colorMapUpdated = new EventEmitter<ColorMap>();
@@ -36,6 +35,19 @@ export class ColorMapEditorComponent {
     this.colorEntryForms = new FormArray([]); // this.colorEntriesForm.controls.cEntries as FormArray;
   }
 
+  getColorBlockStyle(idx: number): object {
+    let cEntry: ColorMapEntry = this.getColorMapEntry(idx);
+    //let result = ColorBlockStyle.getStyle(20, cEntry.colorNum);
+    let result = ColorBlockStyle.getStyle(20, idx);
+
+    return result;
+  }
+
+  //onEditColor(ev: MouseEvent, idx:number) {
+    onEditColor(idx: number) {
+    console.log('Got onEditColor' + 'for item ' + idx + '.');
+  }
+
   onSubmit() {
     let colorMap = this.getColorMap(this.colorMapForm);
     console.log('The color map editor is handling form submit.'); // The stack now has ' + this.history.length + ' items.');
@@ -43,30 +55,12 @@ export class ColorMapEditorComponent {
     this.colorMapUpdated.emit(colorMap);
   }
 
-  private getColorMap(frm: FormGroup): ColorMap {
-
-    let ourFormsCEntries: FormArray = this.colorMapForm.controls.cEntries as FormArray;
-
-    let ranges: ColorMapEntry[] = [];
-
-    let ptr: number;
-    for (ptr = 0; ptr < ourFormsCEntries.controls.length; ptr++) {
-      let cfg: FormGroup = ourFormsCEntries.controls[ptr] as FormGroup;
-.      ranges.push(new ColorMapEntry(cfg.controls.cutOff.value, cfg.controls.cNum.value));
-    }
-
-    let highColor: number = frm.controls.highColor.value;
-
-    let result: ColorMap = new ColorMap(ranges, highColor);
-
-    return result;
-  }
-
   private updateForm(colorEntryForms: FormGroup[]): void {
 
     let ourFormsCEntries: FormArray = this.colorMapForm.controls.cEntries as FormArray;
     let highColor: number = this.colorMapForm.controls.highColor.value;
 
+    // Clear the cEntries FormArray
     ourFormsCEntries.controls = [];
 
     let ptr: number;
@@ -74,8 +68,11 @@ export class ColorMapEditorComponent {
       ourFormsCEntries.controls.push(colorEntryForms[ptr]);
     }
 
+    // Set the form's highColor value.
     this.colorMapForm.controls.highColor.setValue(highColor);
   }
+
+  // --- ColorMapEntry to/from  FormGroup methods
 
   private buildColorMapEntryForms(colorMapEntries: ColorMapEntry[]): FormGroup[] {
 
@@ -86,6 +83,33 @@ export class ColorMapEditorComponent {
       result.push(this.buildAColorMapEntryForm(this._colorMap.ranges[ptr]));
     }
 
+    return result;
+  }
+
+  private getColorMap(frm: FormGroup): ColorMap {
+
+    let ourFormsCEntries: FormArray = this.colorMapForm.controls.cEntries as FormArray;
+
+    let ranges: ColorMapEntry[] = [];
+
+    let ptr: number;
+    for (ptr = 0; ptr < ourFormsCEntries.controls.length; ptr++) {
+      //let cfg: FormGroup = ourFormsCEntries.controls[ptr] as FormGroup;
+      //ranges.push(new ColorMapEntry(cfg.controls.cutOff.value, cfg.controls.cNum.value));
+      ranges.push(this.getColorMapEntry(ptr));
+    }
+
+    let highColor: number = frm.controls.highColor.value;
+
+    let result: ColorMap = new ColorMap(ranges, highColor);
+
+    return result;
+  }
+
+  private getColorMapEntry(idx: number): ColorMapEntry {
+    const cfg: FormGroup = (this.colorMapForm.controls.cEntries as FormArray).controls[idx] as FormGroup;
+
+    const result = new ColorMapEntry(cfg.controls.cutOff.value, cfg.controls.cNum.value);
     return result;
   }
 
@@ -106,6 +130,32 @@ export class ColorMapEditorComponent {
     }
 
     return result;
+  }
+}
+
+// -- Style Support
+export class ColorBlockStyle {
+
+  public static getStyle(height: number, cNum: number): object {
+
+    let strColorVal: string;
+
+    if (cNum % 2 === 0) {
+      strColorVal = 'blue';
+    }
+    else {
+      strColorVal = 'red';
+    }
+
+    let result = {
+      'position': 'absolute',
+      'width': '100%',
+      'height': '100%',
+      'background-color': strColorVal
+    }
+
+    return result;
+
   }
 
 }
