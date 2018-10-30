@@ -5,7 +5,7 @@ import {
   IMapInfo, MapInfo, IMapWorkingData, MapWorkingData,
   WebWorkerImageDataResponse, WebWorkerMessage, WebWorkerStartRequest, WebWorkerImageDataRequest,
   WebWorkerIterateRequest, WebWorkerUpdateColorMapRequest,
-  ColorMap, ColorMapEntry, ColorNumbers
+  ColorMap, ColorMapEntry, ColorNumbers, IColorMap
 } from '../m-map-common';
 
 @Component({
@@ -16,7 +16,7 @@ import {
 export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
   private _mapInfo: IMapInfo;
-  private _colorMap: ColorMap;
+  private _colorMap: IColorMap;
 
   public alive: boolean;
 

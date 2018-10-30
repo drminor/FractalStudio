@@ -58,7 +58,7 @@ export interface IMapWorkingData {
 
   //pixelData: Uint8ClampedArray;
 
-  colorMap: ColorMap;
+  colorMap: IColorMap;
 
   //getLinearIndex(x: number, y: number): number;
   getLinearIndex(c: IPoint): number;
@@ -220,7 +220,7 @@ export class MapWorkingData implements IMapWorkingData {
 
   //public pixelData: Uint8ClampedArray;
 
-  constructor(public canvasSize: ICanvasSize, public mapInfo: IMapInfo, public colorMap: ColorMap, public sectionAnchor: IPoint, forSubDivision: boolean) {
+  constructor(public canvasSize: ICanvasSize, public mapInfo: IMapInfo, public colorMap: IColorMap, public sectionAnchor: IPoint, forSubDivision: boolean) {
 
     this.elementCount = this.getNumberOfElementsForCanvas(this.canvasSize);
 
@@ -384,7 +384,7 @@ export class MapWorkingData implements IMapWorkingData {
   }
 
   // Divides the specified MapWorking data into the specified vertical sections, each having the width of the original Map.
-  static getWorkingDataSections(canvasSize: ICanvasSize, mapInfo: IMapInfo, colorMap: ColorMap, numberOfSections: number): IMapWorkingData[] {
+  static getWorkingDataSections(canvasSize: ICanvasSize, mapInfo: IMapInfo, colorMap: IColorMap, numberOfSections: number): IMapWorkingData[] {
     let result: IMapWorkingData[] = Array<IMapWorkingData>(numberOfSections);
 
     // Calculate the heigth of each section, rounded down to the nearest whole number.
@@ -548,14 +548,85 @@ export class MapWorkingData implements IMapWorkingData {
   }
 } // End Class MapWorkingData
 
-export class ColorMapEntry {
+export interface IColorMapEntry {
+  cutOff: number;
+  colorNum: number;
+}
+
+export class ColorMapEntry implements IColorMapEntry  {
   constructor(public cutOff: number, public colorNum: number) {
   }
 }
 
-export class ColorMap {
+export class ColorMapUIEntry implements IColorMapEntry {
 
-  constructor(public ranges: ColorMapEntry[], public highColor: number) { }
+  public colorNum: number;
+  public r: number;
+  public g: number;
+  public b: number;
+  public alpha: number = 255;
+
+  public get rgbHex(): string {
+
+    let result: string = '#' + ('0' + this.r.toString(16)).slice(-2) + ('0' + this.g.toString(16)).slice(-2) + ('0' + this.b.toString(16)).slice(-2);
+    //return "#FFFF00";
+    return result;
+  }
+
+  constructor(public cutOff: number, public colorVals: number[]) {
+
+    if (colorVals.length === 3) {
+      this.r = colorVals[0];
+      this.g = colorVals[1];
+      this.b = colorVals[2];
+    }
+    else if (colorVals.length === 4) {
+      this.r = colorVals[0];
+      this.g = colorVals[1];
+      this.b = colorVals[2];
+      this.alpha = colorVals[3];
+    }
+    else {
+      throw new RangeError('colorVals must have exactly 3 or 4 elements.');
+    }
+
+    this.colorNum = ColorNumbers.getColor(this.r, this.g, this.b);
+  }
+
+  public static fromColorMapEntry(cme: IColorMapEntry): ColorMapUIEntry {
+
+    if (typeof (cme) === typeof (ColorMapUIEntry)) {
+      return cme as ColorMapUIEntry;
+    }
+    else {
+      return ColorMapUIEntry.fromOffsetAndColorNum(cme.cutOff, cme.colorNum);
+      //let colorComps: number[] = ColorNumbers.getColorComponents(cme.colorNum);
+      //let result = new ColorMapUIEntry(cme.cutOff, colorComps);
+      //return result;
+    }
+  }
+
+  public static fromOffsetAndColorNum(cutOff: number, cNum: number): ColorMapUIEntry {
+    let colorComps: number[] = ColorNumbers.getColorComponents(cNum);
+    let result = new ColorMapUIEntry(cutOff, colorComps);
+    return result;
+  }
+}
+
+export interface IColorMap {
+  ranges: IColorMapEntry[]
+  highColor: number;
+
+  getColor(countValue: number): number;
+  insertColorMapEntry(entry: IColorMapEntry, index: number);
+
+  getCutOffs(): Uint16Array;
+  getColorNums(): Uint32Array;
+}
+
+export class ColorMap implements IColorMap {
+
+  constructor(public ranges: IColorMapEntry[], public highColor: number) { }
 
   public static FromTypedArrays(cutOffs: Uint16Array, colorNums: Uint32Array, highColor: number): ColorMap {
     let ranges: ColorMapEntry[] = new Array<ColorMapEntry>(cutOffs.length);
@@ -570,7 +641,7 @@ export class ColorMap {
     return result;
   }
 
-  public insertColorMapEntry(entry: ColorMapEntry, index: number) {
+  public insertColorMapEntry(entry: IColorMapEntry, index: number) {
     if (index <= 0) {
       this.ranges.unshift(entry);
     }
@@ -632,7 +703,7 @@ export class ColorMap {
     return index;
   }
 
-  public GetCutOffs(): Uint16Array {
+  public getCutOffs(): Uint16Array {
     let result = new Uint16Array(this.ranges.length);
     let i: number = 0;
 
@@ -643,7 +714,7 @@ export class ColorMap {
     return result;
   }
 
-  public GetColorNums(): Uint32Array {
+  public getColorNums(): Uint32Array {
     let result = new Uint32Array(this.ranges.length);
     let i: number = 0;
 
@@ -655,6 +726,14 @@ export class ColorMap {
   }
 }
 
+export class ColorMapUI extends ColorMap {
+  constructor(ranges: ColorMapUIEntry[], highColor: number)
+  {
+    super(ranges, highColor);
+  }
+
+}
+
 export class ColorNumbers {
 
   black: number = 65536 * 65280; // FF00 0000
@@ -664,22 +743,55 @@ export class ColorNumbers {
   blue: number;
 
   constructor() {
-    this.white = this.getColorNumber(255, 255, 255);
-    this.red = this.getColorNumber(255, 0, 0);
-    this.green = this.getColorNumber(0, 255, 0);
-    this.blue = this.getColorNumber(0, 0, 255);
+    this.white = ColorNumbers.getColor(255, 255, 255);
+    this.red = ColorNumbers.getColor(255, 0, 0);
+    this.green = ColorNumbers.getColor(0, 255, 0);
+    this.blue = ColorNumbers.getColor(0, 0, 255);
   }
 
-  public getColorNumber(r: number, g: number, b: number): number {
+  //data[y * canvasWidth + x] =
+  //  (255 << 24) |	// alpha
+  //  (value << 16) |	// blue
+  //  (value << 8) |	// green
+  //  value;		// red
+
+  public static getColor(r: number, g: number, b: number, alpha?:number): number {
 
     if (r > 255 || r < 0) throw new RangeError('R must be between 0 and 255.');
     if (g > 255 || g < 0) throw new RangeError('G must be between 0 and 255.');
     if (b > 255 || b < 0) throw new RangeError('B must be between 0 and 255.');
 
-    let result: number = this.black;
-    result += b << 16;
-    result += g << 8;
-    result += r;
+    let result: number;
+
+    if (alpha != null) {
+      if (alpha > 255 || alpha < 0) throw new RangeError('Alpha must be between 0 and 255.');
+
+      result = alpha << 24;
+      result |= b << 16;
+      result |= g << 8;
+      result |= r;
+    }
+    else {
+      result = 65536 * 65280; // FF00 0000 - opaque Black
+      result += b << 16;
+      result += g << 8;
+      result += r;
+    }
+
+    return result;
+  }
+
+  // Returns array of numbers: r,g,b,a Where r,g and b are 0-255 integers and a is 0-1 float.
+  public static getColorComponents(cNum: number): number[] {
+    let result: number[] = new Array<number>(4);
+
+    // Mask all but the lower 8 bits.
+    result[0] = cNum & 0x000000FF;
+
+    // Shift down by 8 bits and then mask.
+    result[1] = cNum >> 8 & 0x000000FF;
+    result[2] = cNum >> 16 & 0x000000FF;
+    result[3] = cNum >> 24 & 0x000000FF;
 
     return result;
   }
@@ -694,7 +806,7 @@ export interface IWebWorkerMessage {
 export interface IWebWorkerStartRequest extends IWebWorkerMessage {
   canvasSize: ICanvasSize;
   mapInfo: IMapInfo;
-  colorMap: ColorMap;
+  colorMap: IColorMap;
   sectionAnchor: IPoint;
   sectionNumber: number;
 }
@@ -758,7 +870,7 @@ export class WebWorkerStartRequest implements IWebWorkerStartRequest {
     public messageKind: string,
     public canvasSize: ICanvasSize,
     public mapInfo: IMapInfo,
-    public colorMap: ColorMap,
+    public colorMap: IColorMap,
     public sectionAnchor: IPoint,
     public sectionNumber: number
   ) { }
@@ -927,10 +1039,10 @@ export class WebWorkerUpdateColorMapRequest implements IWebWorkerUpdateColorMapR
     return result;
   }
 
-  static CreateRequest(colorMap: ColorMap): IWebWorkerUpdateColorMapRequest {
+  static CreateRequest(colorMap: IColorMap): IWebWorkerUpdateColorMapRequest {
 
-    let cutOffs = colorMap.GetCutOffs();
-    let colorNums = colorMap.GetColorNums();
+    let cutOffs = colorMap.getCutOffs();
+    let colorNums = colorMap.getColorNums();
 
     let result = new WebWorkerUpdateColorMapRequest("UpdateColorMap", cutOffs, colorNums, colorMap.highColor);
     return result;

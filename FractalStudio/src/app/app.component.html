@@ -9,12 +9,12 @@
 
 <!--<h2>Map Output Section</h2>-->
 
-<button type="button" (click)="mapDisplay.getImageData()">Get Image Data</button>
+<button type="button" (click)="mapDisplay.getImageData()" style="margin-bottom:2px">Get Image Data</button>
 <a #download href={{dataUri}} download="test2.jpg" target="_blank" hidden="hidden">Download</a>
 
 <section>
-    <div style="float:left; position:relative; width:700px; height:470px; padding:3px 3px 3px 3px; border: 2px solid black">
-      <div style="position:relative; width:690px; height:460px; margin:5px">
+    <div style="float:left; position:relative; width:705px; height:470px; border: 2px solid black">
+      <div style="position:relative; width:705px; height:470px;">
         <app-m-map-display #mapDisplay [mapCoords]="mapCoords"
                            [maxIterations]="maxIterations"
                            [iterationsPerStep]="iterationsPerStep"

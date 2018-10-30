@@ -1,5 +1,5 @@
 import { Component, OnInit, Input, Output, EventEmitter, AfterViewInit } from '@angular/core';
-import { ColorMap, ColorMapEntry } from '../m-map-common';
+import { ColorMap, ColorMapEntry, ColorMapUIEntry, ColorMapUI, IColorMap } from '../m-map-common';
 import { FormGroup, FormControl, FormArray, AbstractControl } from '@angular/forms';
 
 @Component({
@@ -19,7 +19,7 @@ export class ColorMapEditorComponent {
     this.updateForm(colorMapEntryForms);
   }
 
-  @Output() colorMapUpdated = new EventEmitter<ColorMap>();
+  @Output() colorMapUpdated = new EventEmitter<IColorMap>();
 
   // Define our Form. It has a single item which is an array of CEntryForms
   colorMapForm: FormGroup;
@@ -36,14 +36,14 @@ export class ColorMapEditorComponent {
   }
 
   getColorBlockStyle(idx: number): object {
-    let cEntry: ColorMapEntry = this.getColorMapEntry(idx);
+    let cEntry: ColorMapUIEntry = this.getColorMapEntry(idx);
     //let result = ColorBlockStyle.getStyle(20, cEntry.colorNum);
-    let result = ColorBlockStyle.getStyle(20, idx);
+
+    let result = ColorBlockStyle.getStyle(cEntry.rgbHex);
 
     return result;
   }
 
-  //onEditColor(ev: MouseEvent, idx:number) {
     onEditColor(idx: number) {
     console.log('Got onEditColor' + 'for item ' + idx + '.');
   }
@@ -86,11 +86,11 @@ export class ColorMapEditorComponent {
     return result;
   }
 
-  private getColorMap(frm: FormGroup): ColorMap {
+  private getColorMap(frm: FormGroup): IColorMap {
 
     let ourFormsCEntries: FormArray = this.colorMapForm.controls.cEntries as FormArray;
 
-    let ranges: ColorMapEntry[] = [];
+    let ranges: ColorMapUIEntry[] = [];
 
     let ptr: number;
     for (ptr = 0; ptr < ourFormsCEntries.controls.length; ptr++) {
@@ -101,15 +101,16 @@ export class ColorMapEditorComponent {
 
     let highColor: number = frm.controls.highColor.value;
 
-    let result: ColorMap = new ColorMap(ranges, highColor);
+    let result: ColorMapUI = new ColorMapUI(ranges, highColor);
 
     return result;
   }
 
-  private getColorMapEntry(idx: number): ColorMapEntry {
+  private getColorMapEntry(idx: number): ColorMapUIEntry {
     const cfg: FormGroup = (this.colorMapForm.controls.cEntries as FormArray).controls[idx] as FormGroup;
 
-    const result = new ColorMapEntry(cfg.controls.cutOff.value, cfg.controls.cNum.value);
+    // TODO: Make the form hold r,g,b color vals and then use those values here.
+    const result = ColorMapUIEntry.fromOffsetAndColorNum(cfg.controls.cutOff.value, cfg.controls.cNum.value);
     return result;
   }
 
@@ -136,22 +137,14 @@ export class ColorMapEditorComponent {
 // -- Style Support
 export class ColorBlockStyle {
 
-  public static getStyle(height: number, cNum: number): object {
-
-    let strColorVal: string;
-
-    if (cNum % 2 === 0) {
-      strColorVal = 'blue';
-    }
-    else {
-      strColorVal = 'red';
-    }
+  public static getStyle(rgbHex: string): object {
 
     let result = {
       'position': 'absolute',
       'width': '100%',
       'height': '100%',
-      'background-color': strColorVal
+      'background-color': rgbHex,
+       'border': '1px solid black'
     }
 
     return result;

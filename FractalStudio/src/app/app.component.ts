@@ -1,6 +1,6 @@
 import { Component, OnInit, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
 
-import { IMapInfo, IPoint, Point, MapInfo, IBox, Box, ColorMap, ColorNumbers, ColorMapEntry } from './m-map/m-map-common';
+import { IMapInfo, IPoint, Point, MapInfo, IBox, Box, ColorMap, ColorNumbers, ColorMapEntry, ColorMapUIEntry, ColorMapUI, IColorMap } from './m-map/m-map-common';
 
 @Component({
   selector: 'app-root',
@@ -28,14 +28,14 @@ export class AppComponent {
   maxIterations: number;
   iterationsPerStep: number;
 
-  colorMap: ColorMap;
+  colorMap: IColorMap;
   dataUri: string;
 
   history: IMapInfo[] = [];
 
   constructor() {
-    const bottomLeft: IPoint = new Point(-2, -1);
-    const topRight: IPoint = new Point(1, 1);
+    const bottomLeft: IPoint = new Point(-2.4, -1.2);
+    const topRight: IPoint = new Point(1, 1.2);
 
     this.mapCoords = new Box(bottomLeft, topRight);
 
@@ -46,7 +46,7 @@ export class AppComponent {
     this.colorMap = this.buildColorMap();
   }
 
-  onColorMapUpdated(colorMap: ColorMap) {
+  onColorMapUpdated(colorMap: IColorMap) {
     console.log('App Component is handling onColorMapUpdated.');
     this.colorMap = colorMap;
   }
@@ -108,38 +108,36 @@ export class AppComponent {
   }
 
   private doTest(): void {
-    let cNumGenerator = new ColorNumbers();
-
     let cMap = this.buildColorMap();
-    let cMapEntry = new ColorMapEntry(15, cNumGenerator.getColorNumber(30, 40, 60));
+    let cMapEntry = new ColorMapEntry(15, ColorNumbers.getColor(30, 40, 60));
 
     cMap.insertColorMapEntry(cMapEntry, 1);
     this.colorMap = cMap;
   }
 
-  private buildColorMap(): ColorMap {
+  private buildColorMap(): ColorMapUI {
 
     let cNumGenerator = new ColorNumbers();
 
-    let ranges: ColorMapEntry[] = new Array<ColorMapEntry>(13);
-    ranges[0] = new ColorMapEntry(3, cNumGenerator.white);
-    ranges[1] = new ColorMapEntry(5, cNumGenerator.red);
-    ranges[2] = new ColorMapEntry(8, cNumGenerator.green);
-    ranges[3] = new ColorMapEntry(13, cNumGenerator.blue);
+    let ranges: ColorMapUIEntry[] = new Array<ColorMapUIEntry>(13);
+    ranges[0] =  ColorMapUIEntry.fromOffsetAndColorNum(3, cNumGenerator.white);
+    ranges[1] = ColorMapUIEntry.fromOffsetAndColorNum(5, cNumGenerator.red);
+    ranges[2] = ColorMapUIEntry.fromOffsetAndColorNum(8, cNumGenerator.green);
+    ranges[3] = ColorMapUIEntry.fromOffsetAndColorNum(13, cNumGenerator.blue);
 
-    ranges[4] = new ColorMapEntry(21, cNumGenerator.red);
-    ranges[5] = new ColorMapEntry(34, cNumGenerator.green);
-    ranges[6] = new ColorMapEntry(55, cNumGenerator.blue);
+    ranges[4] = ColorMapUIEntry.fromOffsetAndColorNum(21, cNumGenerator.red);
+    ranges[5] = ColorMapUIEntry.fromOffsetAndColorNum(34, cNumGenerator.green);
+    ranges[6] = ColorMapUIEntry.fromOffsetAndColorNum(55, cNumGenerator.blue);
 
-    ranges[7] = new ColorMapEntry(79, cNumGenerator.red);
-    ranges[8] = new ColorMapEntry(100, cNumGenerator.green);
-    ranges[9] = new ColorMapEntry(200, cNumGenerator.blue);
+    ranges[7] = ColorMapUIEntry.fromOffsetAndColorNum(79, cNumGenerator.red);
+    ranges[8] = ColorMapUIEntry.fromOffsetAndColorNum(100, cNumGenerator.green);
+    ranges[9] = ColorMapUIEntry.fromOffsetAndColorNum(200, cNumGenerator.blue);
 
-    ranges[10] = new ColorMapEntry(500, cNumGenerator.getColorNumber(100, 200, 50));
-    ranges[11] = new ColorMapEntry(800, cNumGenerator.getColorNumber(50, 240, 10));
-    ranges[12] = new ColorMapEntry(1200, cNumGenerator.getColorNumber(245, 0, 80));
+    ranges[10] = new ColorMapUIEntry(500, [100, 200, 50]);
+    ranges[11] = new ColorMapUIEntry(800, [50, 240, 10]);
+    ranges[12] = new ColorMapUIEntry(1200, [245, 0, 80]);
 
-    let result: ColorMap = new ColorMap(ranges, cNumGenerator.black);
+    let result: ColorMapUI = new ColorMapUI(ranges, cNumGenerator.black);
     return result;
   }
 
