@@ -1,6 +1,6 @@
-import { Component, OnInit, Input, Output, EventEmitter, AfterViewInit } from '@angular/core';
-import { ColorMap, ColorMapEntry, ColorMapUIEntry, ColorMapUI, IColorMap } from '../m-map-common';
-import { FormGroup, FormControl, FormArray, AbstractControl } from '@angular/forms';
+import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
+import { ColorMapUIEntry, ColorMapUI, IColorMap } from '../m-map-common';
+import { FormGroup, FormControl, FormArray } from '@angular/forms';
 
 @Component({
   selector: 'app-color-map-editor',
@@ -9,82 +9,78 @@ import { FormGroup, FormControl, FormArray, AbstractControl } from '@angular/for
 })
 export class ColorMapEditorComponent {
 
-  _colorMap: ColorMap;
+  _colorMap: ColorMapUI;
 
   @Input('colorMap')
-  set colorMap(colorMap: ColorMap) {
-    this._colorMap = colorMap;
+  set colorMap(colorMap: ColorMapUI) {
     console.log("The color map editor's color map is being set.");
-    let colorMapEntryForms: FormGroup[] = this.buildColorMapEntryForms(this._colorMap.ranges);
-    this.updateForm(colorMapEntryForms);
+
+    this._colorMap = colorMap;
+    this.updateForm(colorMap);
   }
 
   @Output() colorMapUpdated = new EventEmitter<IColorMap>();
 
-  // Define our Form. It has a single item which is an array of CEntryForms
   colorMapForm: FormGroup;
-  colorEntryForms: FormArray;
+
+  // Our managed list of ColorMapEntryForms
+  cEntryForms: ColorMapEntryFormCollection;
 
   constructor() {
 
+    // Define our Form. It has a single item which is an array of CEntryForms
     this.colorMapForm = new FormGroup({
       highColor: new FormControl(''),
       cEntries: new FormArray([])
     });
 
-    this.colorEntryForms = new FormArray([]); // this.colorEntriesForm.controls.cEntries as FormArray;
+    // Initialize our managed list of color map entry forms and bind it to our form's cEntries FormArray.
+    this.cEntryForms = new ColorMapEntryFormCollection(this.colorMapForm.controls.cEntries as FormArray);
   }
 
   getColorBlockStyle(idx: number): object {
     let cEntry: ColorMapUIEntry = this.getColorMapEntry(idx);
-    //let result = ColorBlockStyle.getStyle(20, cEntry.colorNum);
-
     let result = ColorBlockStyle.getStyle(cEntry.rgbHex);
-
     return result;
   }
 
-    onEditColor(idx: number) {
+  onEditColor(idx: number) {
     console.log('Got onEditColor' + 'for item ' + idx + '.');
+    this.toggleShowEditor(idx);
   }
 
   onSubmit() {
     let colorMap = this.getColorMap(this.colorMapForm);
-    console.log('The color map editor is handling form submit.'); // The stack now has ' + this.history.length + ' items.');
-
+    console.log('The color map editor is handling form submit.'); 
     this.colorMapUpdated.emit(colorMap);
   }
 
-  private updateForm(colorEntryForms: FormGroup[]): void {
-
-    let ourFormsCEntries: FormArray = this.colorMapForm.controls.cEntries as FormArray;
-    let highColor: number = this.colorMapForm.controls.highColor.value;
-
-    // Clear the cEntries FormArray
-    ourFormsCEntries.controls = [];
-
-    let ptr: number;
-    for (ptr = 0; ptr < colorEntryForms.length; ptr++) {
-      ourFormsCEntries.controls.push(colorEntryForms[ptr]);
+  private toggleShowEditor(idx: number): void {
+    let cfg = this.getCEntryFromGroup(idx);
+    if (cfg.controls.showEditor.enabled) {
+      cfg.controls.showEditor.disable();
     }
+    else {
+      cfg.controls.showEditor.enable();
+    }
+  }
+
+  private getCEntryFromGroup(idx: number): FormGroup {
+    let ourFormsCEntries: FormArray = this.colorMapForm.controls.cEntries as FormArray;
+    let result: FormGroup = ourFormsCEntries.controls[idx] as FormGroup;
+    return result;
+  }
+
+  private updateForm(colorMap: ColorMapUI): void {
+
+    this.cEntryForms.cEntries = colorMap.uIRanges;
 
     // Set the form's highColor value.
-    this.colorMapForm.controls.highColor.setValue(highColor);
+    this.colorMapForm.controls.highColor.setValue(colorMap.highColor);
   }
 
   // --- ColorMapEntry to/from  FormGroup methods
 
-  private buildColorMapEntryForms(colorMapEntries: ColorMapEntry[]): FormGroup[] {
-
-    let result: FormGroup[] = [];
-
-    let ptr: number;
-    for (ptr = 0; ptr < this._colorMap.ranges.length; ptr++) {
-      result.push(this.buildAColorMapEntryForm(this._colorMap.ranges[ptr]));
-    }
-
-    return result;
-  }
 
   private getColorMap(frm: FormGroup): IColorMap {
 
@@ -94,10 +90,10 @@ export class ColorMapEditorComponent {
 
     let ptr: number;
     for (ptr = 0; ptr < ourFormsCEntries.controls.length; ptr++) {
-      //let cfg: FormGroup = ourFormsCEntries.controls[ptr] as FormGroup;
-      //ranges.push(new ColorMapEntry(cfg.controls.cutOff.value, cfg.controls.cNum.value));
       ranges.push(this.getColorMapEntry(ptr));
     }
+
+    //let ranges: ColorMapUIEntry[] = this.cEntryForms.cEntries; 
 
     let highColor: number = frm.controls.highColor.value;
 
@@ -109,29 +105,100 @@ export class ColorMapEditorComponent {
   private getColorMapEntry(idx: number): ColorMapUIEntry {
     const cfg: FormGroup = (this.colorMapForm.controls.cEntries as FormArray).controls[idx] as FormGroup;
 
-    // TODO: Make the form hold r,g,b color vals and then use those values here.
     const result = ColorMapUIEntry.fromOffsetAndColorNum(cfg.controls.cutOff.value, cfg.controls.cNum.value);
     return result;
   }
+}
 
-  private buildAColorMapEntryForm(cme: ColorMapEntry): FormGroup {
-    let result: FormGroup;
+class ColorMapEntryFormCollection {
 
-    if (cme == null) {
-      result = new FormGroup({
-        cutOff: new FormControl(''),
-        cNum: new FormControl('')
-      });
+  private _fArray: FormArray;
+  private _cEntries: ColorMapUIEntry[];
+  private _cmeForms: ColorMapEntryForm[];
+
+  constructor(fArray: FormArray) {
+
+    //if (fArray == null || fArray.length != 0) {
+    //  throw new Error('The fArray must be non-null and contain 0 elements.');
+    //}
+
+    // hold a reference to the form's FormArray.
+    this._fArray = fArray;
+
+    this._cEntries = [];
+    this._cmeForms = [];
+  }
+
+  public get cEntries(): ColorMapUIEntry[] {
+    return this._cEntries;
+  }
+
+  public set cEntries(colorMapUIEntries: ColorMapUIEntry[]) {
+
+    // clear the existing contents of the FormArray
+    // and our forms.
+    this.clear();
+
+    let ptr: number;
+    for (ptr = 0; ptr < colorMapUIEntries.length; ptr++) {
+      let cme = new ColorMapEntryForm(colorMapUIEntries[ptr]);
+
+      this._cmeForms.push(new ColorMapEntryForm(colorMapUIEntries[ptr]));
+      this._fArray.controls.push(cme.form);
     }
-    else {
-      result = new FormGroup({
-        cutOff: new FormControl(cme.cutOff),
-        cNum: new FormControl(cme.colorNum)
-      });
+
+    this._cEntries = colorMapUIEntries;
+  }
+
+  public clear(): void {
+    this._fArray.controls = [];
+    this._cEntries = [];
+    this._cmeForms = [];
+  }
+}
+
+class ColorMapEntryForm {
+
+  public form: FormGroup;
+
+  constructor(public cme: ColorMapUIEntry) {
+    this.form = this.buildForm(cme);
+  }
+
+  public dispose(): void {
+    // Place holder for now.
+  }
+
+  private buildForm(cme: ColorMapUIEntry): FormGroup {
+
+    let result = new FormGroup({
+      cutOff: new FormControl(''),
+      cNum: new FormControl(''),
+
+      showEditor: new FormControl(''),
+      r: new FormControl(''),
+      g: new FormControl(''),
+      b: new FormControl('')
+    });
+
+    result.controls.showEditor.disable();
+
+    //let x = result.controls.r.valueChanges.subscribe();
+
+    if (cme != null) {
+      result.controls.cutOff.setValue(cme.cutOff);
+      result.controls.cNum.setValue(cme.colorNum);
+      result.controls.r.setValue(cme.r);
+      result.controls.g.setValue(cme.g);
+      result.controls.b.setValue(cme.b);
+
+      //result.controls.cNum.
     }
 
     return result;
   }
+
+
 }
 
 // -- Style Support
@@ -148,7 +215,6 @@ export class ColorBlockStyle {
     }
 
     return result;
-
   }
 
 }

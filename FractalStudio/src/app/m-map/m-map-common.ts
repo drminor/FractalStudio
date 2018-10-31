@@ -628,15 +628,15 @@ export class ColorMap implements IColorMap {
 
   constructor(public ranges: IColorMapEntry[], public highColor: number) { }
 
-  public static FromTypedArrays(cutOffs: Uint16Array, colorNums: Uint32Array, highColor: number): ColorMap {
-    let ranges: ColorMapEntry[] = new Array<ColorMapEntry>(cutOffs.length);
+  public static FromTypedArrays(cutOffs: Uint16Array, colorNums: Uint32Array, highColor: number): IColorMap {
+    let workRanges: ColorMapEntry[] = new Array<ColorMapEntry>(cutOffs.length);
     let i: number = 0;
 
     for (; i < cutOffs.length; i++) {
-      ranges[i] = new ColorMapEntry(cutOffs[i], colorNums[i]);
+      workRanges[i] = new ColorMapEntry(cutOffs[i], colorNums[i]);
     }
 
-    let result: ColorMap = new ColorMap(ranges, highColor);
+    let result: ColorMap = new ColorMap(workRanges, highColor);
 
     return result;
   }
@@ -726,7 +726,13 @@ export class ColorMap implements IColorMap {
   }
 }
 
+
 export class ColorMapUI extends ColorMap {
+
+  public get uIRanges(): ColorMapUIEntry[] {
+    return this.ranges as ColorMapUIEntry[];
+  }
+
   constructor(ranges: ColorMapUIEntry[], highColor: number)
   {
     super(ranges, highColor);
@@ -851,7 +857,7 @@ export interface IWebWorkerUpdateColorMapRequest extends IWebWorkerMessage {
   colorNums: Uint32Array;
   highColorNum: number;
 
-  getColorMap(): ColorMap;
+  getColorMap(): IColorMap;
 }
 
 // -- WebWorker Message Implementations
@@ -1048,8 +1054,8 @@ export class WebWorkerUpdateColorMapRequest implements IWebWorkerUpdateColorMapR
     return result;
   }
 
-  public getColorMap(): ColorMap {
-    let result: ColorMap = ColorMap.FromTypedArrays(this.cutOffs, this.colorNums, this.highColorNum);
+  public getColorMap(): IColorMap {
+    let result: IColorMap = ColorMap.FromTypedArrays(this.cutOffs, this.colorNums, this.highColorNum);
     return result;
   }
 
