@@ -558,6 +558,11 @@ export class ColorMapEntry implements IColorMapEntry  {
   }
 }
 
+export class ColorMapEntryForExport {
+  constructor(public cutOff: number, public cssColor: string) {
+  }
+}
+
 export class ColorMapUIEntry implements IColorMapEntry {
 
   public colorNum: number;
@@ -594,20 +599,25 @@ export class ColorMapUIEntry implements IColorMapEntry {
   }
 
   public static fromColorMapEntry(cme: IColorMapEntry): ColorMapUIEntry {
+    let result: ColorMapUIEntry;
 
     if (typeof (cme) === typeof (ColorMapUIEntry)) {
-      return cme as ColorMapUIEntry;
+      result = cme as ColorMapUIEntry;
     }
     else {
-      return ColorMapUIEntry.fromOffsetAndColorNum(cme.cutOff, cme.colorNum);
-      //let colorComps: number[] = ColorNumbers.getColorComponents(cme.colorNum);
-      //let result = new ColorMapUIEntry(cme.cutOff, colorComps);
-      //return result;
+      result = ColorMapUIEntry.fromOffsetAndColorNum(cme.cutOff, cme.colorNum);
     }
+    return result;
   }
 
   public static fromOffsetAndColorNum(cutOff: number, cNum: number): ColorMapUIEntry {
     let colorComps: number[] = ColorNumbers.getColorComponents(cNum);
+    let result = new ColorMapUIEntry(cutOff, colorComps);
+    return result;
+  }
+
+  public static fromOffsetAndCssColor(cutOff: number, cssColor: string): ColorMapUIEntry {
+    let colorComps: number[] = ColorNumbers.getColorComponentsFromCssColor(cssColor);
     let result = new ColorMapUIEntry(cutOff, colorComps);
     return result;
   }
@@ -726,7 +736,6 @@ export class ColorMap implements IColorMap {
   }
 }
 
-
 export class ColorMapUI extends ColorMap {
 
   public get uIRanges(): ColorMapUIEntry[] {
@@ -738,6 +747,48 @@ export class ColorMapUI extends ColorMap {
     super(ranges, highColor);
   }
 
+  public static FromColorMapForExport(cmfe: ColorMapForExport): ColorMapUI {
+
+    let ranges: ColorMapUIEntry[] = [];
+
+    let ptr: number;
+
+    for (ptr = 0; ptr < cmfe.ranges.length; ptr++) {
+      let cmeForExport = cmfe.ranges[ptr];
+
+      // TODO: Get ColorNum from cssColor (example #FF21A9 or #FF21A990)
+
+      let cme: ColorMapUIEntry = ColorMapUIEntry.fromOffsetAndCssColor(cmeForExport.cutOff, cmeForExport.cssColor);
+
+      ranges.push(cme);
+    }
+
+    let result = new ColorMapUI(ranges, cmfe.highColor);
+    return result;
+  }
+}
+
+export class ColorMapForExport {
+
+  constructor(public ranges: ColorMapEntryForExport[], public highColor: number) { }
+
+  public static FromColorMap(colorMap: IColorMap): ColorMapForExport {
+
+    let ranges: ColorMapEntryForExport[] = [];
+
+    let ptr: number;
+
+    for (ptr = 0; ptr < colorMap.ranges.length; ptr++) {
+      let icme: IColorMapEntry = colorMap.ranges[ptr];
+      let cme: ColorMapUIEntry = ColorMapUIEntry.fromColorMapEntry(icme);
+      let cssColor: string = cme.rgbHex;
+      let cmeForExport = new ColorMapEntryForExport(cme.cutOff, cssColor);
+      ranges.push(cmeForExport);
+    }
+
+    const result = new ColorMapForExport(ranges, colorMap.highColor);
+    return result;
+  }
 }
 
 export class ColorNumbers {
@@ -801,6 +852,33 @@ export class ColorNumbers {
 
     return result;
   }
+
+  // Returns array of numbers: r,g,b,a Where r,g and b are 0-255 integers and a is 0-1 float.
+  public static getColorComponentsFromCssColor(cssColor: string): number[] {
+    let result: number[] = new Array<number>(4);
+
+
+    let rs = cssColor.slice(5, 7);
+    let gs = cssColor.slice(3, 5);
+    let bs = cssColor.slice(1, 3);
+
+    result[0] = parseInt(bs, 16);
+    result[1] = parseInt(gs, 16);
+    result[2] = parseInt(rs, 16);
+    result[3] = 255; //parseInt(cssColor.slice(7,8), 16);
+
+
+    //// Mask all but the lower 8 bits.
+    //result[0] = cssColor & 0x000000FF;
+
+    //// Shift down by 8 bits and then mask.
+    //result[1] = cssColor >> 8 & 0x000000FF;
+    //result[2] = cssColor >> 16 & 0x000000FF;
+    //result[3] = cssColor >> 24 & 0x000000FF;
+
+    return result;
+  }
+
 }
 
 // ---- WebWorker Message Interfaces ----

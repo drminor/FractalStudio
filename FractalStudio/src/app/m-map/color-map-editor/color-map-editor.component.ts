@@ -1,5 +1,5 @@
-import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
-import { ColorMapUIEntry, ColorMapUI, IColorMap } from '../m-map-common';
+import { Component, OnInit, Input, Output, EventEmitter, ViewChild, ElementRef } from '@angular/core';
+import { ColorMapUIEntry, ColorMapUI, IColorMap, ColorMapForExport } from '../m-map-common';
 import { FormGroup, FormControl, FormArray } from '@angular/forms';
 
 @Component({
@@ -10,6 +10,9 @@ import { FormGroup, FormControl, FormArray } from '@angular/forms';
 export class ColorMapEditorComponent {
 
   _colorMap: ColorMapUI;
+
+  @ViewChild('download') downloadRef: ElementRef;
+  @ViewChild('fileSelector') fileSelectorRef: ElementRef;
 
   @Input('colorMap')
   set colorMap(colorMap: ColorMapUI) {
@@ -39,7 +42,7 @@ export class ColorMapEditorComponent {
   }
 
   getColorBlockStyle(idx: number): object {
-    let cEntry: ColorMapUIEntry = this.getColorMapEntry(idx);
+    let cEntry: ColorMapUIEntry = this.cEntryForms.getColorMapEntry(idx);
     let result = ColorBlockStyle.getStyle(cEntry.rgbHex);
     return result;
   }
@@ -49,10 +52,57 @@ export class ColorMapEditorComponent {
     this.toggleShowEditor(idx);
   }
 
+  onCEntryEditorBlur(idx: number) {
+    console.log('CEntry blur just occured.' + 'for item ' + idx + '.');
+  }
+
   onSubmit() {
-    let colorMap = this.getColorMap(this.colorMapForm);
+    let colorMap = this.getColorMap();
     console.log('The color map editor is handling form submit.'); 
     this.colorMapUpdated.emit(colorMap);
+  }
+
+  onSaveMap() {
+    let colorMap = this.getColorMap();
+
+    let colorMapForExport: ColorMapForExport = ColorMapForExport.FromColorMap(colorMap);
+    let dump: string = JSON.stringify(colorMapForExport, null, 2);
+    let dataUri = "data:text/json;charset=utf-8," + encodeURIComponent(dump);
+
+    let a = this.downloadRef.nativeElement as HTMLAnchorElement;
+    a.download = "colorMap.json";
+    a.href = dataUri;
+    a.click();
+    //a.hidden = false;
+
+    console.log('The color map is |' + dump + '|');
+  }
+
+  onLoadMap() {
+    //alert('onLoadMap called.');
+    let fSelector = this.fileSelectorRef.nativeElement as HTMLInputElement;
+
+    let files: FileList = fSelector.files;
+
+    console.log('The user selected these files: ' + files + '.');
+    if (files.length <= 0) {
+      return;
+    }
+
+    let fr = new FileReader();
+    fr.onload = (ev => {
+      //let fr: FileReader = ev.target as FileReader;
+      let rawResult: string = fr.result as string;
+
+      let cmfe: ColorMapForExport = JSON.parse(rawResult) as ColorMapForExport;
+
+      let colorMap: IColorMap = ColorMapUI.FromColorMapForExport(cmfe);
+
+      this.colorMapUpdated.emit(colorMap);
+    });
+
+    fr.readAsText(files.item(0));
+
   }
 
   private toggleShowEditor(idx: number): void {
@@ -82,55 +132,58 @@ export class ColorMapEditorComponent {
   // --- ColorMapEntry to/from  FormGroup methods
 
 
-  private getColorMap(frm: FormGroup): IColorMap {
+  private getColorMap(): IColorMap {
 
-    let ourFormsCEntries: FormArray = this.colorMapForm.controls.cEntries as FormArray;
+    //let ourFormsCEntries: FormArray = this.colorMapForm.controls.cEntries as FormArray;
 
-    let ranges: ColorMapUIEntry[] = [];
+    //let ranges: ColorMapUIEntry[] = [];
 
-    let ptr: number;
-    for (ptr = 0; ptr < ourFormsCEntries.controls.length; ptr++) {
-      ranges.push(this.getColorMapEntry(ptr));
-    }
+    //let ptr: number;
+    //for (ptr = 0; ptr < ourFormsCEntries.controls.length; ptr++) {
+    //  ranges.push(this.getColorMapEntry(ptr));
+    //}
 
-    //let ranges: ColorMapUIEntry[] = this.cEntryForms.cEntries; 
+    let ranges: ColorMapUIEntry[] = this.cEntryForms.cEntries; 
 
-    let highColor: number = frm.controls.highColor.value;
+    let highColor: number = this.colorMapForm.controls.highColor.value;
 
     let result: ColorMapUI = new ColorMapUI(ranges, highColor);
 
     return result;
   }
 
-  private getColorMapEntry(idx: number): ColorMapUIEntry {
-    const cfg: FormGroup = (this.colorMapForm.controls.cEntries as FormArray).controls[idx] as FormGroup;
-
-    const result = ColorMapUIEntry.fromOffsetAndColorNum(cfg.controls.cutOff.value, cfg.controls.cNum.value);
-    return result;
-  }
 }
 
 class ColorMapEntryFormCollection {
 
   private _fArray: FormArray;
-  private _cEntries: ColorMapUIEntry[];
+  //private _cEntries: ColorMapUIEntry[];
   private _cmeForms: ColorMapEntryForm[];
 
   constructor(fArray: FormArray) {
 
-    //if (fArray == null || fArray.length != 0) {
-    //  throw new Error('The fArray must be non-null and contain 0 elements.');
-    //}
-
     // hold a reference to the form's FormArray.
     this._fArray = fArray;
 
-    this._cEntries = [];
+    //this._cEntries = [];
     this._cmeForms = [];
   }
 
+  public getColorMapEntry(idx: number): ColorMapUIEntry {
+    let result = this._cmeForms[idx].colorMapUIEntry;
+    return result;
+  }
+
   public get cEntries(): ColorMapUIEntry[] {
-    return this._cEntries;
+
+    let result: ColorMapUIEntry[] = [];
+
+    let ptr: number;
+    for (ptr = 0; ptr < this._fArray.controls.length; ptr++) {
+      result.push(this._cmeForms[ptr].colorMapUIEntry);
+    }
+
+    return result;
   }
 
   public set cEntries(colorMapUIEntries: ColorMapUIEntry[]) {
@@ -147,12 +200,12 @@ class ColorMapEntryFormCollection {
       this._fArray.controls.push(cme.form);
     }
 
-    this._cEntries = colorMapUIEntries;
+    //this._cEntries = colorMapUIEntries;
   }
 
   public clear(): void {
     this._fArray.controls = [];
-    this._cEntries = [];
+    //this._cEntries = [];
     this._cmeForms = [];
   }
 }
@@ -197,6 +250,18 @@ class ColorMapEntryForm {
 
     return result;
   }
+
+  public get colorMapUIEntry(): ColorMapUIEntry {
+    const result = ColorMapUIEntry.fromOffsetAndColorNum(this.form.controls.cutOff.value, this.form.controls.cNum.value);
+    return result;
+  }
+
+  //private getColorMapEntry(idx: number): ColorMapUIEntry {
+  //  const cfg: FormGroup = (this.colorMapForm.controls.cEntries as FormArray).controls[idx] as FormGroup;
+
+  //  const result = ColorMapUIEntry.fromOffsetAndColorNum(cfg.controls.cutOff.value, cfg.controls.cNum.value);
+  //  return result;
+  //}
 
 
 }

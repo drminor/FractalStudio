@@ -1,0 +1,9 @@
+.btnGroup {
+  margin: 0px 0px 5px 5px;
+}
+
+  .btnGroup button {
+    width:55px;
+    height:30px;
+    margin: 5px 0px 0px 5px;
+  }

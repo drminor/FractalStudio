@@ -1,27 +1,37 @@
 <div>
   <h3 style="text-align:center; margin:0px 0px 8px 0px">Color Map</h3>
 
-  <form [formGroup]="colorMapForm"  (ngSubmit)="onSubmit()">
+  <form [formGroup]="colorMapForm" (ngSubmit)="onSubmit()">
 
-    <button type="submit" [disabled]="!colorMapForm.valid" style="width:65px; height:35px; margin: 0px 0px 25px 25px">Apply</button>
+    <div class="btnGroup">
+      <button type="submit" [disabled]="!colorMapForm.valid"> Apply</button>
+      <button type="button" (click)="onSaveMap()">Save</button>
+      <button type="button" (click)="onLoadMap()">Load</button>
+
+      <input type="file" #fileSelector value="Import" />
+      <!--<button id="import">Import</button>
+      <textarea id="result"></textarea>-->
+
+    </div>
+
+    <a #download href="#" hidden="hidden">Download</a>
 
     <div formArrayName="cEntries" style="margin-left:10px">
       <div *ngFor="let colEntry of colorMapForm.get('cEntries').controls; let i=index">
 
-        <div [formGroupName]="i" onblur="onCEntryEditorBlur(i)" style="width:150px; border: 1px solid lightgray; padding: 3px 3px 3px 18px; margin-bottom:2px;">
+        <div [formGroupName]="i" (blur)="onCEntryEditorBlur(i)" style="width:150px; border: 1px solid lightgray; padding: 3px 3px 3px 18px; margin-bottom:2px;">
           <label>CutOff: <input type="text" formControlName="cutOff" size="5"></label>
           <br />
           <!--<label>Color: <input type="text" formControlName="cNum"></label>-->
           <!--<div style="height:25px; background-color:#14de7b"></div>-->
-
           <!-- Clickable Color Block -->
           <div style="position:relative; width:55px; height:25px; margin:5px;">
             <div [ngStyle]="getColorBlockStyle(i)" (click)="onEditColor(i)"></div>
           </div>
 
           <div *ngIf="colorMapForm.controls.cEntries.controls[i].controls.showEditor.enabled">
-            <label>Red: <input type="text" formControlName="r" size="5"></label><br/>
-            <label>Green: <input type="text" formControlName="g" size="5"></label><br/>
+            <label>Red: <input type="text" formControlName="r" size="5" (blur)="onCEntryEditorBlur(i)"></label><br />
+            <label>Green: <input type="text" formControlName="g" size="5"></label><br />
             <label>Blue: <input type="text" formControlName="b" size="5"></label>
           </div>
         </div>
@@ -29,5 +39,7 @@
       </div>
     </div>
   </form>
+
+
 
 </div>
