@@ -2,12 +2,19 @@ import { Component, OnInit, AfterViewInit, ViewChild, ElementRef } from '@angula
 
 import { IMapInfo, IPoint, Point, MapInfo, IBox, Box, ColorMap, ColorNumbers, ColorMapEntry, ColorMapUIEntry, ColorMapUI, IColorMap } from './m-map/m-map-common';
 
+
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']
 })
 export class AppComponent {
+
+  public mapDisplayWidth: number;
+  public mapDisplayHeight: number;
+
+  public colorEditorOffSet: number;
+  public colorEditorWidth: number;
 
   @ViewChild('download') downloadRef: ElementRef;
 
@@ -44,6 +51,12 @@ export class AppComponent {
     this.mapInfo = new MapInfo(this.mapCoords, this.maxIterations, this.iterationsPerStep);
 
     this.colorMap = this.buildColorMap();
+
+    this.mapDisplayHeight = 1152;
+    this.mapDisplayWidth = 768;
+
+    this.colorEditorOffSet = this.mapDisplayWidth + 7; // 7 pixels to accomodate border, margin and 1 pixel gap.
+    this.colorEditorWidth = 210;
   }
 
   onColorMapUpdated(colorMap: IColorMap) {
@@ -51,11 +64,29 @@ export class AppComponent {
     this.colorMap = colorMap;
   }
 
-  onHaveImageData(dataUrl: string) {
-    console.log('We got the image Uri.');
+  onHaveImageData_OLD(dataUrl: string) {
+    //console.log('We got the image Uri.');
+
     this.dataUri = dataUrl;
     this.updateDownloadLinkVisibility(true);
+
+
     //let anchorTag = this.downloadRef.nativeElement as HTMLHRElement;
+    //anchorTag.click();
+  }
+
+  onHaveImageData(imageBlob: Blob) {
+    console.log('We got the image Uri.');
+    alert('Image Data has been created. The download size is ' + imageBlob.size + '.');
+
+    let anchorTag = this.downloadRef.nativeElement as HTMLAnchorElement;
+
+    let strData = window.URL.createObjectURL(imageBlob);
+
+    anchorTag.href = strData;
+
+    this.updateDownloadLinkVisibility(true);
+
     //anchorTag.click();
   }
 
@@ -103,7 +134,7 @@ export class AppComponent {
   }
 
   private updateDownloadLinkVisibility(show: boolean): void {
-    let anchorTag = this.downloadRef.nativeElement as HTMLHRElement;
+    let anchorTag = this.downloadRef.nativeElement as HTMLAnchorElement;
     anchorTag.hidden = !show;
   }
 

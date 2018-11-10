@@ -1,6 +1,7 @@
 import { Component, OnInit, Input, Output, EventEmitter, ViewChild, ElementRef } from '@angular/core';
 import { ColorMapUIEntry, ColorMapUI, IColorMap, ColorMapForExport } from '../m-map-common';
 import { FormGroup, FormControl, FormArray } from '@angular/forms';
+import { ColorItem } from '../../color-picker/color-picker.component';
 
 @Component({
   selector: 'app-color-map-editor',
@@ -8,6 +9,8 @@ import { FormGroup, FormControl, FormArray } from '@angular/forms';
   styleUrls: ['./color-map-editor.component.css']
 })
 export class ColorMapEditorComponent {
+
+  //public tempColor: string;
 
   _colorMap: ColorMapUI;
 
@@ -31,6 +34,8 @@ export class ColorMapEditorComponent {
 
   constructor() {
 
+    //this.tempColor = 'rgba(200,20,40,1)';
+
     // Define our Form. It has a single item which is an array of CEntryForms
     this.colorMapForm = new FormGroup({
       highColor: new FormControl(''),
@@ -42,9 +47,37 @@ export class ColorMapEditorComponent {
   }
 
   getColorBlockStyle(idx: number): object {
-    let cEntry: ColorMapUIEntry = this.cEntryForms.getColorMapEntry(idx);
-    let result = ColorBlockStyle.getStyle(cEntry.rgbHex);
+    //let cEntry: ColorMapUIEntry = this.cEntryForms.getColorMapEntry(idx);
+    //let result = ColorBlockStyle.getStyle(cEntry.rgbaString);
+
+    let rgbaColor = this.getRgbaColor(idx);
+    let result = ColorBlockStyle.getStyle(rgbaColor);
+
     return result;
+  }
+
+  getRgbaColor(idx: number): string {
+    console.log('Getting the rgbaColor for item with index = ' + idx + '.');
+    //let cEntry: ColorMapUIEntry = this.cEntryForms.getColorMapEntry(idx);
+    //let result = cEntry.rgbaString;
+    //return result;
+
+    let ourFormsCEntries: FormArray = this.colorMapForm.controls.cEntries as FormArray;
+
+    let cEntryForm: FormGroup = ourFormsCEntries.controls[idx] as FormGroup;
+
+    let result: string = cEntryForm.controls.rgbaColor.value as string;
+    return result;
+  }
+
+  setRgbaColor(colorItem: ColorItem): void {
+    //console.log('Setting color for item: ' + colorItem.itemIdx + ' to ' + colorItem.rgbaColor + '.');
+
+    let ourFormsCEntries: FormArray = this.colorMapForm.controls.cEntries as FormArray;
+
+    let cEntryForm: FormGroup = ourFormsCEntries.controls[colorItem.itemIdx] as FormGroup;
+
+    cEntryForm.controls.rgbaColor.setValue(colorItem.rgbaColor);
   }
 
   onEditColor(idx: number) {
@@ -158,7 +191,7 @@ class ColorMapEntryFormCollection {
 
   private _fArray: FormArray;
   //private _cEntries: ColorMapUIEntry[];
-  private _cmeForms: ColorMapEntryForm[];
+  //private _cmeForms: ColorMapEntryForm[];
 
   constructor(fArray: FormArray) {
 
@@ -166,13 +199,13 @@ class ColorMapEntryFormCollection {
     this._fArray = fArray;
 
     //this._cEntries = [];
-    this._cmeForms = [];
+    //this._cmeForms = [];
   }
 
-  public getColorMapEntry(idx: number): ColorMapUIEntry {
-    let result = this._cmeForms[idx].colorMapUIEntry;
-    return result;
-  }
+  //public getColorMapEntry(idx: number): ColorMapUIEntry {
+  //  let result = this._cmeForms[idx].colorMapUIEntry;
+  //  return result;
+  //}
 
   public get cEntries(): ColorMapUIEntry[] {
 
@@ -180,7 +213,16 @@ class ColorMapEntryFormCollection {
 
     let ptr: number;
     for (ptr = 0; ptr < this._fArray.controls.length; ptr++) {
-      result.push(this._cmeForms[ptr].colorMapUIEntry);
+      let cEntryForm = this._fArray.controls[ptr] as FormGroup;
+
+      let cme: ColorMapUIEntry = ColorMapUIEntry.fromOffsetAndRgba(
+        cEntryForm.controls.cutOff.value,
+        cEntryForm.controls.rgbaColor.value
+      );
+
+      result.push(cme);
+
+      //result.push(this._cmeForms[ptr].colorMapUIEntry);
     }
 
     return result;
@@ -196,7 +238,7 @@ class ColorMapEntryFormCollection {
     for (ptr = 0; ptr < colorMapUIEntries.length; ptr++) {
       let cme = new ColorMapEntryForm(colorMapUIEntries[ptr]);
 
-      this._cmeForms.push(new ColorMapEntryForm(colorMapUIEntries[ptr]));
+      //this._cmeForms.push(new ColorMapEntryForm(colorMapUIEntries[ptr]));
       this._fArray.controls.push(cme.form);
     }
 
@@ -206,7 +248,7 @@ class ColorMapEntryFormCollection {
   public clear(): void {
     this._fArray.controls = [];
     //this._cEntries = [];
-    this._cmeForms = [];
+    //this._cmeForms = [];
   }
 }
 
@@ -229,21 +271,27 @@ class ColorMapEntryForm {
       cNum: new FormControl(''),
 
       showEditor: new FormControl(''),
-      r: new FormControl(''),
-      g: new FormControl(''),
-      b: new FormControl('')
+      //r: new FormControl(''),
+      //g: new FormControl(''),
+      //b: new FormControl(''),
+
+      rgbaColor: new FormControl('')
     });
 
     result.controls.showEditor.disable();
+    result.controls.rgbaColor
 
     //let x = result.controls.r.valueChanges.subscribe();
 
     if (cme != null) {
       result.controls.cutOff.setValue(cme.cutOff);
       result.controls.cNum.setValue(cme.colorNum);
-      result.controls.r.setValue(cme.r);
-      result.controls.g.setValue(cme.g);
-      result.controls.b.setValue(cme.b);
+      //result.controls.r.setValue(cme.r);
+      //result.controls.g.setValue(cme.g);
+      //result.controls.b.setValue(cme.b);
+
+      result.controls.rgbaColor.setValue(cme.rgbaString);
+
 
       //result.controls.cNum.
     }
@@ -269,14 +317,16 @@ class ColorMapEntryForm {
 // -- Style Support
 export class ColorBlockStyle {
 
-  public static getStyle(rgbHex: string): object {
+  public static getStyle(rgbaColor: string): object {
+
+    console.log('Getting style for ColorBlock.');
 
     let result = {
       'position': 'absolute',
       'width': '100%',
       'height': '100%',
-      'background-color': rgbHex,
-       'border': '1px solid black'
+      'background-color': rgbaColor,
+      'border': '1px solid black'
     }
 
     return result;

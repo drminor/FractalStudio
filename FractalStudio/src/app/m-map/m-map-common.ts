@@ -1,8 +1,8 @@
 import { element } from "@angular/core/src/render3/instructions";
 import * as math from "mathjs";
 
-const MAX_CANVAS_WIDTH: number = 5000;
-const MAX_CANVAS_HEIGHT: number = 5000;
+const MAX_CANVAS_WIDTH: number = 50000;
+const MAX_CANVAS_HEIGHT: number = 50000;
 
 export interface IPoint {
   x: number;
@@ -578,6 +578,13 @@ export class ColorMapUIEntry implements IColorMapEntry {
     return result;
   }
 
+
+  public get rgbaString(): string {
+    let result: string = 'rgba(' + this.r.toString(10) + ',' + this.g.toString(10) + ',' + this.b.toString(10) + ',1)';
+    //return 'rgba(200,20,40,1)';
+    return result;
+  }
+
   constructor(public cutOff: number, public colorVals: number[]) {
 
     if (colorVals.length === 3) {
@@ -618,6 +625,12 @@ export class ColorMapUIEntry implements IColorMapEntry {
 
   public static fromOffsetAndCssColor(cutOff: number, cssColor: string): ColorMapUIEntry {
     let colorComps: number[] = ColorNumbers.getColorComponentsFromCssColor(cssColor);
+    let result = new ColorMapUIEntry(cutOff, colorComps);
+    return result;
+  }
+
+  public static fromOffsetAndRgba(cutOff: number, rgbaColor: string): ColorMapUIEntry {
+    let colorComps: number[] = ColorNumbers.getColorComponentsFromRgba(rgbaColor);
     let result = new ColorMapUIEntry(cutOff, colorComps);
     return result;
   }
@@ -857,28 +870,37 @@ export class ColorNumbers {
   public static getColorComponentsFromCssColor(cssColor: string): number[] {
     let result: number[] = new Array<number>(4);
 
-
-    let rs = cssColor.slice(5, 7);
-    let gs = cssColor.slice(3, 5);
     let bs = cssColor.slice(1, 3);
+    let gs = cssColor.slice(3, 5);
+    let rs = cssColor.slice(5, 7);
 
     result[0] = parseInt(bs, 16);
     result[1] = parseInt(gs, 16);
     result[2] = parseInt(rs, 16);
     result[3] = 255; //parseInt(cssColor.slice(7,8), 16);
 
-
-    //// Mask all but the lower 8 bits.
-    //result[0] = cssColor & 0x000000FF;
-
-    //// Shift down by 8 bits and then mask.
-    //result[1] = cssColor >> 8 & 0x000000FF;
-    //result[2] = cssColor >> 16 & 0x000000FF;
-    //result[3] = cssColor >> 24 & 0x000000FF;
-
     return result;
   }
 
+  public static getColorComponentsFromRgba(rgbaColor: string): number[] {
+    let result: number[] = new Array<number>(4);
+
+    //let rgbaObject: object = JSON.parse(rgbaColor);
+
+    //return 'rgba(200,20,40,1)';
+
+    let lst = rgbaColor.replace('rgba(', '');
+    lst = lst.replace(')', '');
+
+    let comps: string[] = lst.split(',');
+
+    result[0] = parseInt(comps[0], 10);
+    result[1] = parseInt(comps[1], 10);
+    result[2] = parseInt(comps[2], 10);
+    result[3] = 255; //parseInt(comps[3], 10);
+
+    return result;
+  }
 }
 
 // ---- WebWorker Message Interfaces ----

@@ -1,4 +1,5 @@
 import { Component, OnInit, AfterViewInit, ElementRef, ViewChild, Input, EventEmitter, Output } from '@angular/core';
+import { saveAs } from 'file-saver';
 
 import {
   IPoint, Point, IBox, Box, ICanvasSize, CanvasSize,
@@ -94,7 +95,9 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
   @ViewChild('myHiddenCanvas') canvasHiddenRef: ElementRef;
 
   @Output() zoomed = new EventEmitter<IBox>();
-  @Output() haveImageData = new EventEmitter<string>();
+  //@Output() haveImageData = new EventEmitter<string>();
+  @Output() haveImageData = new EventEmitter<Blob>();
+
 
   constructor() {
     console.log('m-map.display is being constructed.');
@@ -133,6 +136,15 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     //w = 3000;
     //h = 2000;
 
+    //w = 12000;
+    //h = 8000;
+
+    w = 7200;
+    h = 4800;
+
+    //w = 300;
+    //h = 200;
+
     let canvas: HTMLCanvasElement = this.canvasHiddenRef.nativeElement as HTMLCanvasElement;
     canvas.width = w;
     canvas.height = h;
@@ -151,7 +163,18 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     ctx.clearRect(0, 0, w, h);
     ctx.putImageData(imgData, 0, 0);
 
-    let dataUrl = canvas.toDataURL('image/jpeg', 1);
+    //let dataUrl = canvas.toDataURL('image/jpeg', 1);
+
+    //localStorage.setItem('imgData', dataUrl);
+
+    let that = this;
+
+    //let bTarget: Blob;
+
+    canvas.toBlob(function (blob) {
+      //bTarget = blob;
+      that.haveImageData.emit(blob);
+    }, 'image/jpeg', 1);
 
     imgData = null;
     pixelData = null;
@@ -164,7 +187,11 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
     //let dataUrl = this.canvasElement.toDataURL('image/jpeg', 1);
 
-    this.haveImageData.emit(dataUrl);
+
+
+    //this.haveImageData.emit(dataUrl);
+    //this.haveImageData.emit('just testing');
+
   }
 
   drawEndNote(): void {

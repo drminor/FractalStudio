@@ -13,25 +13,29 @@
 <a #download href={{dataUri}} download="test2.jpg" target="_blank" hidden="hidden">Download</a>
 
 <section>
-    <div style="float:left; position:relative; width:705px; height:470px; border: 2px solid black">
-      <div style="position:relative; width:705px; height:470px;">
-        <app-m-map-display #mapDisplay [mapCoords]="mapCoords"
-                           [maxIterations]="maxIterations"
-                           [iterationsPerStep]="iterationsPerStep"
-                           [colorMap]="colorMap"
-                           (zoomed)="onZoomed($event)"
-                           (haveImageData)="onHaveImageData($event)"
-                           >
-        </app-m-map-display>
-      </div>
+  <div style="float:left; position:relative; width:705px; height:470px; border: 2px solid black">
+    <div style="position:relative; width:705px; height:470px;">
+      <app-m-map-display #mapDisplay [mapCoords]="mapCoords"
+                         [maxIterations]="maxIterations"
+                         [iterationsPerStep]="iterationsPerStep"
+                         [colorMap]="colorMap"
+                         (zoomed)="onZoomed($event)"
+                         (haveImageData)="onHaveImageData($event)">
+      </app-m-map-display>
     </div>
+  </div>
 
-    <div style="margin-left:712px; width:210px; padding:3px 3px 3px 3px; border: 2px solid black">
+  <div style="margin-left:712px; width:210px; padding:3px 3px 3px 3px; border: 2px solid black">
     <app-color-map-editor [colorMap]="colorMap" (colorMapUpdated)="onColorMapUpdated($event)"></app-color-map-editor>
 
-    </div>
+  </div>
 </section>
 
+    <!--this.mapDisplayHeight = 1152;
+    this.mapDisplayWidth = 768;
+
+    this.colorEditorOffSet = this.mapDisplayWidth + 7; // 7 pixels to accomodate border, margin and 1 pixel gap.
+    this.colorEditorWidth = 210;-->
 
 <!--<section>
   <div style="float:left; position:relative; width:2120px; height:1420px; padding:3px 3px 3px 3px; border: 2px solid black">
@@ -52,7 +56,6 @@
 
   </div>
 </section>-->
-
 <!--<div style="position:relative; width:1060px; height:710px; padding:3px 3px 3px 3px; border: 2px solid black">
   <div style="position:relative; width:1050px; height:700px; margin:5px">
     <app-m-map-display [mapInfo]="mapInfo"></app-m-map-display>

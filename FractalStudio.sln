@@ -8,6 +8,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Notes", "Notes", "{6DDAFE11-7F7E-4F56-8022-28D1C214200D}"
 	ProjectSection(SolutionItems) = preProject
 		Formula.txt = Formula.txt
+		Printing Resolution and Sizes.txt = Printing Resolution and Sizes.txt
 	EndProjectSection
 EndProject
 Global
