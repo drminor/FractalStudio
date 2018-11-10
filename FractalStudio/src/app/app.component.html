@@ -10,11 +10,21 @@
 <!--<h2>Map Output Section</h2>-->
 
 <button type="button" (click)="mapDisplay.getImageData()" style="margin-bottom:2px">Get Image Data</button>
-<a #download href={{dataUri}} download="test2.jpg" target="_blank" hidden="hidden">Download</a>
+<a #download href="" download="mandlebrodt.jpg" target="_blank" hidden="hidden">Download</a>
 
 <section>
-  <div style="float:left; position:relative; width:705px; height:470px; border: 2px solid black">
-    <div style="position:relative; width:705px; height:470px;">
+  <div [ngStyle]="{'float': 'left',
+                        'position': 'relative',
+                        'width': '1152px',
+                        'height': '768px',
+                        'border': '2px solid black'
+                 }">
+
+    <div [ngStyle]="{'position': 'relative',
+                        'width':'1152px',
+                        'height': '768px'
+                 }">
+
       <app-m-map-display #mapDisplay [mapCoords]="mapCoords"
                          [maxIterations]="maxIterations"
                          [iterationsPerStep]="iterationsPerStep"
@@ -25,10 +35,15 @@
     </div>
   </div>
 
-  <div style="margin-left:712px; width:210px; padding:3px 3px 3px 3px; border: 2px solid black">
-    <app-color-map-editor [colorMap]="colorMap" (colorMapUpdated)="onColorMapUpdated($event)"></app-color-map-editor>
+    <div [ngStyle]="{'margin-left': '1159px',
+                        'width': '210px',
+                        'padding': '3px 3px 3px 3px',
+                        'border': '2px solid black'
+                 }">
+      <app-color-map-editor [colorMap]="colorMap" (colorMapUpdated)="onColorMapUpdated($event)">
+      </app-color-map-editor>
 
-  </div>
+    </div>
 </section>
 
     <!--this.mapDisplayHeight = 1152;

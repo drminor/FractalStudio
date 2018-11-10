@@ -33,18 +33,21 @@
                                         'position': 'absolute',
                                         'width': '100%',
                                         'height': '100%',
-                                        'background-color': colorMapForm.controls.cEntries.controls[i].controls.rgbaColor.value || 'white',
+                                        'background-color': colEntry.controls.rgbaColor.value || 'white',
                                         'border': '1px solid black'
                  }"
                  (click)="onEditColor(i)"></div>
           </div>
 
-          <!--<div *ngIf="colorMapForm.controls.cEntries.controls[i].controls.showEditor.enabled">
-            <label>Red: <input type="text" formControlName="r" size="5" (blur)="onCEntryEditorBlur(i)"></label><br />
-            <label>Green: <input type="text" formControlName="g" size="5"></label><br />
-            <label>Blue: <input type="text" formControlName="b" size="5"></label>
-          </div>-->
 
+          <!--'background-color': colorMapForm.controls.cEntries.controls[i].controls.rgbaColor.value || 'white',-->
+
+
+          <!--<div *ngIf="colorMapForm.controls.cEntries.controls[i].controls.showEditor.enabled">
+    <label>Red: <input type="text" formControlName="r" size="5" (blur)="onCEntryEditorBlur(i)"></label><br />
+    <label>Green: <input type="text" formControlName="g" size="5"></label><br />
+    <label>Blue: <input type="text" formControlName="b" size="5"></label>
+  </div>-->
           <!--colorMapForm.controls.cEntries.controls[i].controls.rgbacolor.value-->
 
           <div *ngIf="colorMapForm.controls.cEntries.controls[i].controls.showEditor.enabled">

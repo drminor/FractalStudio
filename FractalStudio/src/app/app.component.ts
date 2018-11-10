@@ -10,11 +10,11 @@ import { IMapInfo, IPoint, Point, MapInfo, IBox, Box, ColorMap, ColorNumbers, Co
 })
 export class AppComponent {
 
-  public mapDisplayWidth: number;
-  public mapDisplayHeight: number;
+  public mapDisplayWidth: string = '1152px';
+  public mapDisplayHeight: string = '768px';
 
-  public colorEditorOffSet: number;
-  public colorEditorWidth: number;
+  public colorEditorOffSet: string = '210px';
+  public colorEditorWidth: string = '1159px';
 
   @ViewChild('download') downloadRef: ElementRef;
 
@@ -52,27 +52,16 @@ export class AppComponent {
 
     this.colorMap = this.buildColorMap();
 
-    this.mapDisplayHeight = 1152;
-    this.mapDisplayWidth = 768;
+    this.mapDisplayHeight = '1152';
+    this.mapDisplayWidth = '768';
 
-    this.colorEditorOffSet = this.mapDisplayWidth + 7; // 7 pixels to accomodate border, margin and 1 pixel gap.
-    this.colorEditorWidth = 210;
+    this.colorEditorOffSet = '1159'; // 7 pixels to accomodate border, margin and 1 pixel gap.
+    this.colorEditorWidth = '210';
   }
 
   onColorMapUpdated(colorMap: IColorMap) {
     console.log('App Component is handling onColorMapUpdated.');
     this.colorMap = colorMap;
-  }
-
-  onHaveImageData_OLD(dataUrl: string) {
-    //console.log('We got the image Uri.');
-
-    this.dataUri = dataUrl;
-    this.updateDownloadLinkVisibility(true);
-
-
-    //let anchorTag = this.downloadRef.nativeElement as HTMLHRElement;
-    //anchorTag.click();
   }
 
   onHaveImageData(imageBlob: Blob) {
