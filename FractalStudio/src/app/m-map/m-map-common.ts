@@ -1,6 +1,3 @@
-import { element } from "@angular/core/src/render3/instructions";
-import * as math from "mathjs";
-
 const MAX_CANVAS_WIDTH: number = 50000;
 const MAX_CANVAS_HEIGHT: number = 50000;
 
@@ -70,6 +67,10 @@ export interface IMapWorkingData {
   getImageDataForLine(y: number): ImageData;
 
   updateImageData(imgData: Uint8ClampedArray): void;
+}
+
+export class MapInfoWithColorMap {
+  constructor(public mapInfo: IMapInfo, public colorMap: ColorMapForExport) { }
 }
 
 export class Point implements IPoint {
@@ -186,6 +187,12 @@ export class MapInfo implements IMapInfo {
     return result;
   }
 
+  public static fromIMapInfo(mi: IMapInfo) {
+
+    let result: IMapInfo = new MapInfo(mi.coords, mi.maxIterations, mi.iterationsPerStep);
+    return result;
+  }
+
   public get bottomLeft(): IPoint {
     return this.coords.start;
   }
@@ -245,8 +252,6 @@ export class MapWorkingData implements IMapWorkingData {
     }
 
     this.curIterations = 0;
-
-    //this.pixelData = new Uint8ClampedArray(this.elementCount * 4);
   }
 
   // Calculate the number of elements in our single dimension data array needed to cover the
@@ -283,10 +288,6 @@ export class MapWorkingData implements IMapWorkingData {
     }
     return result;
   }
-
-  //public getLinearIndex(x:number, y:number): number {
-  //  return x + y * this.canvasSize.width;
-  //}
 
   // Returns the index to use when accessing wAData, wBData, cnts or flags.
   public getLinearIndex(c: IPoint): number {

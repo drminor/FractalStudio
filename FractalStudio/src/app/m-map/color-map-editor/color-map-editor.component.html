@@ -5,25 +5,21 @@
 
     <div class="btnGroup">
       <button type="submit" [disabled]="!colorMapForm.valid"> Apply</button>
-      <button type="button" (click)="onSaveMap()">Save</button>
-      <button type="button" (click)="onLoadMap()">Load</button>
+      <button type="button" (click)="onSaveColorMap()">Save</button>
+      <button type="button" (click)="onLoadColorMap()">Load</button>
 
-      <input type="file" #fileSelector value="Import" />
-      <!--<button id="import">Import</button>
-      <textarea id="result"></textarea>-->
+      <input type="file" #fileSelector value="Import" style="margin-top:8px"/>
 
     </div>
 
     <a #download href="#" hidden="hidden">Download</a>
 
     <div formArrayName="cEntries" style="margin-left:10px">
-      <div *ngFor="let colEntry of colorMapForm.get('cEntries').controls; let i=index">
+      <div *ngFor="let colEntry of colorEntryForms; let i=index">
 
         <div [formGroupName]="i" style="width:150px; border: 1px solid lightgray; padding: 3px 3px 3px 18px; margin-bottom:2px;">
           <label>CutOff: <input type="text" formControlName="cutOff" size="5"></label>
           <br />
-          <!--<label>Color: <input type="text" formControlName="cNum"></label>-->
-          <!--<div style="height:25px; background-color:#14de7b"></div>-->
           <!-- Clickable Color Block -->
           <div style="position:relative; width:55px; height:25px; margin:5px;">
 

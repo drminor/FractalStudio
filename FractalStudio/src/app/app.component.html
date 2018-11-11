@@ -1,8 +1,12 @@
 
 <h2 style="margin-bottom:5px  ">The Mandlebrodt Set</h2>
+
 <div style="margin-bottom:20px">
   <app-m-map-params [mapInfo]="mapInfo"
+                    [colorMap]="colorMap"
                     (mapInfoUpdated)="onMapInfoUpdated($event)"
+                    (colorMapUpdated)="onColorMapUpdated($event)"
+                    (mapInfoLoaded)="onMapInfoLoaded($event)"
                     (goBack)="onGoBack($event)">
   </app-m-map-params>
 </div>
@@ -15,14 +19,14 @@
 <section>
   <div [ngStyle]="{'float': 'left',
                         'position': 'relative',
-                        'width': '1152px',
-                        'height': '768px',
+                        'width': mapDisplayWidth || '939px',
+                        'height': mapDisplayHeight || '626px',
                         'border': '2px solid black'
                  }">
 
     <div [ngStyle]="{'position': 'relative',
-                        'width':'1152px',
-                        'height': '768px'
+                        'width': mapDisplayWidth || '939px',
+                        'height': mapDisplayHeight || '626px'
                  }">
 
       <app-m-map-display #mapDisplay [mapCoords]="mapCoords"
@@ -35,7 +39,7 @@
     </div>
   </div>
 
-    <div [ngStyle]="{'margin-left': '1159px',
+    <div [ngStyle]="{'margin-left': '946px',
                         'width': '210px',
                         'padding': '3px 3px 3px 3px',
                         'border': '2px solid black'

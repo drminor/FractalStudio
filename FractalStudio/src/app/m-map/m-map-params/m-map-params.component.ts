@@ -1,7 +1,7 @@
-import { Component, OnInit, EventEmitter, Output, Input } from '@angular/core';
+import { Component, OnInit, EventEmitter, Output, Input, ViewChild, ElementRef } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 
-import { IPoint, Point, IMapInfo, MapInfo, ColorMap, ColorMapEntry, IBox, Box} from '../m-map-common';
+import { IPoint, Point, IMapInfo, MapInfo, ColorMap, ColorMapEntry, IBox, Box, ColorMapUI, IColorMap, ColorMapForExport, MapInfoWithColorMap} from '../m-map-common';
 
 @Component({
   selector: 'app-m-map-params',
@@ -10,9 +10,16 @@ import { IPoint, Point, IMapInfo, MapInfo, ColorMap, ColorMapEntry, IBox, Box} f
 })
 export class MMapParamsComponent implements OnInit {
   @Output() mapInfoUpdated = new EventEmitter<IMapInfo>();
+  @Output() colorMapUpdated = new EventEmitter<IColorMap>();
+
   @Output() goBack = new EventEmitter<number>();
+  @Output() mapInfoLoaded = new EventEmitter<MapInfoWithColorMap>();
 
   @Input('mapInfo') mapInfo: IMapInfo;
+  @Input('colorMap') colorMap: ColorMapUI;
+
+  @ViewChild('download') downloadRef: ElementRef;
+  @ViewChild('fileSelector') fileSelectorRef: ElementRef;
 
   mapCoordsForm = new FormGroup({
     startX: new FormControl(),
@@ -57,7 +64,7 @@ export class MMapParamsComponent implements OnInit {
   }
 
   onSubmit() {
-    console.warn(this.mapCoordsForm.value);
+    //console.warn(this.mapCoordsForm.value);
     let mapInfo: IMapInfo = this.getMapInfo(this.mapCoordsForm);
     console.log('Params is handling form submit.'); // The stack now has ' + this.history.length + ' items.');
 
@@ -72,16 +79,60 @@ export class MMapParamsComponent implements OnInit {
     this.goBack.emit(-1);
   }
 
+  onSaveMapInfo() {
+    let colorMapForExport: ColorMapForExport = ColorMapForExport.FromColorMap(this.colorMap);
+    let mapInfo = this.getMapInfo(this.mapCoordsForm);
+    let miWithcm = new MapInfoWithColorMap(mapInfo, colorMapForExport);
+
+    let dump: string = JSON.stringify(miWithcm, null, 2);
+    let dataUri = "data:text/json;charset=utf-8," + encodeURIComponent(dump);
+
+    let a = this.downloadRef.nativeElement as HTMLAnchorElement;
+    a.download = "MandlebrodtMapInfo.json";
+    a.href = dataUri;
+    a.click();
+    //a.hidden = false;
+
+    console.log('The MapInfoWithColorMap is |' + dump + '|');
+  }
+
+  onLoadMapInfo() {
+    //alert('m-map-params onLoadMapInfo called.');
+    let fSelector = this.fileSelectorRef.nativeElement as HTMLInputElement;
+
+    let files: FileList = fSelector.files;
+
+    console.log('The user selected these files: ' + files + '.');
+    if (files.length <= 0) {
+      return;
+    }
+
+    let fr = new FileReader();
+    fr.onload = (ev => {
+      let rawResult: string = fr.result as string;
+      let miwcm: MapInfoWithColorMap = JSON.parse(rawResult) as MapInfoWithColorMap;
+
+      this.mapInfoLoaded.emit(miwcm);
+      //let mapInfo = MapInfo.fromIMapInfo(miwcm.mapInfo);
+      //console.log('Just loaded MapInfo with value = ' + mapInfo + '.');
+      //this.mapInfoUpdated.emit(mapInfo);
+
+      //let colorMap: IColorMap = ColorMapUI.FromColorMapForExport(miwcm.colorMap);
+      //this.colorMapUpdated.emit(colorMap);
+
+      //// clear the history
+      //this.goBack.emit(-2);
+    });
+
+    fr.readAsText(files.item(0));
+
+  }
+
   onTest() {
     this.goBack.emit(2);
   }
 
-  onDownloadImage(): void {
-    //window.location = canvas.toDataURL('image/png');
-  }
-
   ngOnInit() {
   }
-
 
 }

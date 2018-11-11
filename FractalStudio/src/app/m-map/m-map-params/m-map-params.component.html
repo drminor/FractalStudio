@@ -31,8 +31,15 @@
     </tr>
   </table>
   <button type="submit" [disabled]="!mapCoordsForm.valid">Apply</button>
-  <button id="Back" type="button" (click)="onGoBack()" style="margin-left:20px">Go Back</button>
-  <button id="Reset" type="button" (click)="onReset()" style="margin-left:20px">Reset</button>
+  <button id="Back" type="button" (click)="onGoBack()" style="margin-left:15px">Go Back</button>
+  <button id="Reset" type="button" (click)="onReset()" style="margin-left:15px">Reset</button>
+
+  <button id="Save" type="button" (click)="onSaveMapInfo()" style="margin-left:50px">Save</button>
+  <a #download href="#" hidden="hidden">Download</a>
+
+  <input type="file" #fileSelector value="Import" style="margin-left:15px" />
+  <button id="Load" type="button" (click)="onLoadMapInfo()" style="margin-left:15px">Load</button>
+
   <!--<button id="Test" type="button" (click)="onTest()" style="margin-left:20px">Test</button>-->
 
 </form>

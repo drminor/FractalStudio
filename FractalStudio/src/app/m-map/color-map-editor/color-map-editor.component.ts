@@ -10,8 +10,6 @@ import { ColorItem } from '../../color-picker/color-picker.component';
 })
 export class ColorMapEditorComponent {
 
-  //public tempColor: string;
-
   _colorMap: ColorMapUI;
 
   @ViewChild('download') downloadRef: ElementRef;
@@ -31,6 +29,13 @@ export class ColorMapEditorComponent {
 
   // Our managed list of ColorMapEntryForms
   cEntryForms: ColorMapEntryFormCollection;
+
+  get colorEntryForms() : FormGroup[] {
+    let fArray = this.colorMapForm.controls.cEntries as FormArray;
+
+    let formGroups: FormGroup[] =  fArray.controls as FormGroup[];
+    return formGroups; 
+  }
 
   constructor() {
 
@@ -95,7 +100,7 @@ export class ColorMapEditorComponent {
     this.colorMapUpdated.emit(colorMap);
   }
 
-  onSaveMap() {
+  onSaveColorMap() {
     let colorMap = this.getColorMap();
 
     let colorMapForExport: ColorMapForExport = ColorMapForExport.FromColorMap(colorMap);
@@ -111,7 +116,7 @@ export class ColorMapEditorComponent {
     console.log('The color map is |' + dump + '|');
   }
 
-  onLoadMap() {
+  onLoadColorMap() {
     //alert('onLoadMap called.');
     let fSelector = this.fileSelectorRef.nativeElement as HTMLInputElement;
 
@@ -135,7 +140,6 @@ export class ColorMapEditorComponent {
     });
 
     fr.readAsText(files.item(0));
-
   }
 
   private toggleShowEditor(idx: number): void {

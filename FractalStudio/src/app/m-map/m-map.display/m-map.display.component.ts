@@ -39,6 +39,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
   private _canvasSizeForExport: ICanvasSize;
   private _sectionCompleteFlags: boolean[];
+  private _exportWorkers: Worker[];
 
   @Input('mapCoords')
   set mapCoords(mapCoords: IBox) {
@@ -135,43 +136,15 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
   public getImageData(): void {
     console.log('getImageData has been called.');
 
-    let canvas: HTMLCanvasElement = this.canvasHiddenRef.nativeElement as HTMLCanvasElement;
+    let canvas: HTMLCanvasElement = this.canvasExportElement;
     canvas.width = this._canvasSizeForExport.width;
     canvas.height = this._canvasSizeForExport.height;
-
-    //let cs = new CanvasSize(w, h);
-    //let mapWorkingData = new MapWorkingData(cs, this._mapInfo, this._colorMap, new Point(0, 0), false);
 
     let localWorkingData = MapWorkingData.getWorkingDataSections(this._canvasSizeForExport, this._mapInfo, this._colorMap, this.numberOfSections);
 
     this.resetSectionCompleteFlags();
 
-    this.initWebWorkersForExport(localWorkingData, this._mapInfo.maxIterations);
-
-    //mapWorkingData.doIterationsForAll(this._mapInfo.maxIterations);
-    //let pixelData = mapWorkingData.getPixelData();
-
-    //let imgData = new ImageData(pixelData, w, h);
-    
-    //let ctx: CanvasRenderingContext2D = canvas.getContext('2d');
-    //ctx.fillStyle = '#DD0031';
-    //ctx.clearRect(0, 0, w, h);
-    //ctx.putImageData(imgData, 0, 0);
-
-    ////let dataUrl = canvas.toDataURL('image/jpeg', 1);
-
-    //let that = this;
-    //canvas.toBlob(function (blob) {
-    //  that.haveImageData.emit(blob);
-    //}, 'image/jpeg', 1);
-
-    //imgData = null;
-    //pixelData = null;
-    //canvas.height = 0;
-    //canvas.width = 0;
-    //ctx = null;
-
-    ////this.haveImageData.emit(dataUrl);
+    this._exportWorkers = this.initWebWorkersForExport(localWorkingData, this._mapInfo.maxIterations);
   }
 
   drawEndNote(): void {
@@ -230,10 +203,8 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     let cw: number = canvasElement.width;
     let ch: number = canvasElement.height;
 
-    //let mapWorkingData: IMapWorkingData = this.sections[sectionNumber];
-
     if (cw !== this._canvasSizeForExport.width || ch !== this._canvasSizeForExport.height) {
-      console.log('Draw detects that our canvas size has changed since intialization.')
+      console.log("BuildCanvasForExport detects that the canvasExportElement's size has changed since intialization.");
     }
 
     // Check the image data's width to the canvas width for this section.
@@ -254,22 +225,21 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
     ctx.putImageData(imageData, left, bot);
 
-    //console.log('Just drew image data for sn=' + sectionNumber + ' left=' + left + ' bot =' + bot  + '.');
+    //console.log('BuildCanvasForExport just put image data for sn=' + sectionNumber + ' left=' + left + ' bot =' + bot  + '.');
 
     this._sectionCompleteFlags[sectionNumber] = true;
 
     if (this.haveAllSectionsCompleted()) {
       let that = this;
-      canvasElement.toBlob(function (blob) {
-        that.haveImageData.emit(blob);
-      }, 'image/jpeg', 1);
+      canvasElement.toBlob(function (blob) { that.haveImageData.emit(blob); }, 'image/jpeg', 1);
+      this.terminateWorkers(this._exportWorkers);
     }
   }
 
-  private terminateWorkers(): void {
+  private terminateWorkers(workers: Worker[]): void {
     let ptr: number = 0;
-    for (; ptr < this.workers.length; ptr++) {
-      this.workers[ptr].terminate();
+    for (; ptr < workers.length; ptr++) {
+      workers[ptr].terminate();
     }
   }
 
@@ -329,7 +299,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     if (this.useWorkers) {
 
       // Clear existing workers, if any
-      this.terminateWorkers();
+      this.terminateWorkers(this.workers);
 
       // Create a MapWorkingData for each section.
       this.sections = MapWorkingData.getWorkingDataSections(this.canvasSize, this._mapInfo, this._colorMap, this.numberOfSections);
@@ -446,17 +416,17 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     return result;
   }
 
-  private initWebWorkersForExport(workingMaps: IMapWorkingData[], iterCount: number): void {
+  private initWebWorkersForExport(workingMaps: IMapWorkingData[], iterCount: number): Worker[] {
 
     let numberOfSections = workingMaps.length;
 
-    let localWorkers: Worker[] = new Array<Worker>(numberOfSections);
+    let result: Worker[] = new Array<Worker>(numberOfSections);
 
     let ptr: number = 0;
 
     for (ptr = 0; ptr < numberOfSections; ptr++) {
       let webWorker = new Worker('/assets/worker.js');
-      localWorkers[ptr] = webWorker;
+      result[ptr] = webWorker;
 
       webWorker.addEventListener("message", (evt) => {
         let plainMsg = WebWorkerMessage.FromEventData(evt.data);
@@ -489,6 +459,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
       mapWorkingData.curIterations += iterCount;
     }
 
+    return result;
   }
 
 

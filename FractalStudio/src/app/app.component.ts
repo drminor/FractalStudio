@@ -1,6 +1,6 @@
 import { Component, OnInit, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
 
-import { IMapInfo, IPoint, Point, MapInfo, IBox, Box, ColorMap, ColorNumbers, ColorMapEntry, ColorMapUIEntry, ColorMapUI, IColorMap } from './m-map/m-map-common';
+import { IMapInfo, IPoint, Point, MapInfo, IBox, Box, ColorMap, ColorNumbers, ColorMapEntry, ColorMapUIEntry, ColorMapUI, IColorMap, MapInfoWithColorMap } from './m-map/m-map-common';
 
 
 @Component({
@@ -10,11 +10,11 @@ import { IMapInfo, IPoint, Point, MapInfo, IBox, Box, ColorMap, ColorNumbers, Co
 })
 export class AppComponent {
 
-  public mapDisplayWidth: string = '1152px';
-  public mapDisplayHeight: string = '768px';
+  public mapDisplayWidth: string;
+  public mapDisplayHeight: string;
 
-  public colorEditorOffSet: string = '210px';
-  public colorEditorWidth: string = '1159px';
+  public colorEditorOffSet: string;
+  public colorEditorWidth: string;
 
   @ViewChild('download') downloadRef: ElementRef;
 
@@ -36,27 +36,31 @@ export class AppComponent {
   iterationsPerStep: number;
 
   colorMap: IColorMap;
-  dataUri: string;
+  //dataUri: string;
 
   history: IMapInfo[] = [];
+  atHome: boolean;
 
   constructor() {
-    const bottomLeft: IPoint = new Point(-2.4, -1.2);
-    const topRight: IPoint = new Point(1, 1.2);
+    //const bottomLeft: IPoint = new Point(-2.4, -1.2);
+    //const topRight: IPoint = new Point(1, 1.2);
 
-    this.mapCoords = new Box(bottomLeft, topRight);
+    //this.mapCoords = new Box(bottomLeft, topRight);
 
-    this.maxIterations = 130;
-    this.iterationsPerStep = 10;
-    this.mapInfo = new MapInfo(this.mapCoords, this.maxIterations, this.iterationsPerStep);
+    //this.maxIterations = 130;
+    //this.iterationsPerStep = 10;
+    //this.mapInfo = new MapInfo(this.mapCoords, this.maxIterations, this.iterationsPerStep);
 
+    this.mapInfo = this.buildMapInfo();
     this.colorMap = this.buildColorMap();
 
-    this.mapDisplayHeight = '1152';
-    this.mapDisplayWidth = '768';
+    this.atHome = true;
 
-    this.colorEditorOffSet = '1159'; // 7 pixels to accomodate border, margin and 1 pixel gap.
-    this.colorEditorWidth = '210';
+    this.mapDisplayWidth = '939px';
+    this.mapDisplayHeight = '626px';
+
+    this.colorEditorOffSet = '946px'; // 7 pixels to accomodate border, margin and 1 pixel gap.
+    this.colorEditorWidth = '210px';
   }
 
   onColorMapUpdated(colorMap: IColorMap) {
@@ -84,6 +88,21 @@ export class AppComponent {
     this.history.push(this.mapInfo);
     this.updateDownloadLinkVisibility(false);
     this.mapInfo = mapInfo;
+    this.atHome = false;
+  }
+
+  onMapInfoLoaded(miwcm: MapInfoWithColorMap) {
+    // Clear History.
+    this.history = [];
+    this.updateDownloadLinkVisibility(false);
+
+    // Create a new MapInfo from the loaded data.
+    this.mapInfo = MapInfo.fromIMapInfo(miwcm.mapInfo);
+
+    // Create a new ColorMapUI fro the loaded data.
+    this.colorMap = ColorMapUI.FromColorMapForExport(miwcm.colorMap);
+
+    this.atHome = false;
   }
 
   onZoomed(mapCoords: IBox) {
@@ -91,24 +110,41 @@ export class AppComponent {
     this.history.push(this.mapInfo);
     this.updateDownloadLinkVisibility(false);
     this.mapInfo = new MapInfo(mapCoords, this.mapInfo.maxIterations, this.mapInfo.iterationsPerStep);
-
-    //this.mapCoords = mapCoords;
+    this.atHome = false;
   }
 
   // Handles Back and Reset operations.
   onGoBack(steps: number) {
     if (steps === -1) {
-      if (this.history.length > 0) {
-        this.mapInfo = this.history[0];
+      // Reset
+      //if (this.history.length > 0) {
+      //  this.mapInfo = this.history[0];
+      //  this.history = [];
+      //}
+      //else {
+      //  this.mapInfo = this.buildMapInfo();
+      //}
+      if (!this.atHome) {
         this.history = [];
+        this.mapInfo = this.buildMapInfo();
+        this.atHome = true;
       }
     }
     else if (steps === 1) {
+      // Go Back 1 step
       if (this.history.length > 0) {
         this.mapInfo = this.history.pop();
       }
     }
-    else if (steps == 2) {
+    //else if (steps === -2) {
+    //  // Reset, but don't update our mapinfo
+    //  //if (this.history.length > 0) {
+    //  //  this.history = [];
+    //  //}
+    //  this.history = [];
+    //}
+    else if (steps === 2) {
+      // Just for testing
       this.doTest();
     }
     else {
@@ -116,10 +152,6 @@ export class AppComponent {
     }
 
     this.updateDownloadLinkVisibility(false);
-
-    //this.mapCoords = this.mapInfo.coords;
-    //this.maxIterations = this.mapInfo.maxInterations;
-    //this.iterationsPerStep = this.mapInfo.iterationsPerStep;
   }
 
   private updateDownloadLinkVisibility(show: boolean): void {
@@ -135,11 +167,24 @@ export class AppComponent {
     this.colorMap = cMap;
   }
 
+  private buildMapInfo(): IMapInfo {
+    const bottomLeft: IPoint = new Point(-2.4, -1.2);
+    const topRight: IPoint = new Point(1, 1.2);
+
+    let mapCoords = new Box(bottomLeft, topRight);
+
+    let maxIterations = 100;
+    let iterationsPerStep = 10;
+    let result = new MapInfo(mapCoords, maxIterations, iterationsPerStep);
+
+    return result;
+  }
+
   private buildColorMap(): ColorMapUI {
 
     let cNumGenerator = new ColorNumbers();
 
-    let ranges: ColorMapUIEntry[] = new Array<ColorMapUIEntry>(13);
+    let ranges: ColorMapUIEntry[] = new Array<ColorMapUIEntry>(7);
     ranges[0] =  ColorMapUIEntry.fromOffsetAndColorNum(3, cNumGenerator.white);
     ranges[1] = ColorMapUIEntry.fromOffsetAndColorNum(5, cNumGenerator.red);
     ranges[2] = ColorMapUIEntry.fromOffsetAndColorNum(8, cNumGenerator.green);
@@ -149,13 +194,13 @@ export class AppComponent {
     ranges[5] = ColorMapUIEntry.fromOffsetAndColorNum(34, cNumGenerator.green);
     ranges[6] = ColorMapUIEntry.fromOffsetAndColorNum(55, cNumGenerator.blue);
 
-    ranges[7] = ColorMapUIEntry.fromOffsetAndColorNum(79, cNumGenerator.red);
-    ranges[8] = ColorMapUIEntry.fromOffsetAndColorNum(100, cNumGenerator.green);
-    ranges[9] = ColorMapUIEntry.fromOffsetAndColorNum(200, cNumGenerator.blue);
+    //ranges[7] = ColorMapUIEntry.fromOffsetAndColorNum(79, cNumGenerator.red);
+    //ranges[8] = ColorMapUIEntry.fromOffsetAndColorNum(100, cNumGenerator.green);
+    //ranges[9] = ColorMapUIEntry.fromOffsetAndColorNum(200, cNumGenerator.blue);
 
-    ranges[10] = new ColorMapUIEntry(500, [100, 200, 50]);
-    ranges[11] = new ColorMapUIEntry(800, [50, 240, 10]);
-    ranges[12] = new ColorMapUIEntry(1200, [245, 0, 80]);
+    //ranges[10] = new ColorMapUIEntry(500, [100, 200, 50]);
+    //ranges[11] = new ColorMapUIEntry(800, [50, 240, 10]);
+    //ranges[12] = new ColorMapUIEntry(1200, [245, 0, 80]);
 
     let result: ColorMapUI = new ColorMapUI(ranges, cNumGenerator.black);
     return result;
