@@ -58,15 +58,20 @@ var Histogram = /** @class */ (function () {
     configurable: true
   });
   Histogram.prototype.getHistArrayPair = function () {
-    var vals = new Uint16Array(this.entriesMap.size);
-    var occs = new Uint16Array(this.entriesMap.size);
-    var vlst = Array.from(this.entriesMap.keys());
-    var olst = Array.from(this.entriesMap.values());
-    var ptr;
-    for (ptr = 0; ptr < vlst.length; ptr++) {
-      vals[ptr] = vlst[ptr];
-      occs[ptr] = olst[ptr];
-    }
+    //var vals = new Uint16Array(this.entriesMap.size);
+    //var occs = new Uint16Array(this.entriesMap.size);
+    //var vlst = Array.from(this.entriesMap.keys());
+    //var olst = Array.from(this.entriesMap.values());
+    //var ptr;
+    //for (ptr = 0; ptr < vlst.length; ptr++) {
+    //  vals[ptr] = vlst[ptr];
+    //  occs[ptr] = olst[ptr];
+    //}
+
+    var vals = new Uint16Array(Array.from(this.entriesMap.keys()));
+    var occs = new Uint16Array(Array.from(this.entriesMap.values()));
+
+
     var result = new HistArrayPair(vals, occs);
     return result;
   };
@@ -581,7 +586,7 @@ var ColorMapUIEntry = /** @class */ (function () {
   });
   ColorMapUIEntry.fromColorMapEntry = function (cme) {
     var result;
-    if (typeof (cme) === typeof (ColorMapUIEntry)) {
+    if (typeof(cme) === typeof(ColorMapUIEntry)) {
       result = cme;
     }
     else {

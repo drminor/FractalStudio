@@ -89,48 +89,39 @@ export class Histogram {
     this.entriesMap = new Map<number, number>();
   }
 
-  public getHistEntriesAsString(): string {
+  //public getSortedHistEntries(hes: HistEntry[]): HistEntry[] {
+  //  let result = hes.sort((a, b) => a.val - b.val);
+  //  return result;
+  //}
 
-    let result: string = '';
-    let hEntries = this.histEntries;
-
-    let ptr: number;
-
-    for (ptr = 0; ptr < hEntries.length; ptr++) {
-      let he = hEntries[ptr];
-      result = result + he.toString() + '\n';
-    }
-
-    return result;
-  }
-
-  public get histEntries(): HistEntry[] {
-
+  public getHistEntries(): HistEntry[] {
     let result: HistEntry[] = [];
-
     let lst = Array.from(this.entriesMap.entries());
 
     let ptr: number;
-
     for (ptr = 0; ptr < lst.length; ptr++) {
       result.push(new HistEntry(lst[ptr]["0"], lst[ptr]["1"]));
     }
 
+    result.sort((a, b) => a.val - b.val);
     return result;
   }
 
   public getHistArrayPair(): HistArrayPair {
-    let vals = new Uint16Array(this.entriesMap.size);
-    let occs = new Uint16Array(this.entriesMap.size);
+    //let vals = new Uint16Array(this.entriesMap.size);
+    //let occs = new Uint16Array(this.entriesMap.size);
 
-    let vlst = Array.from(this.entriesMap.keys());
-    let olst = Array.from(this.entriesMap.values());
+    //let vlst = Array.from(this.entriesMap.keys());
+    //let olst = Array.from(this.entriesMap.values());
 
-    let ptr: number;
-    for (ptr = 0; ptr < vlst.length; ptr++) {
-      vals[ptr] = vlst[ptr];
-      occs[ptr] = olst[ptr];
-    }
+    let vals = new Uint16Array(Array.from(this.entriesMap.keys()));
+    let occs = new Uint16Array(Array.from(this.entriesMap.values()));
+
+    //let ptr: number;
+    //for (ptr = 0; ptr < vlst.length; ptr++) {
+    //  vals[ptr] = vlst[ptr];
+    //  occs[ptr] = olst[ptr];
+    //}
 
     let result = new HistArrayPair(vals, occs);
     return result;
@@ -199,6 +190,21 @@ export class Histogram {
         this.entriesMap.set(val, occ + arrayPair.occurances[ptr]);
       }
     }
+  }
+
+  public toString(): string {
+
+    let result: string = '';
+    let hEntries = this.getHistEntries();
+
+    let ptr: number;
+
+    for (ptr = 0; ptr < hEntries.length; ptr++) {
+      let he = hEntries[ptr];
+      result = result + he.toString() + '\n';
+    }
+
+    return result;
   }
 
 }

@@ -185,7 +185,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     if (this.haveAllSectionsCompleted()) {
       // TODO: raise HaveHistogram event.
       console.log('The histogram has been assembled.');
-      console.log('The historgram is ' + this._histogram.getHistEntriesAsString() + '.');
+      console.log('The historgram is ' + this._histogram + '.');
     }
 
   }
@@ -579,7 +579,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
         let h = new Histogram();
         h.addVals(mapWorkinData.cnts);
 
-        console.log('The histogram is ' + h.getHistEntriesAsString() + '.');
+        console.log('The histogram is ' + h + '.');
 
         that.drawEndNote();
         console.log("No WebWorkers -- Done.");
