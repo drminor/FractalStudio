@@ -13,7 +13,8 @@
 
 <!--<h2>Map Output Section</h2>-->
 
-<button type="button" (click)="mapDisplay.getImageData()" style="margin-bottom:2px">Get Image Data</button>
+<button type="button" (click)="mapDisplay.getImageDataForExport()" style="margin-bottom:2px">Get Image Data</button>
+<button type="button" (click)="mapDisplay.getHistogram()" style="margin: 10px 0px 0px 2px">Get Histogram</button>
 <a #download href="" download="mandlebrodt.jpg" target="_blank" hidden="hidden">Download</a>
 
 <section>
@@ -39,23 +40,22 @@
     </div>
   </div>
 
-    <div [ngStyle]="{'margin-left': '946px',
+  <div [ngStyle]="{'margin-left': '946px',
                         'width': '210px',
                         'padding': '3px 3px 3px 3px',
                         'border': '2px solid black'
                  }">
-      <app-color-map-editor [colorMap]="colorMap" (colorMapUpdated)="onColorMapUpdated($event)">
-      </app-color-map-editor>
+    <app-color-map-editor [colorMap]="colorMap" (colorMapUpdated)="onColorMapUpdated($event)">
+    </app-color-map-editor>
 
-    </div>
+  </div>
 </section>
 
-    <!--this.mapDisplayHeight = 1152;
-    this.mapDisplayWidth = 768;
+<!--this.mapDisplayHeight = 1152;
+this.mapDisplayWidth = 768;
 
-    this.colorEditorOffSet = this.mapDisplayWidth + 7; // 7 pixels to accomodate border, margin and 1 pixel gap.
-    this.colorEditorWidth = 210;-->
-
+this.colorEditorOffSet = this.mapDisplayWidth + 7; // 7 pixels to accomodate border, margin and 1 pixel gap.
+this.colorEditorWidth = 210;-->
 <!--<section>
   <div style="float:left; position:relative; width:2120px; height:1420px; padding:3px 3px 3px 3px; border: 2px solid black">
     <div style="position:relative; width:2110px; height:1410px; margin:5px">

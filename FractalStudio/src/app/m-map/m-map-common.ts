@@ -1,3 +1,5 @@
+import { IterableChangeRecord_ } from "@angular/core/src/change_detection/differs/default_iterable_differ";
+
 const MAX_CANVAS_WIDTH: number = 50000;
 const MAX_CANVAS_HEIGHT: number = 50000;
 
@@ -53,23 +55,171 @@ export interface IMapWorkingData {
 
   curIterations: number;
 
-  //pixelData: Uint8ClampedArray;
-
   colorMap: IColorMap;
 
-  //getLinearIndex(x: number, y: number): number;
   getLinearIndex(c: IPoint): number;
   doIterationsForAll(iterCount: number): boolean;
   doIterationsForLine(iterCount: number, y: number): boolean;
 
-  //getImageData(): ImageData;
   getPixelData(): Uint8ClampedArray;
   getImageDataForLine(y: number): ImageData;
 
   updateImageData(imgData: Uint8ClampedArray): void;
+
+  getHistogram(): Histogram;
+}
+
+export class HistArrayPair {
+  constructor(public vals: Uint16Array, public occurances: Uint16Array) { }
+}
+
+export class HistEntry {
+  constructor(public val: number, public occurances: number) { }
+
+  public toString(): string {
+    return this.val.toString() + ': ' + this.occurances.toString();
+  }
+}
+
+export class Histogram {
+
+  public entriesMap: Map<number, number>;
+
+  constructor() {
+    this.entriesMap = new Map<number, number>();
+  }
+
+  public getHistEntriesAsString(): string {
+
+    let result: string = '';
+    let hEntries = this.histEntries;
+
+    let ptr: number;
+
+    for (ptr = 0; ptr < hEntries.length; ptr++) {
+      let he = hEntries[ptr];
+      result = result + he.toString() + '\n';
+    }
+
+    return result;
+  }
+
+  public get histEntries(): HistEntry[] {
+
+    let result: HistEntry[] = [];
+
+    let lst = Array.from(this.entriesMap.entries());
+
+    let ptr: number;
+
+    for (ptr = 0; ptr < lst.length; ptr++) {
+      result.push(new HistEntry(lst[ptr]["0"], lst[ptr]["1"]));
+    }
+
+    return result;
+  }
+
+  public getHistArrayPair(): HistArrayPair {
+    let vals = new Uint16Array(this.entriesMap.size);
+    let occs = new Uint16Array(this.entriesMap.size);
+
+    let vlst = Array.from(this.entriesMap.keys());
+    let olst = Array.from(this.entriesMap.values());
+
+    let ptr: number;
+    for (ptr = 0; ptr < vlst.length; ptr++) {
+      vals[ptr] = vlst[ptr];
+      occs[ptr] = olst[ptr];
+    }
+
+    let result = new HistArrayPair(vals, occs);
+    return result;
+  }
+
+  addVal(val: number): void {
+    let exEntry = this.entriesMap.get(val);
+
+    if (exEntry === undefined) {
+      this.entriesMap.set(val, 1);
+    }
+    else {
+      this.entriesMap.set(val, exEntry + 1);
+    }
+  }
+
+  addVals(vals: Uint16Array): void {
+
+    if (!vals || vals.length === 0) return;
+
+    let lastVal = vals[0];
+
+    let lastOcc = this.entriesMap.get(lastVal);
+    lastOcc = lastOcc === undefined ? 1 : lastOcc + 1;
+
+    let ptr: number;
+
+    for (ptr = 1; ptr < vals.length; ptr++) {
+      let val = vals[ptr];
+
+      if (val === lastVal) {
+        lastOcc++;
+      }
+      else {
+        this.entriesMap.set(lastVal, lastOcc);
+        lastOcc = this.entriesMap.get(val);
+        lastOcc = lastOcc === undefined ? 1 : lastOcc + 1;
+        lastVal = val;
+      }
+    }
+
+    if (!(lastVal === undefined)) {
+      this.entriesMap.set(lastVal, lastOcc);
+    }
+  }
+
+  public static fromHistArrayPair(arrayPair: HistArrayPair): Histogram {
+    let result = new Histogram();
+
+    let ptr: number;
+    for (ptr = 0; ptr < arrayPair.vals.length; ptr++) {
+      result.entriesMap.set(arrayPair.vals[ptr], arrayPair.occurances[ptr]);
+    }
+    return result;
+  }
+
+  public addFromArrayPair(arrayPair: HistArrayPair): void {
+    let ptr: number;
+    for (ptr = 0; ptr < arrayPair.vals.length; ptr++) {
+      let val = arrayPair.vals[ptr];
+      let occ = this.entriesMap.get(val);
+      if (occ === undefined) {
+        this.entriesMap.set(val, arrayPair.occurances[ptr]);
+      }
+      else {
+        this.entriesMap.set(val, occ + arrayPair.occurances[ptr]);
+      }
+    }
+  }
+
 }
 
 export class MapInfoWithColorMap {
+  constructor(public mapInfo: IMapInfo, public colorMapUi: ColorMapUI) { }
+
+  public static fromForExport(miwcm: MapInfoWithColorMapForExport): MapInfoWithColorMap {
+
+    // Create a new MapInfo from the loaded data.
+    let mapInfo = MapInfo.fromIMapInfo(miwcm.mapInfo);
+
+    // Create a new ColorMapUI from the loaded data.
+    let colorMap = ColorMapUI.FromColorMapForExport(miwcm.colorMap);
+
+    let result = new MapInfoWithColorMap(mapInfo, colorMap);
+    return result;
+  }
+}
+
+export class MapInfoWithColorMapForExport {
   constructor(public mapInfo: IMapInfo, public colorMap: ColorMapForExport) { }
 }
 
@@ -252,6 +402,8 @@ export class MapWorkingData implements IMapWorkingData {
     }
 
     this.curIterations = 0;
+
+    console.log('Constructing MapWorkingData, ColorMap = ' + this.colorMap + '.');
   }
 
   // Calculate the number of elements in our single dimension data array needed to cover the
@@ -386,6 +538,10 @@ export class MapWorkingData implements IMapWorkingData {
 
   // Divides the specified MapWorking data into the specified vertical sections, each having the width of the original Map.
   static getWorkingDataSections(canvasSize: ICanvasSize, mapInfo: IMapInfo, colorMap: IColorMap, numberOfSections: number): IMapWorkingData[] {
+
+    console.log('At getWorkingDataSections, ColorMap = ' + colorMap + '.');
+
+
     let result: IMapWorkingData[] = Array<IMapWorkingData>(numberOfSections);
 
     // Calculate the heigth of each section, rounded down to the nearest whole number.
@@ -498,21 +654,6 @@ export class MapWorkingData implements IMapWorkingData {
     }
   }
 
-  private updateImageDataOld(imageData: ImageData): void {
-    let data: Uint8ClampedArray = imageData.data;
-    if (data.length !== 4 * this.elementCount) {
-      console.log("The imagedata data does not have the correct number of elements.");
-      return;
-    }
-
-    let i: number = 0;
-
-    for (; i < this.elementCount; i++) {
-      const inTheSet: boolean = this.flags[i] === 0;
-      this.setPixelValueBinary(inTheSet, i * 4, data);
-    }
-  }
-
   private setPixelValueBinary(on: boolean, ptr: number, imageData: Uint8ClampedArray) {
     if (on) {
       // Points within the set are drawn in black.
@@ -528,13 +669,7 @@ export class MapWorkingData implements IMapWorkingData {
       imageData[ptr + 3] = 255;
     }
   }
-
-  public getImageDataOld(): ImageData {
-    const imageData = new ImageData(this.canvasSize.width, this.canvasSize.height);
-    this.updateImageDataOld(imageData);
-    return imageData;
-  }
-                                                                                            
+                                                                                           
   // Returns a 'regular' linear array of booleans from the flags TypedArray.
   private getFlagData(mapWorkingData: IMapWorkingData): boolean[] {
 
@@ -547,6 +682,13 @@ export class MapWorkingData implements IMapWorkingData {
 
     return result;
   }
+
+  public getHistogram(): Histogram {
+    let result = new Histogram();
+    result.addVals(this.cnts);
+    return result;
+  }
+
 } // End Class MapWorkingData
 
 export interface IColorMapEntry {
@@ -592,6 +734,7 @@ export class ColorMapUIEntry implements IColorMapEntry {
       this.r = colorVals[0];
       this.g = colorVals[1];
       this.b = colorVals[2];
+      this.alpha = 255;
     }
     else if (colorVals.length === 4) {
       this.r = colorVals[0];
@@ -603,7 +746,7 @@ export class ColorMapUIEntry implements IColorMapEntry {
       throw new RangeError('colorVals must have exactly 3 or 4 elements.');
     }
 
-    this.colorNum = ColorNumbers.getColor(this.r, this.g, this.b);
+    this.colorNum = ColorNumbers.getColor(this.r, this.g, this.b, this.alpha);
   }
 
   public static fromColorMapEntry(cme: IColorMapEntry): ColorMapUIEntry {
@@ -761,6 +904,30 @@ export class ColorMapUI extends ColorMap {
     super(ranges, highColor);
   }
 
+  // TODO: Make the ColorMapUI standalone -- and not extend ColorMap.
+  // Override the method in ColorMap
+  insertColorMapEntry(entry: IColorMapEntry, index: number) {
+
+    throw new RangeError("Not Implemented.");
+  }
+
+  public getRegularColorMap(): ColorMap {
+
+    let uiRanges = this.uIRanges;
+    let ranges: ColorMapEntry[] = [];
+
+    let ptr: number;
+
+    for (ptr = 0; ptr < uiRanges.length; ptr++) {
+      let uiCme = uiRanges[ptr];
+      let cme: ColorMapEntry = new ColorMapEntry(uiCme.cutOff, uiCme.colorNum);
+      ranges.push(cme);
+    }
+
+    let result = new ColorMap(ranges, this.highColor);
+    return result;
+  }
+
   public static FromColorMapForExport(cmfe: ColorMapForExport): ColorMapUI {
 
     let ranges: ColorMapUIEntry[] = [];
@@ -769,11 +936,7 @@ export class ColorMapUI extends ColorMap {
 
     for (ptr = 0; ptr < cmfe.ranges.length; ptr++) {
       let cmeForExport = cmfe.ranges[ptr];
-
-      // TODO: Get ColorNum from cssColor (example #FF21A9 or #FF21A990)
-
       let cme: ColorMapUIEntry = ColorMapUIEntry.fromOffsetAndCssColor(cmeForExport.cutOff, cmeForExport.cssColor);
-
       ranges.push(cme);
     }
 
@@ -832,22 +995,33 @@ export class ColorNumbers {
     if (g > 255 || g < 0) throw new RangeError('G must be between 0 and 255.');
     if (b > 255 || b < 0) throw new RangeError('B must be between 0 and 255.');
 
-    let result: number;
+    //let result: number;
 
-    if (alpha != null) {
+    //if (alpha !== null) {
+    //  if (alpha > 255 || alpha < 0) throw new RangeError('Alpha must be between 0 and 255.');
+
+    //  result = alpha << 24;
+    //  result |= b << 16;
+    //  result |= g << 8;
+    //  result |= r;
+    //}
+    //else {
+    //  result = 255 << 24; // 65536 * 65280; // FF00 0000 - opaque Black
+    //  result |= b << 16;
+    //  result |= g << 8;
+    //  result |= r;
+    //}
+
+    if (alpha === null) {
+      alpha = 255;
+    } else {
       if (alpha > 255 || alpha < 0) throw new RangeError('Alpha must be between 0 and 255.');
+    }
 
-      result = alpha << 24;
-      result |= b << 16;
-      result |= g << 8;
-      result |= r;
-    }
-    else {
-      result = 65536 * 65280; // FF00 0000 - opaque Black
-      result += b << 16;
-      result += g << 8;
-      result += r;
-    }
+    let result: number = alpha << 24;
+    result |= b << 16;
+    result |= g << 8;
+    result |= r;
 
     return result;
   }
@@ -862,7 +1036,7 @@ export class ColorNumbers {
     // Shift down by 8 bits and then mask.
     result[1] = cNum >> 8 & 0x000000FF;
     result[2] = cNum >> 16 & 0x000000FF;
-    result[3] = cNum >> 24 & 0x000000FF;
+    result[3] = 255; //cNum >> 24 & 0x000000FF;
 
     return result;
   }
@@ -916,6 +1090,8 @@ export interface IWebWorkerStartRequest extends IWebWorkerMessage {
   colorMap: IColorMap;
   sectionAnchor: IPoint;
   sectionNumber: number;
+
+  getMapWorkingData(): IMapWorkingData;
 }
 
 export interface IWebWorkerIterateRequest extends IWebWorkerMessage {
@@ -923,7 +1099,6 @@ export interface IWebWorkerIterateRequest extends IWebWorkerMessage {
 }
 
 export interface IWebWorkerImageDataRequest extends IWebWorkerMessage {
-  //pixelData: Uint8ClampedArray;
 }
 
 export interface IWebWorkerImageDataResponse extends IWebWorkerMessage {
@@ -934,7 +1109,6 @@ export interface IWebWorkerImageDataResponse extends IWebWorkerMessage {
 }
 
 export interface IWebWorkerAliveFlagsRequest extends IWebWorkerMessage {
-  flagData: Uint8Array;
 }
 
 export interface IWebWorkerAliveFlagsResponse extends IWebWorkerMessage {
@@ -945,12 +1119,23 @@ export interface IWebWorkerAliveFlagsResponse extends IWebWorkerMessage {
 }
 
 export interface IWebWorkerIterCountsRequest extends IWebWorkerMessage {
-  iterCountsData: Uint16Array;
 }
 
 export interface IWebWorkerIterCountsResponse extends IWebWorkerMessage {
   sectionNumber: number;
   iterCountsData: Uint16Array;
+}
+
+export interface IWebWorkerHistogramRequest extends IWebWorkerMessage {
+}
+
+export interface IWebWorkerHistogramResponse extends IWebWorkerMessage {
+  sectionNumber: number;
+  vals: Uint16Array;
+  occurances: Uint16Array;
+
+  getHistorgram(): Histogram;
+  getHistArrayPair(): HistArrayPair;
 }
 
 export interface IWebWorkerUpdateColorMapRequest extends IWebWorkerMessage {
@@ -986,7 +1171,8 @@ export class WebWorkerStartRequest implements IWebWorkerStartRequest {
     let result = new WebWorkerStartRequest(
       data.messageKind,
       data.canvasSize,
-      data.mapInfo,
+      // Because the MapInfo class has methods, we must build a new instance from the data.
+      MapInfo.fromIMapInfo(data.mapInfo),
       // Because the ColorMap class has methods, we must build a new instance from the data.
       new ColorMap(data.colorMap.ranges, data.colorMap.highColor),
       data.sectionAnchor,
@@ -1007,6 +1193,11 @@ export class WebWorkerStartRequest implements IWebWorkerStartRequest {
 
     return result;
   }
+
+  public getMapWorkingData(): IMapWorkingData {
+    let result = new MapWorkingData(this.canvasSize, this.mapInfo, this.colorMap, this.sectionAnchor, true);
+    return result;
+  }
 }
 
 export class WebWorkerIterateRequest implements IWebWorkerIterateRequest {
@@ -1024,15 +1215,15 @@ export class WebWorkerIterateRequest implements IWebWorkerIterateRequest {
 }
 
 export class WebWorkerImageDataRequest implements IWebWorkerImageDataRequest {
-  constructor(public messageKind: string/*, public pixelData: Uint8ClampedArray*/) { }
+  constructor(public messageKind: string) { }
 
   static FromEventData(data: any): IWebWorkerImageDataRequest {
-    let result = new WebWorkerImageDataRequest(data.messageKind/*, data.pixelData*/);
+    let result = new WebWorkerImageDataRequest(data.messageKind);
     return result;
   }
 
-  static CreateRequest(/*pixelData: Uint8ClampedArray*/): IWebWorkerImageDataRequest {
-    let result = new WebWorkerImageDataRequest('GetImageData'/*, pixelData*/);
+  static CreateRequest(): IWebWorkerImageDataRequest {
+    let result = new WebWorkerImageDataRequest('GetImageData');
     return result;
   }
 }
@@ -1067,15 +1258,15 @@ export class WebWorkerImageDataResponse implements IWebWorkerImageDataResponse {
 }
 
 export class WebWorkerAliveFlagsRequest implements IWebWorkerAliveFlagsRequest {
-  constructor(public messageKind: string, public flagData: Uint8Array) { }
+  constructor(public messageKind: string) { }
 
   static FromEventData(data: any): IWebWorkerAliveFlagsRequest {
-    let result = new WebWorkerAliveFlagsRequest(data.messageKind, data.flagData);
+    let result = new WebWorkerAliveFlagsRequest(data.messageKind);
     return result;
   }
 
   static CreateRequest(flagData: Uint8Array): IWebWorkerAliveFlagsRequest {
-    let result = new WebWorkerAliveFlagsRequest('GetAliveFlags', flagData);
+    let result = new WebWorkerAliveFlagsRequest('GetAliveFlags');
     return result;
   }
 }
@@ -1108,15 +1299,15 @@ export class WebWorkerAliveFlagsResponse implements IWebWorkerAliveFlagsResponse
 }
 
 export class WebWorkerIterCountsRequest implements IWebWorkerIterCountsRequest {
-  constructor(public messageKind: string, public iterCountsData: Uint16Array) { }
+  constructor(public messageKind: string) { }
 
   static FromEventData(data: any): IWebWorkerAliveFlagsRequest {
-    let result = new WebWorkerAliveFlagsRequest(data.messageKind, data.flagData);
+    let result = new WebWorkerIterCountsRequest(data.messageKind);
     return result;
   }
 
   static CreateRequest(flagData: Uint8Array): IWebWorkerAliveFlagsRequest {
-    let result = new WebWorkerAliveFlagsRequest('GetIterCounts', flagData);
+    let result = new WebWorkerIterCountsRequest('GetIterCounts');
     return result;
   }
 
@@ -1133,6 +1324,49 @@ export class WebWorkerIterCountsResponse implements IWebWorkerIterCountsResponse
   
   static CreateResponse(sectionNumber: number, iterCountsData: Uint16Array): IWebWorkerIterCountsResponse {
     let result = new WebWorkerIterCountsResponse("IterCountsResults", sectionNumber, iterCountsData);
+    return result;
+  }
+}
+
+export class WebWorkerHistogramRequest implements IWebWorkerHistogramRequest {
+  constructor(public messageKind: string) { }
+
+  static FromEventData(data: any): IWebWorkerHistogramRequest {
+    let result = new WebWorkerHistogramRequest(data.messageKind);
+    return result;
+  }
+
+  static CreateRequest(): IWebWorkerHistogramRequest {
+    let result = new WebWorkerHistogramRequest('GetHistogram');
+    return result;
+  }
+
+}
+
+export class WebWorkerHistorgramResponse implements IWebWorkerHistogramResponse {
+  constructor(public messageKind: string, public sectionNumber: number, public vals: Uint16Array, public occurances: Uint16Array) { }
+
+  static FromEventData(data: any): IWebWorkerHistogramResponse {
+    let result = new WebWorkerHistorgramResponse(data.messageKind, data.sectionNumber, data.vals, data.occurances);
+
+    return result;
+  }
+
+  static CreateResponse(sectionNumber: number, histogram: Histogram): IWebWorkerHistogramResponse {
+    let arrayPair = histogram.getHistArrayPair();
+    let result = new WebWorkerHistorgramResponse("HistogramResults", sectionNumber, arrayPair.vals, arrayPair.occurances);
+    return result;
+  }
+
+  public getHistorgram(): Histogram {
+    let arrayPair = new HistArrayPair(this.vals, this.occurances);
+    let result = Histogram.fromHistArrayPair(arrayPair);
+
+    return result;
+  }
+
+  public getHistArrayPair(): HistArrayPair {
+    let result = new HistArrayPair(this.vals, this.occurances);
     return result;
   }
 }
@@ -1162,7 +1396,7 @@ export class WebWorkerUpdateColorMapRequest implements IWebWorkerUpdateColorMapR
 
 }
 
-// Only used when the javascript produced from compiling this TypeScript is used to create worker.js
+//// Only used when the javascript produced from compiling this TypeScript is used to create worker.js
 
 //var mapWorkingData: IMapWorkingData = null;
 //var sectionNumber: number = 0;
@@ -1180,7 +1414,7 @@ export class WebWorkerUpdateColorMapRequest implements IWebWorkerUpdateColorMapR
 //  if (plainMsg.messageKind === 'Start') {
 //    let startMsg = WebWorkerStartRequest.FromEventData(e.data);
 
-//    mapWorkingData = new MapWorkingData(startMsg.canvasSize, startMsg.mapInfo, startMsg.colorMap, startMsg.sectionAnchor);
+//    mapWorkingData = startMsg.getMapWorkingData();
 //    sectionNumber = startMsg.sectionNumber;
 //    console.log('Worker created MapWorkingData with element count = ' + mapWorkingData.elementCount);
 
@@ -1200,15 +1434,8 @@ export class WebWorkerUpdateColorMapRequest implements IWebWorkerUpdateColorMapR
 //    self.postMessage(imageDataResponse, "*", [pixelData.buffer]);
 //  }
 //  else if (plainMsg.messageKind === 'GetImageData') {
-//    mapWorkingData.doIterationsForAll(1);
-
-//    //let dataRequest = WebWorkerImageDataRequest.FromEventData(e.data);
-
-//    //pixelData = dataRequest.pixelData;
-//    //mapWorkingData.updateImageData(pixelData);
-
-//    let pixelData = mapWorkingData.getPixelData();
-
+//    //mapWorkingData.doIterationsForAll(1);
+//    pixelData = mapWorkingData.getPixelData();
 //    imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, pixelData);
 
 //    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
@@ -1220,12 +1447,19 @@ export class WebWorkerUpdateColorMapRequest implements IWebWorkerUpdateColorMapR
 //    mapWorkingData.colorMap = upColorMapReq.getColorMap();
 //    console.log('WebWorker received an UpdateColorMapRequest with ' + mapWorkingData.colorMap.ranges.length + ' entries.');
 
-//    let pixelData = mapWorkingData.getPixelData();
+//    pixelData = mapWorkingData.getPixelData();
 
 //    imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, pixelData);
 
 //    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
 //    self.postMessage(imageDataResponse, "*", [pixelData.buffer]);
+//  }
+//  else if (plainMsg.messageKind === "GetHistogram") {
+//    let histogram = mapWorkingData.getHistogram();
+//    let histogramResponse = WebWorkerHistorgramResponse.CreateResponse(sectionNumber, histogram);
+
+//    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
+//    self.postMessage(histogramResponse, "*", [histogramResponse.vals.buffer, histogramResponse.occurances.buffer]);
 //  }
 //  else {
 //    console.log('Received unknown message kind: ' + plainMsg.messageKind);

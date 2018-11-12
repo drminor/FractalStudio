@@ -96,11 +96,14 @@ export class AppComponent {
     this.history = [];
     this.updateDownloadLinkVisibility(false);
 
-    // Create a new MapInfo from the loaded data.
-    this.mapInfo = MapInfo.fromIMapInfo(miwcm.mapInfo);
+    //// Create a new MapInfo from the loaded data.
+    //this.mapInfo = MapInfo.fromIMapInfo(miwcm.mapInfo);
 
-    // Create a new ColorMapUI fro the loaded data.
-    this.colorMap = ColorMapUI.FromColorMapForExport(miwcm.colorMap);
+    //// Create a new ColorMapUI from the loaded data.
+    //this.colorMap = ColorMapUI.FromColorMapForExport(miwcm.colorMap);
+
+    this.mapInfo = miwcm.mapInfo;
+    this.colorMap = miwcm.colorMapUi;
 
     this.atHome = false;
   }
@@ -136,13 +139,6 @@ export class AppComponent {
         this.mapInfo = this.history.pop();
       }
     }
-    //else if (steps === -2) {
-    //  // Reset, but don't update our mapinfo
-    //  //if (this.history.length > 0) {
-    //  //  this.history = [];
-    //  //}
-    //  this.history = [];
-    //}
     else if (steps === 2) {
       // Just for testing
       this.doTest();
@@ -193,6 +189,15 @@ export class AppComponent {
     ranges[4] = ColorMapUIEntry.fromOffsetAndColorNum(21, cNumGenerator.red);
     ranges[5] = ColorMapUIEntry.fromOffsetAndColorNum(34, cNumGenerator.green);
     ranges[6] = ColorMapUIEntry.fromOffsetAndColorNum(55, cNumGenerator.blue);
+
+    let n = ColorNumbers.getColorComponents(cNumGenerator.red);
+    let h = ColorNumbers.getColorComponentsFromRgba('rgba(255,0,0,1)');
+    let c = ColorNumbers.getColorComponentsFromCssColor("#FF0000");
+
+    let t = ranges[1].colorNum;
+    let n2 = ColorNumbers.getColorComponents(t);
+
+    console.log('The color numbers are n:' + n + ' rgba:' + h + ' css:' + c + ' t: ' + t + ' n2: ' + n2);
 
     //ranges[7] = ColorMapUIEntry.fromOffsetAndColorNum(79, cNumGenerator.red);
     //ranges[8] = ColorMapUIEntry.fromOffsetAndColorNum(100, cNumGenerator.green);

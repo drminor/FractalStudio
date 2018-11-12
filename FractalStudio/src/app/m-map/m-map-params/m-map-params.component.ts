@@ -1,7 +1,7 @@
 import { Component, OnInit, EventEmitter, Output, Input, ViewChild, ElementRef } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 
-import { IPoint, Point, IMapInfo, MapInfo, ColorMap, ColorMapEntry, IBox, Box, ColorMapUI, IColorMap, ColorMapForExport, MapInfoWithColorMap} from '../m-map-common';
+import { IPoint, Point, IMapInfo, MapInfo, ColorMap, ColorMapEntry, IBox, Box, ColorMapUI, IColorMap, ColorMapForExport, MapInfoWithColorMap, MapInfoWithColorMapForExport} from '../m-map-common';
 
 @Component({
   selector: 'app-m-map-params',
@@ -82,9 +82,9 @@ export class MMapParamsComponent implements OnInit {
   onSaveMapInfo() {
     let colorMapForExport: ColorMapForExport = ColorMapForExport.FromColorMap(this.colorMap);
     let mapInfo = this.getMapInfo(this.mapCoordsForm);
-    let miWithcm = new MapInfoWithColorMap(mapInfo, colorMapForExport);
+    let miwcmfe = new MapInfoWithColorMapForExport(mapInfo, colorMapForExport);
 
-    let dump: string = JSON.stringify(miWithcm, null, 2);
+    let dump: string = JSON.stringify(miwcmfe, null, 2);
     let dataUri = "data:text/json;charset=utf-8," + encodeURIComponent(dump);
 
     let a = this.downloadRef.nativeElement as HTMLAnchorElement;
@@ -110,18 +110,9 @@ export class MMapParamsComponent implements OnInit {
     let fr = new FileReader();
     fr.onload = (ev => {
       let rawResult: string = fr.result as string;
-      let miwcm: MapInfoWithColorMap = JSON.parse(rawResult) as MapInfoWithColorMap;
-
+      let miwcmfe: MapInfoWithColorMapForExport = JSON.parse(rawResult) as MapInfoWithColorMapForExport;
+      let miwcm = MapInfoWithColorMap.fromForExport(miwcmfe);
       this.mapInfoLoaded.emit(miwcm);
-      //let mapInfo = MapInfo.fromIMapInfo(miwcm.mapInfo);
-      //console.log('Just loaded MapInfo with value = ' + mapInfo + '.');
-      //this.mapInfoUpdated.emit(mapInfo);
-
-      //let colorMap: IColorMap = ColorMapUI.FromColorMapForExport(miwcm.colorMap);
-      //this.colorMapUpdated.emit(colorMap);
-
-      //// clear the history
-      //this.goBack.emit(-2);
     });
 
     fr.readAsText(files.item(0));

@@ -6,7 +6,7 @@ import {
   IMapInfo, MapInfo, IMapWorkingData, MapWorkingData,
   WebWorkerImageDataResponse, WebWorkerMessage, WebWorkerStartRequest, WebWorkerImageDataRequest,
   WebWorkerIterateRequest, WebWorkerUpdateColorMapRequest,
-  ColorMap, ColorMapEntry, ColorNumbers, IColorMap
+  ColorMap, ColorMapEntry, ColorNumbers, IColorMap, Histogram, WebWorkerHistogramRequest, WebWorkerHistorgramResponse, HistArrayPair, ColorMapUI
 } from '../m-map-common';
 
 @Component({
@@ -40,6 +40,8 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
   private _canvasSizeForExport: ICanvasSize;
   private _sectionCompleteFlags: boolean[];
   private _exportWorkers: Worker[];
+
+  private _histogram: Histogram;
 
   @Input('mapCoords')
   set mapCoords(mapCoords: IBox) {
@@ -126,25 +128,66 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     this.zoomBox = null;
     this.canvasElement = null;
 
-    //let w: number = 7200;
-    //let h: number = 4800;
-
     this._canvasSizeForExport = new CanvasSize(7200, 4800);
     this._sectionCompleteFlags = new Array<boolean>(this.numberOfSections);
+
+    this._histogram = null;
   }
 
-  public getImageData(): void {
+  public getImageDataForExport(): void {
     console.log('getImageData has been called.');
 
     let canvas: HTMLCanvasElement = this.canvasExportElement;
     canvas.width = this._canvasSizeForExport.width;
     canvas.height = this._canvasSizeForExport.height;
 
-    let localWorkingData = MapWorkingData.getWorkingDataSections(this._canvasSizeForExport, this._mapInfo, this._colorMap, this.numberOfSections);
+    let colorMap: ColorMap;
+
+    if (typeof (this._colorMap) === typeof (ColorMap)) {
+      colorMap = this._colorMap as ColorMap;
+    }
+    else {
+      colorMap = (this._colorMap as ColorMapUI).getRegularColorMap();
+    }
+
+
+    let localWorkingData = MapWorkingData.getWorkingDataSections(this._canvasSizeForExport, this._mapInfo, colorMap, this.numberOfSections);
 
     this.resetSectionCompleteFlags();
 
     this._exportWorkers = this.initWebWorkersForExport(localWorkingData, this._mapInfo.maxIterations);
+  }
+
+  public getHistogram(): void {
+
+    this._histogram = null;
+    this.resetSectionCompleteFlags();
+    let histRequest = WebWorkerHistogramRequest.CreateRequest();
+
+    let ptr: number;
+    for (ptr = 0; ptr < this.workers.length; ptr++) {
+      this.workers[ptr].postMessage(histRequest);
+    }
+
+  }
+
+  assembleHistorgram(arrayPair: HistArrayPair, sectionNumber: number): void {
+
+    if (this._histogram == null) {
+      this._histogram = Histogram.fromHistArrayPair(arrayPair);
+    }
+    else {
+      this._histogram.addFromArrayPair(arrayPair);
+    }
+
+    this._sectionCompleteFlags[sectionNumber] = true;
+
+    if (this.haveAllSectionsCompleted()) {
+      // TODO: raise HaveHistogram event.
+      console.log('The histogram has been assembled.');
+      console.log('The historgram is ' + this._histogram.getHistEntriesAsString() + '.');
+    }
+
   }
 
   drawEndNote(): void {
@@ -296,13 +339,25 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
   }
 
   private buildWorkingData(): void {
+
+    let colorMap: ColorMap;
+
+    if (typeof (this._colorMap) === typeof (ColorMap)) {
+      colorMap = this._colorMap as ColorMap;
+    }
+    else {
+      colorMap = (this._colorMap as ColorMapUI).getRegularColorMap();
+    }
+
     if (this.useWorkers) {
 
       // Clear existing workers, if any
       this.terminateWorkers(this.workers);
 
+
+
       // Create a MapWorkingData for each section.
-      this.sections = MapWorkingData.getWorkingDataSections(this.canvasSize, this._mapInfo, this._colorMap, this.numberOfSections);
+      this.sections = MapWorkingData.getWorkingDataSections(this.canvasSize, this._mapInfo, colorMap, this.numberOfSections);
 
       //let ptr: number = 0;
       //for (ptr = 0; ptr < this.numberOfSections; ptr++) {
@@ -318,7 +373,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
         throw new RangeError('The number of sections must be set to 1, if useWorkers = false.');
       }
       this.sections = new Array<IMapWorkingData>(1);
-      this.sections[0] = new MapWorkingData(this.canvasSize, this._mapInfo, this._colorMap, new Point(0, 0), false);
+      this.sections[0] = new MapWorkingData(this.canvasSize, this._mapInfo, colorMap, new Point(0, 0), false);
 
       this.progressively();
     }
@@ -395,6 +450,13 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
             console.log("Done.");
           }
         }
+        else if (plainMsg.messageKind === 'HistogramResults') {
+          let histogramResponse = WebWorkerHistorgramResponse.FromEventData(evt.data);
+          let sectionNumber: number = histogramResponse.sectionNumber;
+          let arrayPair = histogramResponse.getHistArrayPair();
+
+          this.assembleHistorgram(arrayPair, sectionNumber);
+        }
         else if (plainMsg.messageKind === 'StartResponse') {
           //console.log('Received StartRespose from a web worker.');
         }
@@ -402,6 +464,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
           console.log('Received message from a web worker, The message = ' + plainMsg.messageKind + '.');
         }
       });
+
 
       // Send the mapWorking data and color map to the Web Worker.
       let mapWorkingData: IMapWorkingData = this.sections[ptr];
@@ -493,16 +556,16 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     const that = this;
     let alive: boolean = true;
 
-    let iterCount = this.sections[0].mapInfo.maxIterations;
+    let mapWorkinData: IMapWorkingData = that.sections[0];
+    let iterCount = mapWorkinData.mapInfo.maxIterations;
+    let itersPerStep = mapWorkinData.mapInfo.iterationsPerStep;
     const intId = setInterval(doOneAndDraw, 5);
 
     function doOneAndDraw() {
       if (iterCount > 0 && alive) {
-        iterCount--;
+        iterCount = iterCount - itersPerStep;
 
-        let mapWorkinData: IMapWorkingData = that.sections[0];
-
-        alive = mapWorkinData.doIterationsForAll(1);
+        alive = mapWorkinData.doIterationsForAll(itersPerStep);
 
         let pixelData: Uint8ClampedArray = mapWorkinData.getPixelData();
 
@@ -512,6 +575,12 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
         that.draw(imageData, 0);
       } else {
         clearInterval(intId);
+
+        let h = new Histogram();
+        h.addVals(mapWorkinData.cnts);
+
+        console.log('The histogram is ' + h.getHistEntriesAsString() + '.');
+
         that.drawEndNote();
         console.log("No WebWorkers -- Done.");
       }
