@@ -1,10 +1,10 @@
-var __extends = (this && this.__extends) || (function () {
+var __extends = this && this.__extends || (function () {
   var extendStatics = function (d, b) {
     extendStatics = Object.setPrototypeOf ||
-      ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+      { __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; } ||
       function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
     return extendStatics(d, b);
-  }
+  };
   return function (d, b) {
     extendStatics(d, b);
     function __() { this.constructor = d; }
@@ -586,7 +586,7 @@ var ColorMapUIEntry = /** @class */ (function () {
   });
   ColorMapUIEntry.fromColorMapEntry = function (cme) {
     var result;
-    if (typeof(cme) === typeof(ColorMapUIEntry)) {
+    if (typeof cme === typeof ColorMapUIEntry) {
       result = cme;
     }
     else {

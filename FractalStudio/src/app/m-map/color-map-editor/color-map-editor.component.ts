@@ -23,7 +23,13 @@ export class ColorMapEditorComponent {
     this.updateForm(colorMap);
   }
 
+  @Input('sectionCnt')
+  set sectionCnt(secCnt: number) {
+    this.colorMapForm.controls.sectionCnt.setValue(secCnt);
+  }
+
   @Output() colorMapUpdated = new EventEmitter<IColorMap>();
+  @Output() buildColorMapFromHistogram = new EventEmitter<number>();
 
   colorMapForm: FormGroup;
 
@@ -44,11 +50,14 @@ export class ColorMapEditorComponent {
     // Define our Form. It has a single item which is an array of CEntryForms
     this.colorMapForm = new FormGroup({
       highColor: new FormControl(''),
+      sectionCnt: new FormControl(''),
       cEntries: new FormArray([])
     });
 
     // Initialize our managed list of color map entry forms and bind it to our form's cEntries FormArray.
     this.cEntryForms = new ColorMapEntryFormCollection(this.colorMapForm.controls.cEntries as FormArray);
+
+    this.colorMapForm.controls.sectionCnt.setValue(10);
   }
 
   getColorBlockStyle(idx: number): object {
@@ -140,6 +149,12 @@ export class ColorMapEditorComponent {
     });
 
     fr.readAsText(files.item(0));
+  }
+
+  onUseHistogram() {
+    //alert('User wants to use the Histogram.');
+    let secCnt = this.colorMapForm.controls.sectionCnt.value;
+    this.buildColorMapFromHistogram.emit(secCnt);
   }
 
   private toggleShowEditor(idx: number): void {

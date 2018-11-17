@@ -1,6 +1,11 @@
 import { Component, OnInit, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
 
-import { IMapInfo, IPoint, Point, MapInfo, IBox, Box, ColorMap, ColorNumbers, ColorMapEntry, ColorMapUIEntry, ColorMapUI, IColorMap, MapInfoWithColorMap } from './m-map/m-map-common';
+import {
+  IMapInfo, IPoint, Point, MapInfo, IBox, Box,
+  ColorMap, ColorNumbers, ColorMapEntry, ColorMapUIEntry, ColorMapUI, IColorMap, MapInfoWithColorMap,
+  Histogram, HistEntry} from './m-map/m-map-common';
+import { MMapDisplayComponent } from './m-map/m-map.display/m-map.display.component';
+
 
 
 @Component({
@@ -17,6 +22,7 @@ export class AppComponent {
   public colorEditorWidth: string;
 
   @ViewChild('download') downloadRef: ElementRef;
+  @ViewChild('mapDisplay') mapDisplayComponent: MMapDisplayComponent
 
   private _mapInfo: IMapInfo;
 
@@ -41,31 +47,60 @@ export class AppComponent {
   history: IMapInfo[] = [];
   atHome: boolean;
 
+  sectionCnt: number;
+
   constructor() {
-    //const bottomLeft: IPoint = new Point(-2.4, -1.2);
-    //const topRight: IPoint = new Point(1, 1.2);
-
-    //this.mapCoords = new Box(bottomLeft, topRight);
-
-    //this.maxIterations = 130;
-    //this.iterationsPerStep = 10;
-    //this.mapInfo = new MapInfo(this.mapCoords, this.maxIterations, this.iterationsPerStep);
 
     this.mapInfo = this.buildMapInfo();
     this.colorMap = this.buildColorMap();
 
     this.atHome = true;
+    this.sectionCnt = 10;
 
     this.mapDisplayWidth = '939px';
     this.mapDisplayHeight = '626px';
 
     this.colorEditorOffSet = '946px'; // 7 pixels to accomodate border, margin and 1 pixel gap.
-    this.colorEditorWidth = '210px';
+    this.colorEditorWidth = '385px';
   }
 
   onColorMapUpdated(colorMap: IColorMap) {
     console.log('App Component is handling onColorMapUpdated.');
+    this.updateDownloadLinkVisibility(false);
     this.colorMap = colorMap;
+  }
+
+  onBuildColorMapFromHistorgram(sectionCnt: number) {
+    //alert('We have been asked to build the color map from the historgram.');
+    this.sectionCnt = sectionCnt;
+    this.mapDisplayComponent.getHistogram();
+  }
+
+  onHaveHistogram(histogram: Histogram) {
+    alert('We now have a histogram. It has ' + histogram.entriesMap.size + ' entries.');
+    
+    let breakPoints = histogram.getEqualGroupsForAll(this.sectionCnt);
+
+    let bpDisplay = Histogram.getBreakPointsDisplay(breakPoints);
+    console.log('Divide into 20 equal groups gives: ' + bpDisplay);
+
+
+    let ranges: ColorMapUIEntry[] = [];
+    let ptrToExistingCmes = 0;
+
+    let ptr: number;
+    for (ptr = 1; ptr < breakPoints.length; ptr++) {
+      let existingColorNum = this.colorMap.ranges[ptrToExistingCmes++].colorNum;
+
+      ranges.push(ColorMapUIEntry.fromOffsetAndColorNum(breakPoints[ptr], existingColorNum));
+
+      if (ptrToExistingCmes > this.colorMap.ranges.length - 1) {
+        ptrToExistingCmes = 0;
+      }
+    }
+
+    let newColorMap: ColorMapUI = new ColorMapUI(ranges, this.colorMap.highColor);
+    this.colorMap = newColorMap;
   }
 
   onHaveImageData(imageBlob: Blob) {
@@ -96,12 +131,6 @@ export class AppComponent {
     this.history = [];
     this.updateDownloadLinkVisibility(false);
 
-    //// Create a new MapInfo from the loaded data.
-    //this.mapInfo = MapInfo.fromIMapInfo(miwcm.mapInfo);
-
-    //// Create a new ColorMapUI from the loaded data.
-    //this.colorMap = ColorMapUI.FromColorMapForExport(miwcm.colorMap);
-
     this.mapInfo = miwcm.mapInfo;
     this.colorMap = miwcm.colorMapUi;
 
@@ -119,14 +148,6 @@ export class AppComponent {
   // Handles Back and Reset operations.
   onGoBack(steps: number) {
     if (steps === -1) {
-      // Reset
-      //if (this.history.length > 0) {
-      //  this.mapInfo = this.history[0];
-      //  this.history = [];
-      //}
-      //else {
-      //  this.mapInfo = this.buildMapInfo();
-      //}
       if (!this.atHome) {
         this.history = [];
         this.mapInfo = this.buildMapInfo();

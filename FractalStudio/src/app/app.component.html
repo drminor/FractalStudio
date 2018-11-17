@@ -1,7 +1,8 @@
 
-<h2 style="margin-bottom:5px  ">The Mandlebrodt Set</h2>
 
-<div style="margin-bottom:20px">
+<div style="float:left; width:939px; margin-bottom:20px">
+  <h2 style="margin-bottom:5px  ">The Mandlebrodt Set</h2>
+
   <app-m-map-params [mapInfo]="mapInfo"
                     [colorMap]="colorMap"
                     (mapInfoUpdated)="onMapInfoUpdated($event)"
@@ -9,13 +10,12 @@
                     (mapInfoLoaded)="onMapInfoLoaded($event)"
                     (goBack)="onGoBack($event)">
   </app-m-map-params>
+
+
+  <button type="button" (click)="mapDisplay.getImageDataForExport()" style="margin-bottom:2px">Get Image Data</button>
+  <!--<button type="button" (click)="mapDisplay.getHistogram()" style="margin: 10px 0px 0px 2px">Get Histogram</button>-->
+  <a #download href="" download="mandlebrodt.jpg" target="_blank" hidden="hidden">Download</a>
 </div>
-
-<!--<h2>Map Output Section</h2>-->
-
-<button type="button" (click)="mapDisplay.getImageDataForExport()" style="margin-bottom:2px">Get Image Data</button>
-<button type="button" (click)="mapDisplay.getHistogram()" style="margin: 10px 0px 0px 2px">Get Histogram</button>
-<a #download href="" download="mandlebrodt.jpg" target="_blank" hidden="hidden">Download</a>
 
 <section>
   <div [ngStyle]="{'float': 'left',
@@ -35,17 +35,21 @@
                          [iterationsPerStep]="iterationsPerStep"
                          [colorMap]="colorMap"
                          (zoomed)="onZoomed($event)"
-                         (haveImageData)="onHaveImageData($event)">
+                         (haveImageData)="onHaveImageData($event)"
+                         (haveHistogram)="onHaveHistogram($event)">
       </app-m-map-display>
     </div>
   </div>
 
-  <div [ngStyle]="{'margin-left': '946px',
-                        'width': '210px',
+  <div [ngStyle]="{'margin-left': colorEditorOffSet || '946px',
+                        'width':  colorEditorWidth || '385px',
                         'padding': '3px 3px 3px 3px',
                         'border': '2px solid black'
                  }">
-    <app-color-map-editor [colorMap]="colorMap" (colorMapUpdated)="onColorMapUpdated($event)">
+    <app-color-map-editor [colorMap]="colorMap"
+                          [sectionCnt]="sectionCnt"
+                          (colorMapUpdated)="onColorMapUpdated($event)"
+                          (buildColorMapFromHistogram)="onBuildColorMapFromHistorgram($event)">
     </app-color-map-editor>
 
   </div>

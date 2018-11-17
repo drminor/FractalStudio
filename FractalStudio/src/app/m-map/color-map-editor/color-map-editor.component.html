@@ -6,10 +6,17 @@
     <div class="btnGroup">
       <button type="submit" [disabled]="!colorMapForm.valid"> Apply</button>
       <button type="button" (click)="onSaveColorMap()">Save</button>
+    </div>
+
+    <div class="btnGroup">
+      <button type="button" (click)="onUseHistogram()" style="width:150px">Load from Histogram</button>
+      <label style="margin-left:10px">With: <input type="text" formControlName="sectionCnt" size="1"></label>
+      <label style="margin-left:5px">sections</label>
+    </div>
+
+    <div class="btnGroup">
+      <input type="file" #fileSelector value="Import" style="margin-top:8px" />
       <button type="button" (click)="onLoadColorMap()">Load</button>
-
-      <input type="file" #fileSelector value="Import" style="margin-top:8px"/>
-
     </div>
 
     <a #download href="#" hidden="hidden">Download</a>
@@ -36,13 +43,11 @@
 
 
           <!--'background-color': colorMapForm.controls.cEntries.controls[i].controls.rgbaColor.value || 'white',-->
-
-
           <!--<div *ngIf="colorMapForm.controls.cEntries.controls[i].controls.showEditor.enabled">
-    <label>Red: <input type="text" formControlName="r" size="5" (blur)="onCEntryEditorBlur(i)"></label><br />
-    <label>Green: <input type="text" formControlName="g" size="5"></label><br />
-    <label>Blue: <input type="text" formControlName="b" size="5"></label>
-  </div>-->
+          <label>Red: <input type="text" formControlName="r" size="5" (blur)="onCEntryEditorBlur(i)"></label><br />
+          <label>Green: <input type="text" formControlName="g" size="5"></label><br />
+          <label>Blue: <input type="text" formControlName="b" size="5"></label>
+        </div>-->
           <!--colorMapForm.controls.cEntries.controls[i].controls.rgbacolor.value-->
 
           <div *ngIf="colorMapForm.controls.cEntries.controls[i].controls.showEditor.enabled">

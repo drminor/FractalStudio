@@ -94,6 +94,131 @@ export class Histogram {
   //  return result;
   //}
 
+  public getEqualGroupsForAll(numberOfGroups: number): number[] {
+    let hes = this.getHistEntries();
+    let result = this.getEqualGroups(numberOfGroups, hes, 0, hes.length);
+
+    return result;
+  }
+
+  public getEqualGroups(numberOfGroups: number, hes: HistEntry[], start: number, cnt: number): number[] {
+
+    let numOfResultsRemaining = numberOfGroups - 2;
+    let result = Array<number>(numOfResultsRemaining);
+
+    let resultPtr = 0;
+    let resultEndPtr = numberOfGroups - 3;
+
+    while (cnt > 0 && numOfResultsRemaining > 0) {
+      let sum = this.getSumHits(hes, start, cnt);
+      let target = parseInt((0.5 + sum / numberOfGroups).toString(), 10);
+
+      if (hes[start].occurances >= target) {
+        result[resultPtr++] = hes[start].val;
+        start++;
+        cnt--;
+      }
+      else if (hes[start + cnt - 1].occurances >= target) {
+        result[resultEndPtr--] = hes[start + cnt - 1].val;
+        cnt--;
+      }
+      else {
+        let bp = this.getForwardBreakPoint(hes, start, cnt, target);
+        result[resultPtr++] = bp;
+        let newStart = bp + 1;
+        let ac = newStart - start;
+        start = newStart;
+        cnt -= ac;
+      }
+
+      numOfResultsRemaining--;
+      numberOfGroups--;
+    }
+
+    return result;
+  }
+
+  //private placeSubResults(targetResults: number[], resultPtr: number, resultEndPtr: number, subResults: number[]): number[] {
+
+  //  //let results: number[] = new Array<number>(2);
+
+  //  let ptr: number = 0;
+
+  //  while (resultPtr < resultEndPtr) {
+  //    if (ptr >= subResults.length) break;
+
+  //    let sR = subResults[ptr];
+  //    if (sR === undefined) break;
+
+  //    targetResults[resultPtr++] = sR;
+  //    ptr++;
+  //  }
+
+  //  ptr = subResults.length - 1;
+  //  while (resultPtr < resultEndPtr) {
+  //    if (ptr <= 0) break;
+
+  //    let sR = subResults[ptr];
+  //    if (sR === undefined) break;
+
+  //    targetResults[resultEndPtr--] = sR;
+  //    ptr--;
+  //  }
+  //  let result: number[] = [resultPtr, resultEndPtr];
+
+  //  return result;
+
+  //}
+
+  // Returns the index into hes where the runnng sum is >= target.
+  getForwardBreakPoint(hes: HistEntry[], start: number, cnt: number, target: number): number {
+    let runSum: number = 0;
+
+    let ptr: number;
+    for (ptr = start; ptr < start + cnt; ptr++) {
+      runSum += hes[ptr].occurances;
+      if (runSum >= target) {
+        // We have found the breakpoint at ptr.
+        return ptr;
+      }
+    }
+
+    // The breakpoint is the last index into hes.
+    let result = start + cnt - 1;
+    return result;
+  }
+
+  //getReverseBreakPoint(hes: HistEntry[], start: number, cnt: number, target: number): number {
+  //  let runSum: number = 0;
+
+  //  let ptr: number;
+  //  for (ptr = start + cnt - 1; ptr > start; ptr--) {
+  //    runSum += hes[ptr].occurances;
+  //    if (runSum >= target) {
+  //      // We have found the breakpoint at ptr.
+  //      return ptr;
+  //      break;
+  //    }
+  //  }
+
+  //  // The breakpoint is the first index into hes.
+  //  let result = start;
+  //  return result;
+  //}
+
+
+  getSumHits(hes: HistEntry[], start: number, cnt: number): number {
+    let result: number = 0;
+
+    let ptr: number;
+    for (ptr = start; ptr < start + cnt; ptr++) {
+      result += hes[ptr].occurances;
+    }
+
+    return result;
+
+  }
+
   public getHistEntries(): HistEntry[] {
     let result: HistEntry[] = [];
     let lst = Array.from(this.entriesMap.entries());
@@ -202,6 +327,21 @@ export class Histogram {
     for (ptr = 0; ptr < hEntries.length; ptr++) {
       let he = hEntries[ptr];
       result = result + he.toString() + '\n';
+    }
+
+    return result;
+  }
+
+  public static getBreakPointsDisplay(bps: number[]): string {
+    let result: string = '';
+
+    let startRange = 0;
+
+    let ptr: number;
+    for (ptr = 0; ptr < bps.length; ptr++) {
+      let endRange = bps[ptr];
+      result += 'Range ' + ptr + ': ' + startRange + '-' + endRange + '\n';
+      startRange = endRange;
     }
 
     return result;

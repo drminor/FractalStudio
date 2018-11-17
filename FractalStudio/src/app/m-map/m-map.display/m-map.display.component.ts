@@ -103,6 +103,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
   @Output() zoomed = new EventEmitter<IBox>();
   @Output() haveImageData = new EventEmitter<Blob>();
+  @Output() haveHistogram = new EventEmitter<Histogram>();
 
   constructor() {
     console.log('m-map.display is being constructed.');
@@ -183,11 +184,11 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     this._sectionCompleteFlags[sectionNumber] = true;
 
     if (this.haveAllSectionsCompleted()) {
-      // TODO: raise HaveHistogram event.
       console.log('The histogram has been assembled.');
       console.log('The historgram is ' + this._histogram + '.');
-    }
 
+      this.haveHistogram.emit(this._histogram);
+    }
   }
 
   drawEndNote(): void {
