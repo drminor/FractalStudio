@@ -29,9 +29,6 @@
           <br />
           <!-- Clickable Color Block -->
           <div style="position:relative; width:55px; height:25px; margin:5px;">
-
-            <!--<div [ngStyle]="getColorBlockStyle(i)" (click)="onEditColor(i)"></div>-->
-            <!--<div [ngStyle]="{'background-color': colorMapForm.controls.cEntries.controls[i].controls.rgbaColor.value || 'white'}" (click)="onEditColor(i)"></div>-->
             <div [ngStyle]="{'position': 'absolute',
                                         'width': '100%',
                                         'height': '100%',
@@ -41,26 +38,17 @@
                  (click)="onEditColor(i)"></div>
           </div>
 
-
-          <!--'background-color': colorMapForm.controls.cEntries.controls[i].controls.rgbaColor.value || 'white',-->
           <!--<div *ngIf="colorMapForm.controls.cEntries.controls[i].controls.showEditor.enabled">
-          <label>Red: <input type="text" formControlName="r" size="5" (blur)="onCEntryEditorBlur(i)"></label><br />
-          <label>Green: <input type="text" formControlName="g" size="5"></label><br />
-          <label>Blue: <input type="text" formControlName="b" size="5"></label>
-        </div>-->
-          <!--colorMapForm.controls.cEntries.controls[i].controls.rgbacolor.value-->
-
-          <div *ngIf="colorMapForm.controls.cEntries.controls[i].controls.showEditor.enabled">
             <app-color-picker [item]="i" [rgbaColor]="colorMapForm.controls.cEntries.controls[i].controls.rgbaColor.value" (colorUpdated)="setRgbaColor($event)"></app-color-picker>
+          </div>-->
+
+          <div *ngIf="colEntry.controls.showEditor.enabled">
+            <app-color-picker [item]="i" [rgbaColor]="colEntry.controls.rgbaColor.value" (colorUpdated)="setRgbaColor($event)"></app-color-picker>
             <!--<span class="text">{{colorMapForm.controls.cEntries.controls[i].controls.rgbaColor.value}}</span>-->
           </div>
-
         </div>
-
       </div>
     </div>
   </form>
-
-
 
 </div>

@@ -6,7 +6,8 @@ import {
   IMapInfo, MapInfo, IMapWorkingData, MapWorkingData,
   WebWorkerImageDataResponse, WebWorkerMessage, WebWorkerStartRequest, WebWorkerImageDataRequest,
   WebWorkerIterateRequest, WebWorkerUpdateColorMapRequest,
-  ColorMap, ColorMapEntry, ColorNumbers, IColorMap, Histogram, WebWorkerHistogramRequest, WebWorkerHistorgramResponse, HistArrayPair, ColorMapUI
+  ColorMap, ColorMapUI, ColorMapEntry, ColorMapUIEntry, ColorNumbers,
+  Histogram, WebWorkerHistogramRequest, WebWorkerHistorgramResponse, HistArrayPair
 } from '../m-map-common';
 
 @Component({
@@ -17,7 +18,7 @@ import {
 export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
   private _mapInfo: IMapInfo;
-  private _colorMap: IColorMap;
+  private _colorMap: ColorMapUI;
 
   public alive: boolean;
 
@@ -88,7 +89,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
   }
 
   @Input('colorMap')
-  set colorMap(cMap: ColorMap) {
+  set colorMap(cMap: ColorMapUI) {
     this._colorMap = cMap;
 
     if (this.viewInitialized) {
@@ -142,20 +143,10 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     canvas.width = this._canvasSizeForExport.width;
     canvas.height = this._canvasSizeForExport.height;
 
-    let colorMap: ColorMap;
+    let regularColorMap = this._colorMap.getRegularColorMap();
 
-    if (typeof (this._colorMap) === typeof (ColorMap)) {
-      colorMap = this._colorMap as ColorMap;
-    }
-    else {
-      colorMap = (this._colorMap as ColorMapUI).getRegularColorMap();
-    }
-
-
-    let localWorkingData = MapWorkingData.getWorkingDataSections(this._canvasSizeForExport, this._mapInfo, colorMap, this.numberOfSections);
-
+    let localWorkingData = MapWorkingData.getWorkingDataSections(this._canvasSizeForExport, this._mapInfo, regularColorMap, this.numberOfSections);
     this.resetSectionCompleteFlags();
-
     this._exportWorkers = this.initWebWorkersForExport(localWorkingData, this._mapInfo.maxIterations);
   }
 
@@ -340,25 +331,14 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
   }
 
   private buildWorkingData(): void {
-
-    let colorMap: ColorMap;
-
-    if (typeof (this._colorMap) === typeof (ColorMap)) {
-      colorMap = this._colorMap as ColorMap;
-    }
-    else {
-      colorMap = (this._colorMap as ColorMapUI).getRegularColorMap();
-    }
+    let regularColorMap = this._colorMap.getRegularColorMap();
 
     if (this.useWorkers) {
-
       // Clear existing workers, if any
       this.terminateWorkers(this.workers);
 
-
-
       // Create a MapWorkingData for each section.
-      this.sections = MapWorkingData.getWorkingDataSections(this.canvasSize, this._mapInfo, colorMap, this.numberOfSections);
+      this.sections = MapWorkingData.getWorkingDataSections(this.canvasSize, this._mapInfo, regularColorMap, this.numberOfSections);
 
       //let ptr: number = 0;
       //for (ptr = 0; ptr < this.numberOfSections; ptr++) {
@@ -374,7 +354,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
         throw new RangeError('The number of sections must be set to 1, if useWorkers = false.');
       }
       this.sections = new Array<IMapWorkingData>(1);
-      this.sections[0] = new MapWorkingData(this.canvasSize, this._mapInfo, colorMap, new Point(0, 0), false);
+      this.sections[0] = new MapWorkingData(this.canvasSize, this._mapInfo, regularColorMap, new Point(0, 0), false);
 
       this.progressively();
     }
@@ -541,14 +521,13 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
   }
 
   private updateWorkersColorMap() {
+    let regularColorMap = this._colorMap.getRegularColorMap();
+    let upColorMapMsg = WebWorkerUpdateColorMapRequest.CreateRequest(regularColorMap);
+
     let ptr: number = 0;
-
-    let upColorMapMsg = WebWorkerUpdateColorMapRequest.CreateRequest(this._colorMap);
-
     for (ptr = 0; ptr < this.numberOfSections; ptr++) {
       let webWorker = this.workers[ptr];
       webWorker.postMessage(upColorMapMsg);
-
     }
   }
 

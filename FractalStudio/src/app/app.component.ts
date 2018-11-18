@@ -1,8 +1,8 @@
-import { Component, OnInit, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, ViewChild, ElementRef } from '@angular/core';
 
 import {
   IMapInfo, IPoint, Point, MapInfo, IBox, Box,
-  ColorMap, ColorNumbers, ColorMapEntry, ColorMapUIEntry, ColorMapUI, IColorMap, MapInfoWithColorMap,
+  ColorMap, ColorMapEntry, ColorMapUI, ColorMapUIEntry, ColorNumbers, MapInfoWithColorMap,
   Histogram, HistEntry} from './m-map/m-map-common';
 import { MMapDisplayComponent } from './m-map/m-map.display/m-map.display.component';
 
@@ -41,8 +41,7 @@ export class AppComponent {
   maxIterations: number;
   iterationsPerStep: number;
 
-  colorMap: IColorMap;
-  //dataUri: string;
+  colorMap: ColorMapUI;
 
   history: IMapInfo[] = [];
   atHome: boolean;
@@ -64,7 +63,7 @@ export class AppComponent {
     this.colorEditorWidth = '385px';
   }
 
-  onColorMapUpdated(colorMap: IColorMap) {
+  onColorMapUpdated(colorMap: ColorMapUI) {
     console.log('App Component is handling onColorMapUpdated.');
     this.updateDownloadLinkVisibility(false);
     this.colorMap = colorMap;
@@ -82,14 +81,14 @@ export class AppComponent {
     let breakPoints = histogram.getEqualGroupsForAll(this.sectionCnt);
 
     let bpDisplay = Histogram.getBreakPointsDisplay(breakPoints);
-    console.log('Divide into 20 equal groups gives: ' + bpDisplay);
+    console.log('Divide into ' + this.sectionCnt + ' equal groups gives: ' + bpDisplay);
 
 
     let ranges: ColorMapUIEntry[] = [];
     let ptrToExistingCmes = 0;
 
     let ptr: number;
-    for (ptr = 1; ptr < breakPoints.length; ptr++) {
+    for (ptr = 0; ptr < breakPoints.length; ptr++) {
       let existingColorNum = this.colorMap.ranges[ptrToExistingCmes++].colorNum;
 
       ranges.push(ColorMapUIEntry.fromOffsetAndColorNum(breakPoints[ptr], existingColorNum));
@@ -101,6 +100,8 @@ export class AppComponent {
 
     let newColorMap: ColorMapUI = new ColorMapUI(ranges, this.colorMap.highColor);
     this.colorMap = newColorMap;
+
+    console.log('The color map has ' + this.colorMap.ranges.length + ' entries.');
   }
 
   onHaveImageData(imageBlob: Blob) {
@@ -160,10 +161,10 @@ export class AppComponent {
         this.mapInfo = this.history.pop();
       }
     }
-    else if (steps === 2) {
-      // Just for testing
-      this.doTest();
-    }
+    //else if (steps === 2) {
+    //  // Just for testing
+    //  this.doTest();
+    //}
     else {
       throw new RangeError('Steps must be 1 or -1.');
     }
@@ -176,13 +177,13 @@ export class AppComponent {
     anchorTag.hidden = !show;
   }
 
-  private doTest(): void {
-    let cMap = this.buildColorMap();
-    let cMapEntry = new ColorMapEntry(15, ColorNumbers.getColor(30, 40, 60));
+  //private doTest(): void {
+  //  let cMap = this.buildColorMap();
+  //  let cMapEntry = new ColorMapEntry(15, ColorNumbers.getColor(30, 40, 60));
 
-    cMap.insertColorMapEntry(cMapEntry, 1);
-    this.colorMap = cMap;
-  }
+  //  cMap.insertColorMapEntry(cMapEntry, 1);
+  //  this.colorMap = cMap;
+  //}
 
   private buildMapInfo(): IMapInfo {
     const bottomLeft: IPoint = new Point(-2.4, -1.2);

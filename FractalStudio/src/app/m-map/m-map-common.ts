@@ -55,7 +55,7 @@ export interface IMapWorkingData {
 
   curIterations: number;
 
-  colorMap: IColorMap;
+  colorMap: ColorMap;
 
   getLinearIndex(c: IPoint): number;
   doIterationsForAll(iterCount: number): boolean;
@@ -67,306 +67,6 @@ export interface IMapWorkingData {
   updateImageData(imgData: Uint8ClampedArray): void;
 
   getHistogram(): Histogram;
-}
-
-export class HistArrayPair {
-  constructor(public vals: Uint16Array, public occurances: Uint16Array) { }
-}
-
-export class HistEntry {
-  constructor(public val: number, public occurances: number) { }
-
-  public toString(): string {
-    return this.val.toString() + ': ' + this.occurances.toString();
-  }
-}
-
-export class Histogram {
-
-  public entriesMap: Map<number, number>;
-
-  constructor() {
-    this.entriesMap = new Map<number, number>();
-  }
-
-  //public getSortedHistEntries(hes: HistEntry[]): HistEntry[] {
-  //  let result = hes.sort((a, b) => a.val - b.val);
-  //  return result;
-  //}
-
-  public getEqualGroupsForAll(numberOfGroups: number): number[] {
-    let hes = this.getHistEntries();
-    let result = this.getEqualGroups(numberOfGroups, hes, 0, hes.length);
-
-    return result;
-  }
-
-  public getEqualGroups(numberOfGroups: number, hes: HistEntry[], start: number, cnt: number): number[] {
-
-    let numOfResultsRemaining = numberOfGroups - 2;
-    let result = Array<number>(numOfResultsRemaining);
-
-    let resultPtr = 0;
-    let resultEndPtr = numberOfGroups - 3;
-
-    while (cnt > 0 && numOfResultsRemaining > 0) {
-      let sum = this.getSumHits(hes, start, cnt);
-      let target = parseInt((0.5 + sum / numberOfGroups).toString(), 10);
-
-      if (hes[start].occurances >= target) {
-        result[resultPtr++] = hes[start].val;
-        start++;
-        cnt--;
-      }
-      else if (hes[start + cnt - 1].occurances >= target) {
-        result[resultEndPtr--] = hes[start + cnt - 1].val;
-        cnt--;
-      }
-      else {
-        let bp = this.getForwardBreakPoint(hes, start, cnt, target);
-        result[resultPtr++] = bp;
-        let newStart = bp + 1;
-        let ac = newStart - start;
-        start = newStart;
-        cnt -= ac;
-      }
-
-      numOfResultsRemaining--;
-      numberOfGroups--;
-    }
-
-    return result;
-  }
-
-  //private placeSubResults(targetResults: number[], resultPtr: number, resultEndPtr: number, subResults: number[]): number[] {
-
-  //  //let results: number[] = new Array<number>(2);
-
-  //  let ptr: number = 0;
-
-  //  while (resultPtr < resultEndPtr) {
-  //    if (ptr >= subResults.length) break;
-
-  //    let sR = subResults[ptr];
-  //    if (sR === undefined) break;
-
-  //    targetResults[resultPtr++] = sR;
-  //    ptr++;
-  //  }
-
-  //  ptr = subResults.length - 1;
-  //  while (resultPtr < resultEndPtr) {
-  //    if (ptr <= 0) break;
-
-  //    let sR = subResults[ptr];
-  //    if (sR === undefined) break;
-
-  //    targetResults[resultEndPtr--] = sR;
-  //    ptr--;
-  //  }
-  //  let result: number[] = [resultPtr, resultEndPtr];
-
-  //  return result;
-
-  //}
-
-  // Returns the index into hes where the runnng sum is >= target.
-  getForwardBreakPoint(hes: HistEntry[], start: number, cnt: number, target: number): number {
-    let runSum: number = 0;
-
-    let ptr: number;
-    for (ptr = start; ptr < start + cnt; ptr++) {
-      runSum += hes[ptr].occurances;
-      if (runSum >= target) {
-        // We have found the breakpoint at ptr.
-        return ptr;
-      }
-    }
-
-    // The breakpoint is the last index into hes.
-    let result = start + cnt - 1;
-    return result;
-  }
-
-  //getReverseBreakPoint(hes: HistEntry[], start: number, cnt: number, target: number): number {
-  //  let runSum: number = 0;
-
-  //  let ptr: number;
-  //  for (ptr = start + cnt - 1; ptr > start; ptr--) {
-  //    runSum += hes[ptr].occurances;
-  //    if (runSum >= target) {
-  //      // We have found the breakpoint at ptr.
-  //      return ptr;
-  //      break;
-  //    }
-  //  }
-
-  //  // The breakpoint is the first index into hes.
-  //  let result = start;
-  //  return result;
-  //}
-
-
-  getSumHits(hes: HistEntry[], start: number, cnt: number): number {
-    let result: number = 0;
-
-    let ptr: number;
-    for (ptr = start; ptr < start + cnt; ptr++) {
-      result += hes[ptr].occurances;
-    }
-
-    return result;
-
-  }
-
-  public getHistEntries(): HistEntry[] {
-    let result: HistEntry[] = [];
-    let lst = Array.from(this.entriesMap.entries());
-
-    let ptr: number;
-    for (ptr = 0; ptr < lst.length; ptr++) {
-      result.push(new HistEntry(lst[ptr]["0"], lst[ptr]["1"]));
-    }
-
-    result.sort((a, b) => a.val - b.val);
-    return result;
-  }
-
-  public getHistArrayPair(): HistArrayPair {
-    //let vals = new Uint16Array(this.entriesMap.size);
-    //let occs = new Uint16Array(this.entriesMap.size);
-
-    //let vlst = Array.from(this.entriesMap.keys());
-    //let olst = Array.from(this.entriesMap.values());
-
-    let vals = new Uint16Array(Array.from(this.entriesMap.keys()));
-    let occs = new Uint16Array(Array.from(this.entriesMap.values()));
-
-    //let ptr: number;
-    //for (ptr = 0; ptr < vlst.length; ptr++) {
-    //  vals[ptr] = vlst[ptr];
-    //  occs[ptr] = olst[ptr];
-    //}
-
-    let result = new HistArrayPair(vals, occs);
-    return result;
-  }
-
-  addVal(val: number): void {
-    let exEntry = this.entriesMap.get(val);
-
-    if (exEntry === undefined) {
-      this.entriesMap.set(val, 1);
-    }
-    else {
-      this.entriesMap.set(val, exEntry + 1);
-    }
-  }
-
-  addVals(vals: Uint16Array): void {
-
-    if (!vals || vals.length === 0) return;
-
-    let lastVal = vals[0];
-
-    let lastOcc = this.entriesMap.get(lastVal);
-    lastOcc = lastOcc === undefined ? 1 : lastOcc + 1;
-
-    let ptr: number;
-
-    for (ptr = 1; ptr < vals.length; ptr++) {
-      let val = vals[ptr];
-
-      if (val === lastVal) {
-        lastOcc++;
-      }
-      else {
-        this.entriesMap.set(lastVal, lastOcc);
-        lastOcc = this.entriesMap.get(val);
-        lastOcc = lastOcc === undefined ? 1 : lastOcc + 1;
-        lastVal = val;
-      }
-    }
-
-    if (!(lastVal === undefined)) {
-      this.entriesMap.set(lastVal, lastOcc);
-    }
-  }
-
-  public static fromHistArrayPair(arrayPair: HistArrayPair): Histogram {
-    let result = new Histogram();
-
-    let ptr: number;
-    for (ptr = 0; ptr < arrayPair.vals.length; ptr++) {
-      result.entriesMap.set(arrayPair.vals[ptr], arrayPair.occurances[ptr]);
-    }
-    return result;
-  }
-
-  public addFromArrayPair(arrayPair: HistArrayPair): void {
-    let ptr: number;
-    for (ptr = 0; ptr < arrayPair.vals.length; ptr++) {
-      let val = arrayPair.vals[ptr];
-      let occ = this.entriesMap.get(val);
-      if (occ === undefined) {
-        this.entriesMap.set(val, arrayPair.occurances[ptr]);
-      }
-      else {
-        this.entriesMap.set(val, occ + arrayPair.occurances[ptr]);
-      }
-    }
-  }
-
-  public toString(): string {
-
-    let result: string = '';
-    let hEntries = this.getHistEntries();
-
-    let ptr: number;
-
-    for (ptr = 0; ptr < hEntries.length; ptr++) {
-      let he = hEntries[ptr];
-      result = result + he.toString() + '\n';
-    }
-
-    return result;
-  }
-
-  public static getBreakPointsDisplay(bps: number[]): string {
-    let result: string = '';
-
-    let startRange = 0;
-
-    let ptr: number;
-    for (ptr = 0; ptr < bps.length; ptr++) {
-      let endRange = bps[ptr];
-      result += 'Range ' + ptr + ': ' + startRange + '-' + endRange + '\n';
-      startRange = endRange;
-    }
-
-    return result;
-  }
-
-}
-
-export class MapInfoWithColorMap {
-  constructor(public mapInfo: IMapInfo, public colorMapUi: ColorMapUI) { }
-
-  public static fromForExport(miwcm: MapInfoWithColorMapForExport): MapInfoWithColorMap {
-
-    // Create a new MapInfo from the loaded data.
-    let mapInfo = MapInfo.fromIMapInfo(miwcm.mapInfo);
-
-    // Create a new ColorMapUI from the loaded data.
-    let colorMap = ColorMapUI.FromColorMapForExport(miwcm.colorMap);
-
-    let result = new MapInfoWithColorMap(mapInfo, colorMap);
-    return result;
-  }
-}
-
-export class MapInfoWithColorMapForExport {
-  constructor(public mapInfo: IMapInfo, public colorMap: ColorMapForExport) { }
 }
 
 export class Point implements IPoint {
@@ -502,6 +202,249 @@ export class MapInfo implements IMapInfo {
   }
 }
 
+export class HistArrayPair {
+  constructor(public vals: Uint16Array, public occurances: Uint16Array) { }
+}
+
+export class HistEntry {
+  constructor(public val: number, public occurances: number) { }
+
+  public toString(): string {
+    return this.val.toString() + ': ' + this.occurances.toString();
+  }
+}
+
+export class Histogram {
+
+  public entriesMap: Map<number, number>;
+
+  constructor() {
+    this.entriesMap = new Map<number, number>();
+  }
+
+  public getEqualGroupsForAll(numberOfGroups: number): number[] {
+    let hes = this.getHistEntries();
+
+    let start = this.getFirstLargerThan(hes, 3);
+    let cnt = hes.length - start;
+    //cnt--; // don't include the last value.
+
+    let result = this.getEqualGroups(numberOfGroups, hes, start, cnt);
+
+    return result;
+  }
+
+  private getFirstLargerThan(hes: HistEntry[], cutOff: number): number {
+    let ptr: number;
+    for (ptr = 0; ptr < hes.length; ptr++) {
+      if (hes[ptr].val > cutOff) {
+        break;
+      }
+    }
+    return ptr;
+  }
+
+  public getEqualGroups(numberOfGroups: number, hes: HistEntry[], start: number, cnt: number): number[] {
+
+    let numOfResultsRemaining = numberOfGroups - 2;
+    let result = Array<number>(numOfResultsRemaining);
+
+    let resultPtr = 0;
+    let resultEndPtr = numberOfGroups - 3;
+
+    while (cnt > 0 && numOfResultsRemaining > 0) {
+      let sum = this.getSumHits(hes, start, cnt);
+      let target = parseInt((0.5 + sum / numberOfGroups).toString(), 10);
+
+      if (hes[start].occurances >= target) {
+        result[resultPtr++] = hes[start].val;
+        start++;
+        cnt--;
+      }
+      else if (hes[start + cnt - 1].occurances >= target) {
+        result[resultEndPtr--] = hes[start + cnt - 1].val;
+        cnt--;
+      }
+      else {
+        let bp = this.getForwardBreakPoint(hes, start, cnt, target);
+        result[resultPtr++] = bp;
+        let newStart = bp + 1;
+        let ac = newStart - start;
+        start = newStart;
+        cnt -= ac;
+      }
+
+      numOfResultsRemaining--;
+      numberOfGroups--;
+    }
+
+    return result;
+  }
+
+  // Returns the index into hes where the runnng sum is >= target.
+  getForwardBreakPoint(hes: HistEntry[], start: number, cnt: number, target: number): number {
+    let runSum: number = 0;
+
+    let ptr: number;
+    for (ptr = start; ptr < start + cnt; ptr++) {
+      runSum += hes[ptr].occurances;
+      if (runSum >= target) {
+        // We have found the breakpoint at ptr.
+        return ptr;
+      }
+    }
+
+    // The breakpoint is the last index into hes.
+    let result = start + cnt - 1;
+    return result;
+  }
+
+  getSumHits(hes: HistEntry[], start: number, cnt: number): number {
+    let result: number = 0;
+
+    let ptr: number;
+    for (ptr = start; ptr < start + cnt; ptr++) {
+      result += hes[ptr].occurances;
+    }
+
+    return result;
+  }
+
+  public getHistEntries(): HistEntry[] {
+    let result: HistEntry[] = [];
+    let lst = Array.from(this.entriesMap.entries());
+
+    let ptr: number;
+    for (ptr = 0; ptr < lst.length; ptr++) {
+      result.push(new HistEntry(lst[ptr]["0"], lst[ptr]["1"]));
+    }
+
+    result.sort((a, b) => a.val - b.val);
+    return result;
+  }
+
+  public getHistArrayPair(): HistArrayPair {
+    let vals = new Uint16Array(Array.from(this.entriesMap.keys()));
+    let occs = new Uint16Array(Array.from(this.entriesMap.values()));
+
+    let result = new HistArrayPair(vals, occs);
+    return result;
+  }
+
+  addVal(val: number): void {
+    let exEntry = this.entriesMap.get(val);
+
+    if (exEntry === undefined) {
+      this.entriesMap.set(val, 1);
+    }
+    else {
+      this.entriesMap.set(val, exEntry + 1);
+    }
+  }
+
+  addVals(vals: Uint16Array): void {
+    if (!vals || vals.length === 0) return;
+
+    let lastVal = vals[0];
+    let lastOcc = this.entriesMap.get(lastVal);
+    lastOcc = lastOcc === undefined ? 1 : lastOcc + 1;
+
+    let ptr: number;
+
+    for (ptr = 1; ptr < vals.length; ptr++) {
+      let val = vals[ptr];
+
+      if (val === lastVal) {
+        lastOcc++;
+      }
+      else {
+        this.entriesMap.set(lastVal, lastOcc);
+        lastOcc = this.entriesMap.get(val);
+        lastOcc = lastOcc === undefined ? 1 : lastOcc + 1;
+        lastVal = val;
+      }
+    }
+
+    if (!(lastVal === undefined)) {
+      this.entriesMap.set(lastVal, lastOcc);
+    }
+  }
+
+  public static fromHistArrayPair(arrayPair: HistArrayPair): Histogram {
+    let result = new Histogram();
+
+    let ptr: number;
+    for (ptr = 0; ptr < arrayPair.vals.length; ptr++) {
+      result.entriesMap.set(arrayPair.vals[ptr], arrayPair.occurances[ptr]);
+    }
+    return result;
+  }
+
+  public addFromArrayPair(arrayPair: HistArrayPair): void {
+    let ptr: number;
+    for (ptr = 0; ptr < arrayPair.vals.length; ptr++) {
+      let val = arrayPair.vals[ptr];
+      let occ = this.entriesMap.get(val);
+      if (occ === undefined) {
+        this.entriesMap.set(val, arrayPair.occurances[ptr]);
+      }
+      else {
+        this.entriesMap.set(val, occ + arrayPair.occurances[ptr]);
+      }
+    }
+  }
+
+  public toString(): string {
+
+    let result: string = '';
+    let hEntries = this.getHistEntries();
+
+    let ptr: number;
+
+    for (ptr = 0; ptr < hEntries.length; ptr++) {
+      let he = hEntries[ptr];
+      result = result + he.toString() + '\n';
+    }
+
+    return result;
+  }
+
+  public static getBreakPointsDisplay(bps: number[]): string {
+    let result: string = '';
+
+    let startRange = 0;
+
+    let ptr: number;
+    for (ptr = 0; ptr < bps.length; ptr++) {
+      let endRange = bps[ptr];
+      result += 'Range ' + ptr + ': ' + startRange + '-' + endRange + '\n';
+      startRange = endRange;
+    }
+
+    return result;
+  }
+}
+
+export class MapInfoWithColorMap {
+  constructor(public mapInfo: IMapInfo, public colorMapUi: ColorMapUI) { }
+
+  public static fromForExport(miwcm: MapInfoWithColorMapForExport): MapInfoWithColorMap {
+
+    // Create a new MapInfo from the loaded data.
+    let mapInfo = MapInfo.fromIMapInfo(miwcm.mapInfo);
+
+    // Create a new ColorMapUI from the loaded data.
+    let colorMap = ColorMapUI.FromColorMapForExport(miwcm.colorMap);
+
+    let result = new MapInfoWithColorMap(mapInfo, colorMap);
+    return result;
+  }
+}
+
+export class MapInfoWithColorMapForExport {
+  constructor(public mapInfo: IMapInfo, public colorMap: ColorMapForExport) { }
+}
+
 export class MapWorkingData implements IMapWorkingData {
 
   public elementCount: number;
@@ -523,7 +466,7 @@ export class MapWorkingData implements IMapWorkingData {
 
   //public pixelData: Uint8ClampedArray;
 
-  constructor(public canvasSize: ICanvasSize, public mapInfo: IMapInfo, public colorMap: IColorMap, public sectionAnchor: IPoint, forSubDivision: boolean) {
+  constructor(public canvasSize: ICanvasSize, public mapInfo: IMapInfo, public colorMap: ColorMap, public sectionAnchor: IPoint, forSubDivision: boolean) {
 
     this.elementCount = this.getNumberOfElementsForCanvas(this.canvasSize);
 
@@ -683,7 +626,7 @@ export class MapWorkingData implements IMapWorkingData {
   }
 
   // Divides the specified MapWorking data into the specified vertical sections, each having the width of the original Map.
-  static getWorkingDataSections(canvasSize: ICanvasSize, mapInfo: IMapInfo, colorMap: IColorMap, numberOfSections: number): IMapWorkingData[] {
+  static getWorkingDataSections(canvasSize: ICanvasSize, mapInfo: IMapInfo, colorMap: ColorMap, numberOfSections: number): IMapWorkingData[] {
 
     console.log('At getWorkingDataSections, ColorMap = ' + colorMap + '.');
 
@@ -837,12 +780,12 @@ export class MapWorkingData implements IMapWorkingData {
 
 } // End Class MapWorkingData
 
-export interface IColorMapEntry {
-  cutOff: number;
-  colorNum: number;
-}
+//export interface IColorMapEntry {
+//  cutOff: number;
+//  colorNum: number;
+//}
 
-export class ColorMapEntry implements IColorMapEntry  {
+export class ColorMapEntry {
   constructor(public cutOff: number, public colorNum: number) {
   }
 }
@@ -852,7 +795,7 @@ export class ColorMapEntryForExport {
   }
 }
 
-export class ColorMapUIEntry implements IColorMapEntry {
+export class ColorMapUIEntry {
 
   public colorNum: number;
   public r: number;
@@ -874,7 +817,7 @@ export class ColorMapUIEntry implements IColorMapEntry {
     return result;
   }
 
-  constructor(public cutOff: number, public colorVals: number[]) {
+  constructor(public cutOff: number, colorVals: number[]) {
 
     if (colorVals.length === 3) {
       this.r = colorVals[0];
@@ -895,15 +838,8 @@ export class ColorMapUIEntry implements IColorMapEntry {
     this.colorNum = ColorNumbers.getColor(this.r, this.g, this.b, this.alpha);
   }
 
-  public static fromColorMapEntry(cme: IColorMapEntry): ColorMapUIEntry {
-    let result: ColorMapUIEntry;
-
-    if (typeof (cme) === typeof (ColorMapUIEntry)) {
-      result = cme as ColorMapUIEntry;
-    }
-    else {
-      result = ColorMapUIEntry.fromOffsetAndColorNum(cme.cutOff, cme.colorNum);
-    }
+  public static fromColorMapEntry(cme: ColorMapEntry): ColorMapUIEntry {
+    let result = ColorMapUIEntry.fromOffsetAndColorNum(cme.cutOff, cme.colorNum);
     return result;
   }
 
@@ -926,22 +862,22 @@ export class ColorMapUIEntry implements IColorMapEntry {
   }
 }
 
-export interface IColorMap {
-  ranges: IColorMapEntry[]
-  highColor: number;
+//export interface IColorMap {
+//  ranges: ColorMapEntry[]
+//  highColor: number;
 
-  getColor(countValue: number): number;
-  insertColorMapEntry(entry: IColorMapEntry, index: number);
+//  getColor(countValue: number): number;
+//  insertColorMapEntry(entry: ColorMapEntry, index: number);
 
-  getCutOffs(): Uint16Array;
-  getColorNums(): Uint32Array;
-}
+//  getCutOffs(): Uint16Array;
+//  getColorNums(): Uint32Array;
+//}
 
-export class ColorMap implements IColorMap {
+export class ColorMap {
 
-  constructor(public ranges: IColorMapEntry[], public highColor: number) { }
+  constructor(public ranges: ColorMapEntry[], public highColor: number) { }
 
-  public static FromTypedArrays(cutOffs: Uint16Array, colorNums: Uint32Array, highColor: number): IColorMap {
+  public static FromTypedArrays(cutOffs: Uint16Array, colorNums: Uint32Array, highColor: number): ColorMap {
     let workRanges: ColorMapEntry[] = new Array<ColorMapEntry>(cutOffs.length);
     let i: number = 0;
 
@@ -954,7 +890,7 @@ export class ColorMap implements IColorMap {
     return result;
   }
 
-  public insertColorMapEntry(entry: IColorMapEntry, index: number) {
+  public insertColorMapEntry(entry: ColorMapEntry, index: number) {
     if (index <= 0) {
       this.ranges.unshift(entry);
     }
@@ -1039,38 +975,32 @@ export class ColorMap implements IColorMap {
   }
 }
 
-export class ColorMapUI extends ColorMap {
+export class ColorMapUI {
 
-  public get uIRanges(): ColorMapUIEntry[] {
-    return this.ranges as ColorMapUIEntry[];
-  }
+  //public get uIRanges(): ColorMapUIEntry[] {
+  //  return this.ranges as ColorMapUIEntry[];
+  //}
 
-  constructor(ranges: ColorMapUIEntry[], highColor: number)
-  {
-    super(ranges, highColor);
-  }
+  constructor(public ranges: ColorMapUIEntry[], public highColor: number) { }
 
-  // TODO: Make the ColorMapUI standalone -- and not extend ColorMap.
-  // Override the method in ColorMap
-  insertColorMapEntry(entry: IColorMapEntry, index: number) {
+  //insertColorMapEntry(entry: IColorMapEntry, index: number) {
 
-    throw new RangeError("Not Implemented.");
-  }
+  //  throw new RangeError("Not Implemented.");
+  //}
 
   public getRegularColorMap(): ColorMap {
 
-    let uiRanges = this.uIRanges;
-    let ranges: ColorMapEntry[] = [];
+    let regularRanges: ColorMapEntry[] = [];
 
     let ptr: number;
 
-    for (ptr = 0; ptr < uiRanges.length; ptr++) {
-      let uiCme = uiRanges[ptr];
-      let cme: ColorMapEntry = new ColorMapEntry(uiCme.cutOff, uiCme.colorNum);
-      ranges.push(cme);
+    for (ptr = 0; ptr < this.ranges.length; ptr++) {
+      let cmuie = this.ranges[ptr];
+      let cme: ColorMapEntry = new ColorMapEntry(cmuie.cutOff, cmuie.colorNum);
+      regularRanges.push(cme);
     }
 
-    let result = new ColorMap(ranges, this.highColor);
+    let result = new ColorMap(regularRanges, this.highColor);
     return result;
   }
 
@@ -1095,15 +1025,14 @@ export class ColorMapForExport {
 
   constructor(public ranges: ColorMapEntryForExport[], public highColor: number) { }
 
-  public static FromColorMap(colorMap: IColorMap): ColorMapForExport {
+  public static FromColorMap(colorMap: ColorMapUI): ColorMapForExport {
 
     let ranges: ColorMapEntryForExport[] = [];
 
     let ptr: number;
 
     for (ptr = 0; ptr < colorMap.ranges.length; ptr++) {
-      let icme: IColorMapEntry = colorMap.ranges[ptr];
-      let cme: ColorMapUIEntry = ColorMapUIEntry.fromColorMapEntry(icme);
+      let cme: ColorMapUIEntry = colorMap.ranges[ptr];
       let cssColor: string = cme.rgbHex;
       let cmeForExport = new ColorMapEntryForExport(cme.cutOff, cssColor);
       ranges.push(cmeForExport);
@@ -1233,7 +1162,7 @@ export interface IWebWorkerMessage {
 export interface IWebWorkerStartRequest extends IWebWorkerMessage {
   canvasSize: ICanvasSize;
   mapInfo: IMapInfo;
-  colorMap: IColorMap;
+  colorMap: ColorMap;
   sectionAnchor: IPoint;
   sectionNumber: number;
 
@@ -1289,7 +1218,7 @@ export interface IWebWorkerUpdateColorMapRequest extends IWebWorkerMessage {
   colorNums: Uint32Array;
   highColorNum: number;
 
-  getColorMap(): IColorMap;
+  getColorMap(): ColorMap;
 }
 
 // -- WebWorker Message Implementations
@@ -1308,7 +1237,7 @@ export class WebWorkerStartRequest implements IWebWorkerStartRequest {
     public messageKind: string,
     public canvasSize: ICanvasSize,
     public mapInfo: IMapInfo,
-    public colorMap: IColorMap,
+    public colorMap: ColorMap,
     public sectionAnchor: IPoint,
     public sectionNumber: number
   ) { }
@@ -1526,7 +1455,7 @@ export class WebWorkerUpdateColorMapRequest implements IWebWorkerUpdateColorMapR
     return result;
   }
 
-  static CreateRequest(colorMap: IColorMap): IWebWorkerUpdateColorMapRequest {
+  static CreateRequest(colorMap: ColorMap): IWebWorkerUpdateColorMapRequest {
 
     let cutOffs = colorMap.getCutOffs();
     let colorNums = colorMap.getColorNums();
@@ -1535,8 +1464,8 @@ export class WebWorkerUpdateColorMapRequest implements IWebWorkerUpdateColorMapR
     return result;
   }
 
-  public getColorMap(): IColorMap {
-    let result: IColorMap = ColorMap.FromTypedArrays(this.cutOffs, this.colorNums, this.highColorNum);
+  public getColorMap(): ColorMap {
+    let result: ColorMap = ColorMap.FromTypedArrays(this.cutOffs, this.colorNums, this.highColorNum);
     return result;
   }
 

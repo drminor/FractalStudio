@@ -1,7 +1,10 @@
 import { Component, OnInit, EventEmitter, Output, Input, ViewChild, ElementRef } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 
-import { IPoint, Point, IMapInfo, MapInfo, ColorMap, ColorMapEntry, IBox, Box, ColorMapUI, IColorMap, ColorMapForExport, MapInfoWithColorMap, MapInfoWithColorMapForExport} from '../m-map-common';
+import {
+  IPoint, Point, IBox, Box, IMapInfo, MapInfo,
+  ColorMapUI, ColorMapForExport, MapInfoWithColorMap, MapInfoWithColorMapForExport
+} from '../m-map-common';
 
 @Component({
   selector: 'app-m-map-params',
@@ -10,7 +13,7 @@ import { IPoint, Point, IMapInfo, MapInfo, ColorMap, ColorMapEntry, IBox, Box, C
 })
 export class MMapParamsComponent implements OnInit {
   @Output() mapInfoUpdated = new EventEmitter<IMapInfo>();
-  @Output() colorMapUpdated = new EventEmitter<IColorMap>();
+  @Output() colorMapUpdated = new EventEmitter<ColorMapUI>();
 
   @Output() goBack = new EventEmitter<number>();
   @Output() mapInfoLoaded = new EventEmitter<MapInfoWithColorMap>();

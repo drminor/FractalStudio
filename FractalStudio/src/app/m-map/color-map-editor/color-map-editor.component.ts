@@ -1,5 +1,5 @@
 import { Component, OnInit, Input, Output, EventEmitter, ViewChild, ElementRef } from '@angular/core';
-import { ColorMapUIEntry, ColorMapUI, IColorMap, ColorMapForExport } from '../m-map-common';
+import { ColorMapUI, ColorMapUIEntry, ColorMapForExport } from '../m-map-common';
 import { FormGroup, FormControl, FormArray } from '@angular/forms';
 import { ColorItem } from '../../color-picker/color-picker.component';
 
@@ -28,13 +28,13 @@ export class ColorMapEditorComponent {
     this.colorMapForm.controls.sectionCnt.setValue(secCnt);
   }
 
-  @Output() colorMapUpdated = new EventEmitter<IColorMap>();
+  @Output() colorMapUpdated = new EventEmitter<ColorMapUI>();
   @Output() buildColorMapFromHistogram = new EventEmitter<number>();
 
   colorMapForm: FormGroup;
 
   // Our managed list of ColorMapEntryForms
-  cEntryForms: ColorMapEntryFormCollection;
+  //cEntryForms: ColorMapEntryForms;
 
   get colorEntryForms() : FormGroup[] {
     let fArray = this.colorMapForm.controls.cEntries as FormArray;
@@ -45,8 +45,6 @@ export class ColorMapEditorComponent {
 
   constructor() {
 
-    //this.tempColor = 'rgba(200,20,40,1)';
-
     // Define our Form. It has a single item which is an array of CEntryForms
     this.colorMapForm = new FormGroup({
       highColor: new FormControl(''),
@@ -55,29 +53,25 @@ export class ColorMapEditorComponent {
     });
 
     // Initialize our managed list of color map entry forms and bind it to our form's cEntries FormArray.
-    this.cEntryForms = new ColorMapEntryFormCollection(this.colorMapForm.controls.cEntries as FormArray);
+    //this.cEntryForms = new ColorMapEntryForms(this.colorMapForm.controls.cEntries as FormArray);
 
     this.colorMapForm.controls.sectionCnt.setValue(10);
   }
 
-  getColorBlockStyle(idx: number): object {
-    //let cEntry: ColorMapUIEntry = this.cEntryForms.getColorMapEntry(idx);
-    //let result = ColorBlockStyle.getStyle(cEntry.rgbaString);
+  //getColorBlockStyle(idx: number): object {
+  //  //let cEntry: ColorMapUIEntry = this.cEntryForms.getColorMapEntry(idx);
+  //  //let result = ColorBlockStyle.getStyle(cEntry.rgbaString);
 
-    let rgbaColor = this.getRgbaColor(idx);
-    let result = ColorBlockStyle.getStyle(rgbaColor);
+  //  let rgbaColor = this.getRgbaColor(idx);
+  //  let result = ColorBlockStyle.getStyle(rgbaColor);
 
-    return result;
-  }
+  //  return result;
+  //}
 
   getRgbaColor(idx: number): string {
     console.log('Getting the rgbaColor for item with index = ' + idx + '.');
-    //let cEntry: ColorMapUIEntry = this.cEntryForms.getColorMapEntry(idx);
-    //let result = cEntry.rgbaString;
-    //return result;
 
     let ourFormsCEntries: FormArray = this.colorMapForm.controls.cEntries as FormArray;
-
     let cEntryForm: FormGroup = ourFormsCEntries.controls[idx] as FormGroup;
 
     let result: string = cEntryForm.controls.rgbaColor.value as string;
@@ -143,7 +137,7 @@ export class ColorMapEditorComponent {
 
       let cmfe: ColorMapForExport = JSON.parse(rawResult) as ColorMapForExport;
 
-      let colorMap: IColorMap = ColorMapUI.FromColorMapForExport(cmfe);
+      let colorMap: ColorMapUI = ColorMapUI.FromColorMapForExport(cmfe);
 
       this.colorMapUpdated.emit(colorMap);
     });
@@ -175,7 +169,8 @@ export class ColorMapEditorComponent {
 
   private updateForm(colorMap: ColorMapUI): void {
 
-    this.cEntryForms.cEntries = colorMap.uIRanges;
+    ColorMapEntryForms.loadColorMapUiEntries(colorMap.ranges, this.colorMapForm.controls.cEntries as FormArray);
+    //this.cEntryForms.colorMapUiEntries = colorMap.ranges;
 
     // Set the form's highColor value.
     this.colorMapForm.controls.highColor.setValue(colorMap.highColor);
@@ -184,55 +179,25 @@ export class ColorMapEditorComponent {
   // --- ColorMapEntry to/from  FormGroup methods
 
 
-  private getColorMap(): IColorMap {
-
-    //let ourFormsCEntries: FormArray = this.colorMapForm.controls.cEntries as FormArray;
-
-    //let ranges: ColorMapUIEntry[] = [];
-
-    //let ptr: number;
-    //for (ptr = 0; ptr < ourFormsCEntries.controls.length; ptr++) {
-    //  ranges.push(this.getColorMapEntry(ptr));
-    //}
-
-    let ranges: ColorMapUIEntry[] = this.cEntryForms.cEntries; 
-
+  private getColorMap(): ColorMapUI{
+    let ranges: ColorMapUIEntry[] = ColorMapEntryForms.getColorMapUiEntries(this.colorMapForm.controls.cEntries as FormArray);
     let highColor: number = this.colorMapForm.controls.highColor.value;
-
     let result: ColorMapUI = new ColorMapUI(ranges, highColor);
-
     return result;
   }
-
 }
 
-class ColorMapEntryFormCollection {
+class ColorMapEntryForms {
 
-  private _fArray: FormArray;
-  //private _cEntries: ColorMapUIEntry[];
-  //private _cmeForms: ColorMapEntryForm[];
+  //constructor(public fArray: FormArray) {  }
 
-  constructor(fArray: FormArray) {
-
-    // hold a reference to the form's FormArray.
-    this._fArray = fArray;
-
-    //this._cEntries = [];
-    //this._cmeForms = [];
-  }
-
-  //public getColorMapEntry(idx: number): ColorMapUIEntry {
-  //  let result = this._cmeForms[idx].colorMapUIEntry;
-  //  return result;
-  //}
-
-  public get cEntries(): ColorMapUIEntry[] {
+  public static getColorMapUiEntries(fArray: FormArray): ColorMapUIEntry[] {
 
     let result: ColorMapUIEntry[] = [];
 
     let ptr: number;
-    for (ptr = 0; ptr < this._fArray.controls.length; ptr++) {
-      let cEntryForm = this._fArray.controls[ptr] as FormGroup;
+    for (ptr = 0; ptr < fArray.controls.length; ptr++) {
+      let cEntryForm = fArray.controls[ptr] as FormGroup;
 
       let cme: ColorMapUIEntry = ColorMapUIEntry.fromOffsetAndRgba(
         cEntryForm.controls.cutOff.value,
@@ -240,34 +205,20 @@ class ColorMapEntryFormCollection {
       );
 
       result.push(cme);
-
-      //result.push(this._cmeForms[ptr].colorMapUIEntry);
     }
-
     return result;
   }
 
-  public set cEntries(colorMapUIEntries: ColorMapUIEntry[]) {
+  public static loadColorMapUiEntries(colorMapUIEntries: ColorMapUIEntry[], fArray: FormArray) : void {
 
-    // clear the existing contents of the FormArray
-    // and our forms.
-    this.clear();
+    // Clear the existing contents of the FormArray
+    fArray.controls = [];
 
     let ptr: number;
     for (ptr = 0; ptr < colorMapUIEntries.length; ptr++) {
       let cme = new ColorMapEntryForm(colorMapUIEntries[ptr]);
-
-      //this._cmeForms.push(new ColorMapEntryForm(colorMapUIEntries[ptr]));
-      this._fArray.controls.push(cme.form);
+      fArray.controls.push(cme.form);
     }
-
-    //this._cEntries = colorMapUIEntries;
-  }
-
-  public clear(): void {
-    this._fArray.controls = [];
-    //this._cEntries = [];
-    //this._cmeForms = [];
   }
 }
 
@@ -290,29 +241,17 @@ class ColorMapEntryForm {
       cNum: new FormControl(''),
 
       showEditor: new FormControl(''),
-      //r: new FormControl(''),
-      //g: new FormControl(''),
-      //b: new FormControl(''),
-
       rgbaColor: new FormControl('')
     });
 
     result.controls.showEditor.disable();
     result.controls.rgbaColor
 
-    //let x = result.controls.r.valueChanges.subscribe();
 
     if (cme != null) {
       result.controls.cutOff.setValue(cme.cutOff);
       result.controls.cNum.setValue(cme.colorNum);
-      //result.controls.r.setValue(cme.r);
-      //result.controls.g.setValue(cme.g);
-      //result.controls.b.setValue(cme.b);
-
       result.controls.rgbaColor.setValue(cme.rgbaString);
-
-
-      //result.controls.cNum.
     }
 
     return result;
@@ -323,32 +262,24 @@ class ColorMapEntryForm {
     return result;
   }
 
-  //private getColorMapEntry(idx: number): ColorMapUIEntry {
-  //  const cfg: FormGroup = (this.colorMapForm.controls.cEntries as FormArray).controls[idx] as FormGroup;
-
-  //  const result = ColorMapUIEntry.fromOffsetAndColorNum(cfg.controls.cutOff.value, cfg.controls.cNum.value);
-  //  return result;
-  //}
-
-
 }
 
-// -- Style Support
-export class ColorBlockStyle {
+//// -- Style Support
+//export class ColorBlockStyle {
 
-  public static getStyle(rgbaColor: string): object {
+//  public static getStyle(rgbaColor: string): object {
 
-    console.log('Getting style for ColorBlock.');
+//    console.log('Getting style for ColorBlock.');
 
-    let result = {
-      'position': 'absolute',
-      'width': '100%',
-      'height': '100%',
-      'background-color': rgbaColor,
-      'border': '1px solid black'
-    }
+//    let result = {
+//      'position': 'absolute',
+//      'width': '100%',
+//      'height': '100%',
+//      'background-color': rgbaColor,
+//      'border': '1px solid black'
+//    }
 
-    return result;
-  }
+//    return result;
+//  }
 
-}
+//}
