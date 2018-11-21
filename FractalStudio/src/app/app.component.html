@@ -46,10 +46,13 @@
                         'border': '2px solid black'
                  }">
     <app-color-map-editor [colorMap]="colorMap"
-                          [sectionCnt]="sectionCnt"
+                          [histogram]="histogram"
                           (colorMapUpdated)="onColorMapUpdated($event)"
-                          (buildColorMapFromHistogram)="onBuildColorMapFromHistorgram($event)">
+                          (histogramRequested)="onHistogramRequested()">
     </app-color-map-editor>
+
+    <!--[sectionCnt]="sectionCnt"
+  (buildColorMapFromHistogram)="onBuildColorMapFromHistorgram($event)"-->
 
   </div>
 </section>

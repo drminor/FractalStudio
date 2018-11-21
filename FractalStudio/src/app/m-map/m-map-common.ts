@@ -231,6 +231,13 @@ export class Histogram {
 
     let result = this.getEqualGroups(numberOfGroups, hes, start, cnt);
 
+    if (result[result.length - 1] === hes[hes.length - 1].val) {
+      // If the last entry is the maximum value, reduce it by one, so that those
+      // values will be painted using the HighColor.
+      // TODO: consider using the last color num instead of the High Color.
+      result[result.length - 1] = result[result.length - 1] - 1;
+    }
+
     return result;
   }
 

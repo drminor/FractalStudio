@@ -3,7 +3,8 @@ import { Component, ViewChild, ElementRef } from '@angular/core';
 import {
   IMapInfo, IPoint, Point, MapInfo, IBox, Box,
   ColorMap, ColorMapEntry, ColorMapUI, ColorMapUIEntry, ColorNumbers, MapInfoWithColorMap,
-  Histogram, HistEntry} from './m-map/m-map-common';
+  Histogram, HistEntry
+} from './m-map/m-map-common';
 import { MMapDisplayComponent } from './m-map/m-map.display/m-map.display.component';
 
 
@@ -42,6 +43,7 @@ export class AppComponent {
   iterationsPerStep: number;
 
   colorMap: ColorMapUI;
+  histogram: Histogram;
 
   history: IMapInfo[] = [];
   atHome: boolean;
@@ -52,6 +54,7 @@ export class AppComponent {
 
     this.mapInfo = this.buildMapInfo();
     this.colorMap = this.buildColorMap();
+    this.histogram = null;
 
     this.atHome = true;
     this.sectionCnt = 10;
@@ -69,39 +72,19 @@ export class AppComponent {
     this.colorMap = colorMap;
   }
 
-  onBuildColorMapFromHistorgram(sectionCnt: number) {
-    //alert('We have been asked to build the color map from the historgram.');
-    this.sectionCnt = sectionCnt;
-    this.mapDisplayComponent.getHistogram();
-  }
+  //onBuildColorMapFromHistorgram(sectionCnt: number) {
+  //  //alert('We have been asked to build the color map from the historgram.');
+  //  this.sectionCnt = sectionCnt;
+  //  this.mapDisplayComponent.getHistogram();
+  //}
 
-  onHaveHistogram(histogram: Histogram) {
-    alert('We now have a histogram. It has ' + histogram.entriesMap.size + ' entries.');
-    
-    let breakPoints = histogram.getEqualGroupsForAll(this.sectionCnt);
+  //onHistogramRequested() {
+  //  this.mapDisplayComponent.getHistogram();
+  //}
 
-    let bpDisplay = Histogram.getBreakPointsDisplay(breakPoints);
-    console.log('Divide into ' + this.sectionCnt + ' equal groups gives: ' + bpDisplay);
-
-
-    let ranges: ColorMapUIEntry[] = [];
-    let ptrToExistingCmes = 0;
-
-    let ptr: number;
-    for (ptr = 0; ptr < breakPoints.length; ptr++) {
-      let existingColorNum = this.colorMap.ranges[ptrToExistingCmes++].colorNum;
-
-      ranges.push(ColorMapUIEntry.fromOffsetAndColorNum(breakPoints[ptr], existingColorNum));
-
-      if (ptrToExistingCmes > this.colorMap.ranges.length - 1) {
-        ptrToExistingCmes = 0;
-      }
-    }
-
-    let newColorMap: ColorMapUI = new ColorMapUI(ranges, this.colorMap.highColor);
-    this.colorMap = newColorMap;
-
-    console.log('The color map has ' + this.colorMap.ranges.length + ' entries.');
+  onHaveHistogram(h: Histogram) {
+    console.log('We now have a histogram. It has ' + h.entriesMap.size + ' entries.');
+    this.histogram = h;
   }
 
   onHaveImageData(imageBlob: Blob) {
@@ -203,7 +186,7 @@ export class AppComponent {
     let cNumGenerator = new ColorNumbers();
 
     let ranges: ColorMapUIEntry[] = new Array<ColorMapUIEntry>(7);
-    ranges[0] =  ColorMapUIEntry.fromOffsetAndColorNum(3, cNumGenerator.white);
+    ranges[0] = ColorMapUIEntry.fromOffsetAndColorNum(3, cNumGenerator.white);
     ranges[1] = ColorMapUIEntry.fromOffsetAndColorNum(5, cNumGenerator.red);
     ranges[2] = ColorMapUIEntry.fromOffsetAndColorNum(8, cNumGenerator.green);
     ranges[3] = ColorMapUIEntry.fromOffsetAndColorNum(13, cNumGenerator.blue);

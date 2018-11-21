@@ -1,5 +1,5 @@
 import { Component, OnInit, Input, Output, EventEmitter, ViewChild, ElementRef } from '@angular/core';
-import { ColorMapUI, ColorMapUIEntry, ColorMapForExport } from '../m-map-common';
+import { ColorMapUI, ColorMapUIEntry, ColorMapForExport, Histogram } from '../m-map-common';
 import { FormGroup, FormControl, FormArray } from '@angular/forms';
 import { ColorItem } from '../../color-picker/color-picker.component';
 
@@ -11,6 +11,7 @@ import { ColorItem } from '../../color-picker/color-picker.component';
 export class ColorMapEditorComponent {
 
   _colorMap: ColorMapUI;
+  _histogram: Histogram;
 
   @ViewChild('download') downloadRef: ElementRef;
   @ViewChild('fileSelector') fileSelectorRef: ElementRef;
@@ -23,23 +24,33 @@ export class ColorMapEditorComponent {
     this.updateForm(colorMap);
   }
 
-  @Input('sectionCnt')
-  set sectionCnt(secCnt: number) {
-    this.colorMapForm.controls.sectionCnt.setValue(secCnt);
+  //@Input('sectionCnt')
+  //set sectionCnt(secCnt: number) {
+  //  this.colorMapForm.controls.sectionCnt.setValue(secCnt);
+  //}
+
+  @Input('histogram')
+  set histogram(h: Histogram) {
+    if (h === null) {
+      console.log("The color map editor's histogram is being set to null.");
+    }
+    else {
+      console.log("The color map editor's histogram is being set. It has " + h.entriesMap.size + " entries.");
+    }
+    this._histogram = h;
   }
 
   @Output() colorMapUpdated = new EventEmitter<ColorMapUI>();
-  @Output() buildColorMapFromHistogram = new EventEmitter<number>();
+  //@Output() buildColorMapFromHistogram = new EventEmitter<number>();
+  //@Output() histogramRequested = new EventEmitter();
+
 
   colorMapForm: FormGroup;
-
-  // Our managed list of ColorMapEntryForms
-  //cEntryForms: ColorMapEntryForms;
 
   get colorEntryForms() : FormGroup[] {
     let fArray = this.colorMapForm.controls.cEntries as FormArray;
 
-    let formGroups: FormGroup[] =  fArray.controls as FormGroup[];
+    let formGroups: FormGroup[] = fArray.controls as FormGroup[];
     return formGroups; 
   }
 
@@ -52,39 +63,19 @@ export class ColorMapEditorComponent {
       cEntries: new FormArray([])
     });
 
-    // Initialize our managed list of color map entry forms and bind it to our form's cEntries FormArray.
-    //this.cEntryForms = new ColorMapEntryForms(this.colorMapForm.controls.cEntries as FormArray);
-
     this.colorMapForm.controls.sectionCnt.setValue(10);
   }
 
-  //getColorBlockStyle(idx: number): object {
-  //  //let cEntry: ColorMapUIEntry = this.cEntryForms.getColorMapEntry(idx);
-  //  //let result = ColorBlockStyle.getStyle(cEntry.rgbaString);
-
-  //  let rgbaColor = this.getRgbaColor(idx);
-  //  let result = ColorBlockStyle.getStyle(rgbaColor);
-
-  //  return result;
-  //}
-
   getRgbaColor(idx: number): string {
     console.log('Getting the rgbaColor for item with index = ' + idx + '.');
-
-    let ourFormsCEntries: FormArray = this.colorMapForm.controls.cEntries as FormArray;
-    let cEntryForm: FormGroup = ourFormsCEntries.controls[idx] as FormGroup;
-
+    let cEntryForm = this.colorEntryForms[idx];
     let result: string = cEntryForm.controls.rgbaColor.value as string;
     return result;
   }
 
   setRgbaColor(colorItem: ColorItem): void {
     //console.log('Setting color for item: ' + colorItem.itemIdx + ' to ' + colorItem.rgbaColor + '.');
-
-    let ourFormsCEntries: FormArray = this.colorMapForm.controls.cEntries as FormArray;
-
-    let cEntryForm: FormGroup = ourFormsCEntries.controls[colorItem.itemIdx] as FormGroup;
-
+    let cEntryForm = this.colorEntryForms[colorItem.itemIdx];
     cEntryForm.controls.rgbaColor.setValue(colorItem.rgbaColor);
   }
 
@@ -145,10 +136,23 @@ export class ColorMapEditorComponent {
     fr.readAsText(files.item(0));
   }
 
-  onUseHistogram() {
-    //alert('User wants to use the Histogram.');
+  onUseHistogram() : void {
+    console.log('Using Histogram to set offsets.');
+
+    if (this._histogram === null) {
+      console.log('The Histogram is null -- cannot use it to set offsets.');
+      return;
+    }
+
     let secCnt = this.colorMapForm.controls.sectionCnt.value;
-    this.buildColorMapFromHistogram.emit(secCnt);
+
+    let newColorMap = this.buildColorMapFromHistogram(this._colorMap, this._histogram, secCnt);
+
+    this.colorMapUpdated.emit(newColorMap);
+
+    //this.histogramRequested.emit();
+    //let secCnt = this.colorMapForm.controls.sectionCnt.value;
+    //this.buildColorMapFromHistogram.emit(secCnt);
   }
 
   private toggleShowEditor(idx: number): void {
@@ -162,42 +166,64 @@ export class ColorMapEditorComponent {
   }
 
   private getCEntryFromGroup(idx: number): FormGroup {
-    let ourFormsCEntries: FormArray = this.colorMapForm.controls.cEntries as FormArray;
-    let result: FormGroup = ourFormsCEntries.controls[idx] as FormGroup;
+    let result = this.colorEntryForms[idx];
     return result;
   }
 
   private updateForm(colorMap: ColorMapUI): void {
-
-    ColorMapEntryForms.loadColorMapUiEntries(colorMap.ranges, this.colorMapForm.controls.cEntries as FormArray);
-    //this.cEntryForms.colorMapUiEntries = colorMap.ranges;
+    let fArray = this.colorMapForm.controls.cEntries as FormArray;
+    ColorMapEntryForms.loadColorMapUiEntries(colorMap.ranges, fArray);
 
     // Set the form's highColor value.
     this.colorMapForm.controls.highColor.setValue(colorMap.highColor);
   }
 
-  // --- ColorMapEntry to/from  FormGroup methods
-
-
   private getColorMap(): ColorMapUI{
-    let ranges: ColorMapUIEntry[] = ColorMapEntryForms.getColorMapUiEntries(this.colorMapForm.controls.cEntries as FormArray);
+    let ranges: ColorMapUIEntry[] = ColorMapEntryForms.getColorMapUiEntries(this.colorEntryForms);
     let highColor: number = this.colorMapForm.controls.highColor.value;
     let result: ColorMapUI = new ColorMapUI(ranges, highColor);
     return result;
   }
+
+  private buildColorMapFromHistogram(curColorMap: ColorMapUI, histogram: Histogram, sectionCnt: number) : ColorMapUI {
+    //alert('We now have a histogram. It has ' + histogram.entriesMap.size + ' entries.');
+
+    let breakPoints = histogram.getEqualGroupsForAll(sectionCnt);
+
+    let bpDisplay = Histogram.getBreakPointsDisplay(breakPoints);
+    console.log('Divide into ' + sectionCnt + ' equal groups gives: ' + bpDisplay);
+
+    let ranges: ColorMapUIEntry[] = [];
+    let ptrToExistingCmes = 0;
+
+    let ptr: number;
+    for (ptr = 0; ptr < breakPoints.length; ptr++) {
+      let existingColorNum = curColorMap.ranges[ptrToExistingCmes++].colorNum;
+
+      ranges.push(ColorMapUIEntry.fromOffsetAndColorNum(breakPoints[ptr], existingColorNum));
+
+      if (ptrToExistingCmes > curColorMap.ranges.length - 1) {
+        ptrToExistingCmes = 0;
+      }
+    }
+
+    let result: ColorMapUI = new ColorMapUI(ranges, curColorMap.highColor);
+    return result;
+
+    //console.log('The color map has ' + this.colorMap.ranges.length + ' entries.');
+  }
+
 }
 
 class ColorMapEntryForms {
 
-  //constructor(public fArray: FormArray) {  }
-
-  public static getColorMapUiEntries(fArray: FormArray): ColorMapUIEntry[] {
+  public static getColorMapUiEntries(fArray: FormGroup[]): ColorMapUIEntry[] {
 
     let result: ColorMapUIEntry[] = [];
 
     let ptr: number;
-    for (ptr = 0; ptr < fArray.controls.length; ptr++) {
-      let cEntryForm = fArray.controls[ptr] as FormGroup;
+    for (ptr = 0; ptr < fArray.length; ptr++) {
+      let cEntryForm = fArray[ptr] as FormGroup;
 
       let cme: ColorMapUIEntry = ColorMapUIEntry.fromOffsetAndRgba(
         cEntryForm.controls.cutOff.value,
@@ -212,29 +238,21 @@ class ColorMapEntryForms {
   public static loadColorMapUiEntries(colorMapUIEntries: ColorMapUIEntry[], fArray: FormArray) : void {
 
     // Clear the existing contents of the FormArray
-    fArray.controls = [];
+    while (fArray.controls.length > 0) {
+      fArray.controls.pop();
+    }
 
     let ptr: number;
     for (ptr = 0; ptr < colorMapUIEntries.length; ptr++) {
-      let cme = new ColorMapEntryForm(colorMapUIEntries[ptr]);
-      fArray.controls.push(cme.form);
+      let cmef = ColorMapEntryForm.buildForm(colorMapUIEntries[ptr]);
+      fArray.controls.push(cmef);
     }
   }
 }
 
 class ColorMapEntryForm {
-
-  public form: FormGroup;
-
-  constructor(public cme: ColorMapUIEntry) {
-    this.form = this.buildForm(cme);
-  }
-
-  public dispose(): void {
-    // Place holder for now.
-  }
-
-  private buildForm(cme: ColorMapUIEntry): FormGroup {
+  4
+  public static buildForm(cme: ColorMapUIEntry): FormGroup {
 
     let result = new FormGroup({
       cutOff: new FormControl(''),
@@ -247,7 +265,6 @@ class ColorMapEntryForm {
     result.controls.showEditor.disable();
     result.controls.rgbaColor
 
-
     if (cme != null) {
       result.controls.cutOff.setValue(cme.cutOff);
       result.controls.cNum.setValue(cme.colorNum);
@@ -257,29 +274,8 @@ class ColorMapEntryForm {
     return result;
   }
 
-  public get colorMapUIEntry(): ColorMapUIEntry {
-    const result = ColorMapUIEntry.fromOffsetAndColorNum(this.form.controls.cutOff.value, this.form.controls.cNum.value);
+  public static getColorMapUIEntry(form: FormGroup): ColorMapUIEntry {
+    const result = ColorMapUIEntry.fromOffsetAndColorNum(form.controls.cutOff.value, form.controls.cNum.value);
     return result;
   }
-
 }
-
-//// -- Style Support
-//export class ColorBlockStyle {
-
-//  public static getStyle(rgbaColor: string): object {
-
-//    console.log('Getting style for ColorBlock.');
-
-//    let result = {
-//      'position': 'absolute',
-//      'width': '100%',
-//      'height': '100%',
-//      'background-color': rgbaColor,
-//      'border': '1px solid black'
-//    }
-
-//    return result;
-//  }
-
-//}

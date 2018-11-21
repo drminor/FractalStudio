@@ -19,6 +19,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
   private _mapInfo: IMapInfo;
   private _colorMap: ColorMapUI;
+  private _histogram: Histogram;
 
   public alive: boolean;
 
@@ -40,9 +41,9 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
   private _canvasSizeForExport: ICanvasSize;
   private _sectionCompleteFlags: boolean[];
+  private _buildingNewMap: boolean;
   private _exportWorkers: Worker[];
 
-  private _histogram: Histogram;
 
   @Input('mapCoords')
   set mapCoords(mapCoords: IBox) {
@@ -131,9 +132,13 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     this.canvasElement = null;
 
     this._canvasSizeForExport = new CanvasSize(7200, 4800);
+    //this._canvasSizeForExport = new CanvasSize(14400, 9600);
+
     this._sectionCompleteFlags = new Array<boolean>(this.numberOfSections);
+    this.resetSectionCompleteFlags();
 
     this._histogram = null;
+    this._buildingNewMap = false;
   }
 
   public getImageDataForExport(): void {
@@ -144,6 +149,8 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     canvas.height = this._canvasSizeForExport.height;
 
     let regularColorMap = this._colorMap.getRegularColorMap();
+
+    //let cs = new CanvasSize(14400, 9600);
 
     let localWorkingData = MapWorkingData.getWorkingDataSections(this._canvasSizeForExport, this._mapInfo, regularColorMap, this.numberOfSections);
     this.resetSectionCompleteFlags();
@@ -175,6 +182,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     this._sectionCompleteFlags[sectionNumber] = true;
 
     if (this.haveAllSectionsCompleted()) {
+      this._buildingNewMap = false;
       console.log('The histogram has been assembled.');
       console.log('The historgram is ' + this._histogram + '.');
 
@@ -331,6 +339,10 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
   }
 
   private buildWorkingData(): void {
+    this._buildingNewMap = true;
+    this._histogram = null;
+    this.resetSectionCompleteFlags();
+
     let regularColorMap = this._colorMap.getRegularColorMap();
 
     if (this.useWorkers) {
@@ -426,6 +438,12 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
             // Call draw for the last ImageDataResponse
             this.draw(imageData, sectionNumber);
 
+            if (this._buildingNewMap) {
+              // Request the histogram data for this section.
+              let histRequest = WebWorkerHistogramRequest.CreateRequest();
+              this.workers[sectionNumber].postMessage(histRequest);
+            }
+
             // And then draw the end note.
             this.drawEndNote();
             console.log("Done.");
@@ -482,6 +500,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
           let mapWorkingData: IMapWorkingData = workingMaps[sectionNumber];
           let imageData: ImageData = updatedMapDataMsg.getImageData(mapWorkingData.canvasSize);
+          //console.log('Got a image data with ' + imageData.data.length + ' elements long');
           this.buildCanvasForExport(imageData, mapWorkingData, sectionNumber);
 
         }
@@ -505,7 +524,6 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
     return result;
   }
-
 
   private doMoreIterations() {
     let ptr: number = 0;
@@ -560,6 +578,8 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
         h.addVals(mapWorkinData.cnts);
 
         console.log('The histogram is ' + h + '.');
+        that.haveHistogram.emit(h);
+        that._buildingNewMap = false;
 
         that.drawEndNote();
         console.log("No WebWorkers -- Done.");
@@ -665,8 +685,6 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
     this._mapInfo = newMapInfo;
     this.zoomed.emit(this._mapInfo.coords);
-
-    //this.buildWorkingData();
   }
 
   private round(x: number): number {
