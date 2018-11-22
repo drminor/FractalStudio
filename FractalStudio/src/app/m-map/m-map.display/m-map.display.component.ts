@@ -47,6 +47,11 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
   @Input('mapCoords')
   set mapCoords(mapCoords: IBox) {
+
+    //if (this._mapInfo.coords !== null && this._mapInfo.coords.isEqual(mapCoords)) {
+    //  return;
+    //}
+
     this._mapInfo.coords = mapCoords;
     console.log('The Map Coordinatees are being updated. The new MapInfo is:' + this._mapInfo.toString());
 
@@ -526,6 +531,11 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
   }
 
   private doMoreIterations() {
+    console.log('Doing more iterations.');
+    this._buildingNewMap = true;
+    this._histogram = null;
+    this.resetSectionCompleteFlags();
+
     let ptr: number = 0;
 
     for (ptr = 0; ptr < this.numberOfSections; ptr++) {

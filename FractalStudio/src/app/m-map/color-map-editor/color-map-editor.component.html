@@ -8,10 +8,14 @@
       <button type="button" (click)="onSaveColorMap()">Save</button>
     </div>
 
-    <div class="btnGroup">
-      <button type="button" (click)="onUseHistogram()" style="width:150px">Load from Histogram</button>
-      <label style="margin-left:10px">With: <input type="text" formControlName="sectionCnt" size="1"></label>
-      <label style="margin-left:5px">sections</label>
+    <div class="btnGroup" style="border: 1px solid black; margin:2px 2px 2px 2px; padding: 8px 3px 8px 3px">
+      <button type="button" (click)="onUseHistogram()" style="width:100px; margin: 2px 5px 3px 8px">Divide</button>
+      <br/>
+      <label style="margin-left:10px">Sections starting: <input type="text" formControlName="sectionStart" size="1"></label>
+      <label style="margin-left:10px">and ending: <input type="text" formControlName="sectionEnd" size="1"></label>
+      <br/>
+      <label style="margin: 5px 0px 5px 10px">Into: <input type="text" formControlName="sectionCnt" size="1"></label>
+      <label style="margin: 5px 0px 5px 8px">sections</label>
     </div>
 
     <div class="btnGroup">
@@ -24,8 +28,9 @@
     <div formArrayName="cEntries" style="margin-left:10px">
       <div *ngFor="let colEntry of colorEntryForms; let i=index">
 
-        <div [formGroupName]="i" style="width:150px; border: 1px solid lightgray; padding: 3px 3px 3px 18px; margin-bottom:2px;">
+        <div [formGroupName]="i" style="width:150px; border: 1px solid lightgray; padding: 3px 1px 3px 18px; margin-bottom:2px;">
           <label>CutOff: <input type="text" formControlName="cutOff" size="5"></label>
+          <label style="margin-left:12px">{{i}}</label>
           <br />
           <!-- Clickable Color Block -->
           <div style="position:relative; width:55px; height:25px; margin:5px;">
@@ -37,6 +42,7 @@
                  }"
                  (click)="onEditColor(i)"></div>
           </div>
+          <label>Percentage: {{colEntry.controls.percentage.value || '0'}}</label>
 
           <!--<div *ngIf="colorMapForm.controls.cEntries.controls[i].controls.showEditor.enabled">
             <app-color-picker [item]="i" [rgbaColor]="colorMapForm.controls.cEntries.controls[i].controls.rgbaColor.value" (colorUpdated)="setRgbaColor($event)"></app-color-picker>

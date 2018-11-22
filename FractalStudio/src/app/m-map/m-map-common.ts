@@ -6,6 +6,7 @@ const MAX_CANVAS_HEIGHT: number = 50000;
 export interface IPoint {
   x: number;
   y: number;
+  isEqual(p: IPoint): boolean;
 }
 
 export interface IBox {
@@ -15,6 +16,7 @@ export interface IBox {
   height: number;
 
   getNormalizedBox(): IBox;
+  isEqual(box: IBox): boolean;
   toString(): string;
 }
 
@@ -78,6 +80,14 @@ export class Point implements IPoint {
     let result: IPoint = new Point(xNum, yNum);
     return result;
   }
+
+  public isEqual(p: IPoint): boolean {
+    if (p.x !== this.x) return false;
+    if (p.y !== this.y) return false;
+
+    return true;
+  }
+
 }
 
 export class Box implements IBox {
@@ -95,6 +105,17 @@ export class Box implements IBox {
   public get height(): number {
     return this.end.y - this.start.y;
   }
+
+  public isEqual(box: IBox): boolean {
+    if (!this.start.isEqual(box.start))
+      return false;
+
+    if (!this.end.isEqual(box.end))
+      return false;
+
+    return true;
+  }
+
 
   // Return a box of the same size and position
   // but make sure that the width and height are both positive.
@@ -274,7 +295,7 @@ export class Histogram {
       }
       else {
         let bp = this.getForwardBreakPoint(hes, start, cnt, target);
-        result[resultPtr++] = bp;
+        result[resultPtr++] = hes[bp].val;
         let newStart = bp + 1;
         let ac = newStart - start;
         start = newStart;
@@ -318,12 +339,17 @@ export class Histogram {
   }
 
   public getHistEntries(): HistEntry[] {
-    let result: HistEntry[] = [];
-    let lst = Array.from(this.entriesMap.entries());
+    let result: HistEntry[] = new Array<HistEntry>(this.entriesMap.size);
+
+    let vals = Array.from(this.entriesMap.keys());
+    let occs = Array.from(this.entriesMap.values());
+
+    //let lst = Array.from(this.entriesMap.entries());
 
     let ptr: number;
-    for (ptr = 0; ptr < lst.length; ptr++) {
-      result.push(new HistEntry(lst[ptr]["0"], lst[ptr]["1"]));
+    for (ptr = 0; ptr < this.entriesMap.size; ptr++) {
+      result[ptr] = new HistEntry(vals[ptr], occs[ptr]);
+      //result.push(new HistEntry(lst[ptr]["0"], lst[ptr]["1"]));
     }
 
     result.sort((a, b) => a.val - b.val);

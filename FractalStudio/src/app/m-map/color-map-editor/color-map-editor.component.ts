@@ -60,10 +60,14 @@ export class ColorMapEditorComponent {
     this.colorMapForm = new FormGroup({
       highColor: new FormControl(''),
       sectionCnt: new FormControl(''),
+      sectionStart: new FormControl(''),
+      sectionEnd: new FormControl(''),
       cEntries: new FormArray([])
     });
 
     this.colorMapForm.controls.sectionCnt.setValue(10);
+    this.colorMapForm.controls.sectionStart.setValue(0);
+    this.colorMapForm.controls.sectionEnd.setValue(9);
   }
 
   getRgbaColor(idx: number): string {
@@ -176,6 +180,8 @@ export class ColorMapEditorComponent {
 
     // Set the form's highColor value.
     this.colorMapForm.controls.highColor.setValue(colorMap.highColor);
+    this.colorMapForm.controls.sectionEnd.setValue(colorMap.ranges.length - 1);
+
   }
 
   private getColorMap(): ColorMapUI{
@@ -251,7 +257,7 @@ class ColorMapEntryForms {
 }
 
 class ColorMapEntryForm {
-  4
+
   public static buildForm(cme: ColorMapUIEntry): FormGroup {
 
     let result = new FormGroup({
@@ -259,7 +265,8 @@ class ColorMapEntryForm {
       cNum: new FormControl(''),
 
       showEditor: new FormControl(''),
-      rgbaColor: new FormControl('')
+      rgbaColor: new FormControl(''),
+      percentage: new FormControl('')
     });
 
     result.controls.showEditor.disable();
@@ -269,6 +276,7 @@ class ColorMapEntryForm {
       result.controls.cutOff.setValue(cme.cutOff);
       result.controls.cNum.setValue(cme.colorNum);
       result.controls.rgbaColor.setValue(cme.rgbaString);
+      result.controls.percentage.setValue('0');
     }
 
     return result;
