@@ -166,9 +166,9 @@ var Point = /** @class */ (function () {
   return Point;
 }());
 var Box = /** @class */ (function () {
-  function Box(start, end) {
-    this.start = start;
-    this.end = end;
+  function Box(botLeft, topRight) {
+    this.botLeft = botLeft;
+    this.topRight = topRight;
   }
   Box.fromPointExtent = function (point, width, height) {
     var result = new Box(point, new Point(point.x + width, point.y + height));
@@ -196,36 +196,36 @@ var Box = /** @class */ (function () {
     var sy;
     var ex;
     var ey;
-    if (box.start.x < box.end.x) {
-      if (box.start.y < box.end.y) {
+    if (box.botLeft.x < box.topRight.x) {
+      if (box.botLeft.y < box.topRight.y) {
         // Already in normal form.
-        sx = box.start.x;
-        ex = box.end.x;
-        sy = box.start.y;
-        ey = box.end.y;
+        sx = box.botLeft.x;
+        ex = box.topRight.x;
+        sy = box.botLeft.y;
+        ey = box.topRight.y;
       }
       else {
         // Width is already positive, reverse the y values.
-        sx = box.start.x;
-        ex = box.end.x;
-        sy = box.end.y;
-        ey = box.start.y;
+        sx = box.botLeft.x;
+        ex = box.topRight.x;
+        sy = box.topRight.y;
+        ey = box.botLeft.y;
       }
     }
     else {
-      if (box.start.y < box.end.y) {
+      if (box.botLeft.y < box.topRight.y) {
         // Height is already positive, reverse the x values.
-        sx = box.end.x;
-        ex = box.start.x;
-        sy = box.start.y;
-        ey = box.end.y;
+        sx = box.topRight.x;
+        ex = box.botLeft.x;
+        sy = box.botLeft.y;
+        ey = box.topRight.y;
       }
       else {
         // Reverse both x and y values.
-        sx = box.end.x;
-        ex = box.start.x;
-        sy = box.end.y;
-        ey = box.start.y;
+        sx = box.topRight.x;
+        ex = box.botLeft.x;
+        sy = box.topRight.y;
+        ey = box.botLeft.y;
       }
     }
     var result = new Box(new Point(this.round(sx), this.round(sy)), new Point(this.round(ex), this.round(ey)));
@@ -236,7 +236,7 @@ var Box = /** @class */ (function () {
     return result;
   };
   Box.prototype.toString = function () {
-    return 'sx:' + this.start.x + ' ex:' + this.end.x + ' sy:' + this.start.y + ' ey:' + this.end.y + '.';
+    return 'sx:' + this.botLeft.x + ' ex:' + this.topRight.x + ' sy:' + this.botLeft.y + ' ey:' + this.topRight.y + '.';
   };
   return Box;
 }());
@@ -273,20 +273,20 @@ var MapInfo = /** @class */ (function () {
   };
   Object.defineProperty(MapInfo.prototype, "bottomLeft", {
     get: function () {
-      return this.coords.start;
+      return this.coords.botLeft;
     },
     enumerable: true,
     configurable: true
   });
   Object.defineProperty(MapInfo.prototype, "topRight", {
     get: function () {
-      return this.coords.end;
+      return this.coords.topRight;
     },
     enumerable: true,
     configurable: true
   });
   MapInfo.prototype.toString = function () {
-    return 'sx:' + this.coords.start.x + ' ex:' + this.coords.end.x + ' sy:' + this.coords.start.y + ' ey:' + this.coords.end.y + ' mi:' + this.maxIterations + ' ips:' + this.iterationsPerStep + '.';
+    return 'sx:' + this.coords.botLeft.x + ' ex:' + this.coords.topRight.x + ' sy:' + this.coords.botLeft.y + ' ey:' + this.coords.topRight.y + ' mi:' + this.maxIterations + ' ips:' + this.iterationsPerStep + '.';
   };
   return MapInfo;
 }());

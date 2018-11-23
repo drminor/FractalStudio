@@ -38,12 +38,10 @@ export class ColorMapEditorComponent {
       console.log("The color map editor's histogram is being set. It has " + h.entriesMap.size + " entries.");
     }
     this._histogram = h;
+    this.updatePercentages();
   }
 
   @Output() colorMapUpdated = new EventEmitter<ColorMapUI>();
-  //@Output() buildColorMapFromHistogram = new EventEmitter<number>();
-  //@Output() histogramRequested = new EventEmitter();
-
 
   colorMapForm: FormGroup;
 
@@ -149,14 +147,19 @@ export class ColorMapEditorComponent {
     }
 
     let secCnt = this.colorMapForm.controls.sectionCnt.value;
-
     let newColorMap = this.buildColorMapFromHistogram(this._colorMap, this._histogram, secCnt);
-
     this.colorMapUpdated.emit(newColorMap);
+  }
 
-    //this.histogramRequested.emit();
-    //let secCnt = this.colorMapForm.controls.sectionCnt.value;
-    //this.buildColorMapFromHistogram.emit(secCnt);
+  private updatePercentages(): void {
+
+    let cEntryForms = this.colorEntryForms;
+
+    let ptr: number;
+    for (ptr = 0; ptr < cEntryForms.length; ptr++) {
+      let cEntryForm = cEntryForms[ptr];
+      cEntryForm.controls.percentage.setValue('10');
+    }
   }
 
   private toggleShowEditor(idx: number): void {
@@ -181,7 +184,6 @@ export class ColorMapEditorComponent {
     // Set the form's highColor value.
     this.colorMapForm.controls.highColor.setValue(colorMap.highColor);
     this.colorMapForm.controls.sectionEnd.setValue(colorMap.ranges.length - 1);
-
   }
 
   private getColorMap(): ColorMapUI{

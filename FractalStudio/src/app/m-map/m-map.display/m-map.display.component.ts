@@ -118,7 +118,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     this.componentInitialized = false;
     this.viewInitialized = false;
 
-    this._mapInfo = new MapInfo(null, 0, 0);
+    this._mapInfo = new MapInfo(null, 0, 0, false);
 
     this._colorMap = null;
     this.workers = [];
@@ -371,7 +371,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
         throw new RangeError('The number of sections must be set to 1, if useWorkers = false.');
       }
       this.sections = new Array<IMapWorkingData>(1);
-      this.sections[0] = new MapWorkingData(this.canvasSize, this._mapInfo, regularColorMap, new Point(0, 0), false);
+      this.sections[0] = new MapWorkingData(this.canvasSize, this._mapInfo, regularColorMap, new Point(0, 0));
 
       this.progressively();
     }
@@ -620,13 +620,13 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
       //console.log('Using Width, adjusting height.');
       nw = nBox.width;
       nh = this.round(nBox.width / 1.5);
-      nx = nBox.start.x;
+      nx = nBox.botLeft.x;
 
       // Since we are changing the height, move the starting position 1/2 the distance of the change
       // this will center the new height around the old box's vertical extent.
       let vAdj = this.round((nh - nBox.height) / 2);
       //console.log('Moving start y back by ' + vAdj + '.');
-      ny = nBox.start.y - vAdj;
+      ny = nBox.botLeft.y - vAdj;
       //ny = nBox.start.y;
     }
     else {
@@ -634,13 +634,13 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
       //console.log('Using height, adjusting width.');
       nw = this.round(nBox.height * 1.5);
       nh = nBox.height;
-      ny = nBox.start.y;
+      ny = nBox.botLeft.y;
 
       // Since we are changing the width, move the starting position 1/2 the distance of the change
       // this will center the new width around the old box's horizontal extent.
       let hAdj = this.round((nw - nBox.width) / 2);
       //console.log('Moving start x back by ' + hAdj + '.');
-      nx = nBox.start.x - hAdj;
+      nx = nBox.botLeft.x - hAdj;
       //nx = nBox.start.x;
     }
 
@@ -664,14 +664,14 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
     //console.log('unit x: ' + unitExtentX + ' unit y' + unitExtentY);
 
-    let msx = this._mapInfo.bottomLeft.x + zBox.start.x * unitExtentX;
-    let mex = this._mapInfo.bottomLeft.x + zBox.end.x * unitExtentX;
+    let msx = this._mapInfo.bottomLeft.x + zBox.botLeft.x * unitExtentX;
+    let mex = this._mapInfo.bottomLeft.x + zBox.topRight.x * unitExtentX;
     //console.log('new map sx: ' + msx + ' new map ex: ' + mex + '.');
 
     // Canvas origin is the top, right -- map coordinate origin is the bottom, right.
     // Invert the canvas coordinates.
-    let invCanvasSY = this.canvasSize.height - zBox.end.y;
-    let invCanvasEY = this.canvasSize.height - zBox.start.y;
+    let invCanvasSY = this.canvasSize.height - zBox.topRight.y;
+    let invCanvasEY = this.canvasSize.height - zBox.botLeft.y;
 
     //console.log('Inverted Canvas sy:' + invCanvasSY + ' ey:' + invCanvasEY + '.');
 
@@ -680,7 +680,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     //console.log('new map sy: ' + msy + ' new map ey: ' + mey + '.');
 
     let coords: IBox = new Box(new Point(msx, msy), new Point(mex, mey));
-    let newMapInfo: IMapInfo = new MapInfo(coords, this._mapInfo.maxIterations, this._mapInfo.iterationsPerStep);
+    let newMapInfo: IMapInfo = new MapInfo(coords, this._mapInfo.maxIterations, this._mapInfo.iterationsPerStep, this._mapInfo.upsideDown);
 
     //console.log('New MapInfo = ' + newMapInfo.toString());
 
@@ -736,7 +736,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
         let ctx: CanvasRenderingContext2D = cce.getContext('2d');
         ctx.clearRect(0, 0, cce.width, cce.height);      
 
-        that.zoomBox.end = mousePos;
+        that.zoomBox.topRight = mousePos;
         that.zoomIn(that.zoomBox);
         that.zoomBox = null;
       }
@@ -759,9 +759,9 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
       ctx.strokeStyle = '#FF3B03'; //'#FF0000'; // '#FF3B03';
 
       let mousePos = MMapDisplayComponent.getMousePos(cce, e);
-      that.zoomBox.end = mousePos;
+      that.zoomBox.topRight = mousePos;
 
-      ctx.strokeRect(that.zoomBox.start.x, that.zoomBox.start.y, that.zoomBox.width, that.zoomBox.height);
+      ctx.strokeRect(that.zoomBox.botLeft.x, that.zoomBox.botLeft.y, that.zoomBox.width, that.zoomBox.height);
     }
   }
 
@@ -779,7 +779,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     ctx.clearRect(0, 0, cce.width, cce.height);
 
     let mousePos = MMapDisplayComponent.getMousePos(cce, e);
-    that.zoomBox.end = mousePos;
+    that.zoomBox.topRight = mousePos;
     that.zoomIn(that.zoomBox);
 
     that.zoomBox = null;

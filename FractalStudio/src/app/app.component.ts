@@ -122,10 +122,10 @@ export class AppComponent {
   }
 
   onZoomed(mapCoords: IBox) {
-    console.log('Received the updated mapinfo from zoom ' + mapCoords.start.x + '.');
+    console.log('Received the updated mapinfo from zoom ' + mapCoords.botLeft.x + '.');
     this.history.push(this.mapInfo);
     this.updateDownloadLinkVisibility(false);
-    this.mapInfo = new MapInfo(mapCoords, this.mapInfo.maxIterations, this.mapInfo.iterationsPerStep);
+    this.mapInfo = new MapInfo(mapCoords, this.mapInfo.maxIterations, this.mapInfo.iterationsPerStep, this.mapInfo.upsideDown);
     this.atHome = false;
   }
 
@@ -176,7 +176,7 @@ export class AppComponent {
 
     let maxIterations = 100;
     let iterationsPerStep = 10;
-    let result = new MapInfo(mapCoords, maxIterations, iterationsPerStep);
+    let result = new MapInfo(mapCoords, maxIterations, iterationsPerStep, false);
 
     return result;
   }

@@ -10,12 +10,17 @@ export interface IPoint {
 }
 
 export interface IBox {
-  start: IPoint;
-  end: IPoint;
+  botLeft: IPoint;
+  topRight: IPoint;
   width: number;
   height: number;
 
   getNormalizedBox(): IBox;
+  getShiftedBox(dir: string, percent: number): IBox;
+  addX(amount: number): IBox;
+  addY(amount: number): IBox;
+  getExpandedBox(percent: number): IBox;
+
   isEqual(box: IBox): boolean;
   toString(): string;
 }
@@ -26,6 +31,7 @@ export interface IMapInfo {
   topRight: IPoint;
   maxIterations: number;
   iterationsPerStep: number;
+  upsideDown: boolean;
 
   toString(): string
 }
@@ -87,35 +93,92 @@ export class Point implements IPoint {
 
     return true;
   }
-
 }
 
 export class Box implements IBox {
-  constructor(public start: IPoint, public end: IPoint) { }
+  constructor(public botLeft: IPoint, public topRight: IPoint) { }
 
-  public static fromPointExtent(point: IPoint, width: number, height: number): IBox {
-    const result: IBox = new Box(point, new Point(point.x + width, point.y + height));
+  public static fromPointExtent(botLeft: IPoint, width: number, height: number): IBox {
+    const result: IBox = new Box(botLeft, new Point(botLeft.x + width, botLeft.y + height));
 
     return result;
   }
   public get width(): number {
-    return this.end.x - this.start.x;
+    return this.topRight.x - this.botLeft.x;
   }
 
   public get height(): number {
-    return this.end.y - this.start.y;
+    return this.topRight.y - this.botLeft.y;
+  }
+
+  public getShiftedBox(dir: string, percent: number): IBox {
+    let result: IBox;
+    let delta: number;
+
+    switch (dir) {
+      case 'r':
+        delta = this.width * percent / 100;
+        result = this.addX(delta);
+        break;
+      case 'l':
+        delta = this.width * percent / 100;
+        result = this.addX(-1 * delta);
+        break;
+      case 'u':
+        delta = this.height * percent / 100;
+        result = this.addY(delta);
+        break;
+      case 'd':
+        delta = this.height * percent / 100;
+        result = this.addY(-1 * delta);
+        break;
+      default:
+        console.log('GetShiftedCoords received unrecognized dir ' + dir + '.');
+        result = this;
+    }
+    return result;
+  }
+
+  public addX(amount: number): IBox {
+    let result = new Box(
+      new Point(this.botLeft.x + amount, this.botLeft.y),
+      new Point(this.topRight.x + amount, this.topRight.y)
+    );
+    return result;
+  }
+
+  public addY(amount: number): IBox {
+    let result = new Box(
+      new Point(this.botLeft.x, this.botLeft.y + amount),
+      new Point(this.topRight.x, this.topRight.y + amount)
+    );
+    return result;
+  }
+
+  public getExpandedBox(percent: number): IBox {
+
+    // 1/2 the amount of change for the width
+    let deltaX = this.width * percent / 200;
+
+    // 1/2 the amount of change for the width
+    let deltaY = this.height * percent / 200;
+
+    let botLeft = new Point(this.botLeft.x - deltaX, this.botLeft.y - deltaY);
+    let topRight = new Point(this.topRight.x + deltaX, this.topRight.y + deltaY);
+
+    let result = new Box(botLeft, topRight);
+    return result;
   }
 
   public isEqual(box: IBox): boolean {
-    if (!this.start.isEqual(box.start))
+    if (!this.botLeft.isEqual(box.botLeft))
       return false;
 
-    if (!this.end.isEqual(box.end))
+    if (!this.topRight.isEqual(box.topRight))
       return false;
 
     return true;
   }
-
 
   // Return a box of the same size and position
   // but make sure that the width and height are both positive.
@@ -129,35 +192,35 @@ export class Box implements IBox {
     let ex: number;
     let ey: number;
 
-    if (box.start.x < box.end.x) {
-      if (box.start.y < box.end.y) {
+    if (box.botLeft.x < box.topRight.x) {
+      if (box.botLeft.y < box.topRight.y) {
         // Already in normal form.
-        sx = box.start.x;
-        ex = box.end.x;
-        sy = box.start.y;
-        ey = box.end.y;
+        sx = box.botLeft.x;
+        ex = box.topRight.x;
+        sy = box.botLeft.y;
+        ey = box.topRight.y;
       }
       else {
         // Width is already positive, reverse the y values.
-        sx = box.start.x;
-        ex = box.end.x;
-        sy = box.end.y;
-        ey = box.start.y;
+        sx = box.botLeft.x;
+        ex = box.topRight.x;
+        sy = box.topRight.y;
+        ey = box.botLeft.y;
       }
     }
     else {
-      if (box.start.y < box.end.y) {
+      if (box.botLeft.y < box.topRight.y) {
         // Height is already positive, reverse the x values.
-        sx = box.end.x;
-        ex = box.start.x;
-        sy = box.start.y;
-        ey = box.end.y;
+        sx = box.topRight.x;
+        ex = box.botLeft.x;
+        sy = box.botLeft.y;
+        ey = box.topRight.y;
       } else {
         // Reverse both x and y values.
-        sx = box.end.x;
-        ex = box.start.x;
-        sy = box.end.y;
-        ey = box.start.y;
+        sx = box.topRight.x;
+        ex = box.botLeft.x;
+        sy = box.topRight.y;
+        ey = box.botLeft.y;
       }
     }
 
@@ -173,7 +236,7 @@ export class Box implements IBox {
   }
 
   public toString(): string {
-    return 'sx:' + this.start.x + ' ex:' + this.end.x + ' sy:' + this.start.y + ' ey:' + this.end.y + '.';
+    return 'sx:' + this.botLeft.x + ' ex:' + this.topRight.x + ' sy:' + this.botLeft.y + ' ey:' + this.topRight.y + '.';
   }
 }
 
@@ -194,32 +257,30 @@ export class CanvasSize implements ICanvasSize {
 }
 
 export class MapInfo implements IMapInfo {
-  constructor(public coords: IBox, public maxIterations: number, public iterationsPerStep: number) {
+  constructor(public coords: IBox, public maxIterations: number, public iterationsPerStep: number, public upsideDown: boolean) {
   }
 
   public static fromPoints(bottomLeft: IPoint, topRight: IPoint, maxIterations: number, iterationsPerStep: number): IMapInfo {
-
     let coords: IBox = new Box(bottomLeft, topRight);
-    let result: IMapInfo = new MapInfo(coords, maxIterations, iterationsPerStep);
+    let result: IMapInfo = new MapInfo(coords, maxIterations, iterationsPerStep, false);
     return result;
   }
 
   public static fromIMapInfo(mi: IMapInfo) {
-
-    let result: IMapInfo = new MapInfo(mi.coords, mi.maxIterations, mi.iterationsPerStep);
+    let result: IMapInfo = new MapInfo(mi.coords, mi.maxIterations, mi.iterationsPerStep, mi.upsideDown);
     return result;
   }
 
   public get bottomLeft(): IPoint {
-    return this.coords.start;
+    return this.coords.botLeft;
   }
 
   public get topRight(): IPoint {
-    return this.coords.end;
+    return this.coords.topRight;
   }
 
   public toString(): string {
-    return 'sx:' + this.coords.start.x + ' ex:' + this.coords.end.x + ' sy:' + this.coords.start.y + ' ey:' + this.coords.end.y + ' mi:' + this.maxIterations + ' ips:' + this.iterationsPerStep + '.';
+    return 'sx:' + this.coords.botLeft.x + ' ex:' + this.coords.topRight.x + ' sy:' + this.coords.botLeft.y + ' ey:' + this.coords.topRight.y + ' mi:' + this.maxIterations + ' ips:' + this.iterationsPerStep + '.';
   }
 }
 
@@ -499,7 +560,7 @@ export class MapWorkingData implements IMapWorkingData {
 
   //public pixelData: Uint8ClampedArray;
 
-  constructor(public canvasSize: ICanvasSize, public mapInfo: IMapInfo, public colorMap: ColorMap, public sectionAnchor: IPoint, forSubDivision: boolean) {
+  constructor(public canvasSize: ICanvasSize, public mapInfo: IMapInfo, public colorMap: ColorMap, public sectionAnchor: IPoint) {
 
     this.elementCount = this.getNumberOfElementsForCanvas(this.canvasSize);
 
@@ -515,11 +576,13 @@ export class MapWorkingData implements IMapWorkingData {
     // Y coordinates get larger as one moves from the bottom of the map to the top.
     // But ImageData "blocks" are drawn from top to bottom.
 
-    if (forSubDivision) {
+    if (mapInfo.upsideDown) {
+      // The y coordinates are already reversed, just use buildVals
       this.yVals = MapWorkingData.buildVals(this.canvasSize.height, this.mapInfo.bottomLeft.y, this.mapInfo.topRight.y);
     }
     else {
       // if we only have a single section, then we must reverse the y values.
+      // The y coordinates are not reveresed, must use buildValsRev
       this.yVals = MapWorkingData.buildValsRev(this.canvasSize.height, this.mapInfo.bottomLeft.y, this.mapInfo.topRight.y);
     }
 
@@ -696,11 +759,11 @@ export class MapWorkingData implements IMapWorkingData {
       let secTopRight = new Point(right, secTop);
 
       let coords: IBox = new Box(secBotLeft, secTopRight);
-      let secMapInfo = new MapInfo(coords, mapInfo.maxIterations, mapInfo.iterationsPerStep);
+      let secMapInfo = new MapInfo(coords, mapInfo.maxIterations, mapInfo.iterationsPerStep, true);
 
       let yOffset = ptr * sectionHeightWN;
       let secAnchor: IPoint = new Point(0, yOffset);
-      result[ptr] = new MapWorkingData(secCanvasSize, secMapInfo, colorMap, secAnchor, true);
+      result[ptr] = new MapWorkingData(secCanvasSize, secMapInfo, colorMap, secAnchor);
 
       // The next bottomPtr should point to one immediately following the last top.
       bottomPtr = topPtr + 1;
@@ -718,12 +781,12 @@ export class MapWorkingData implements IMapWorkingData {
     let secTopRight = new Point(right, secTop);
 
     let coords: IBox = new Box(secBotLeft, secTopRight);
-    let secMapInfo = new MapInfo(coords, mapInfo.maxIterations, mapInfo.iterationsPerStep);
+    let secMapInfo = new MapInfo(coords, mapInfo.maxIterations, mapInfo.iterationsPerStep, true);
 
     let yOffset = ptr * sectionHeightWN;
     let secAnchor: IPoint = new Point(0, yOffset);
 
-    result[ptr] = new MapWorkingData(secCanvasSize, secMapInfo, colorMap, secAnchor, true);
+    result[ptr] = new MapWorkingData(secCanvasSize, secMapInfo, colorMap, secAnchor);
 
     return result;
   }
@@ -1303,7 +1366,7 @@ export class WebWorkerStartRequest implements IWebWorkerStartRequest {
   }
 
   public getMapWorkingData(): IMapWorkingData {
-    let result = new MapWorkingData(this.canvasSize, this.mapInfo, this.colorMap, this.sectionAnchor, true);
+    let result = new MapWorkingData(this.canvasSize, this.mapInfo, this.colorMap, this.sectionAnchor);
     return result;
   }
 }
@@ -1504,77 +1567,77 @@ export class WebWorkerUpdateColorMapRequest implements IWebWorkerUpdateColorMapR
 
 }
 
-//// Only used when the javascript produced from compiling this TypeScript is used to create worker.js
+// Only used when the javascript produced from compiling this TypeScript is used to create worker.js
 
-//var mapWorkingData: IMapWorkingData = null;
-//var sectionNumber: number = 0;
+var mapWorkingData: IMapWorkingData = null;
+var sectionNumber: number = 0;
 
-//// Handles messages sent from the window that started this web worker.
-//onmessage = function (e) {
+// Handles messages sent from the window that started this web worker.
+onmessage = function (e) {
 
-//  var pixelData: Uint8ClampedArray;
-//  var imageData: ImageData;
-//  var imageDataResponse: IWebWorkerImageDataResponse;
+  var pixelData: Uint8ClampedArray;
+  var imageData: ImageData;
+  var imageDataResponse: IWebWorkerImageDataResponse;
 
-//  //console.log('Worker received message: ' + e.data + '.');
-//  let plainMsg: IWebWorkerMessage = WebWorkerMessage.FromEventData(e.data);
+  //console.log('Worker received message: ' + e.data + '.');
+  let plainMsg: IWebWorkerMessage = WebWorkerMessage.FromEventData(e.data);
 
-//  if (plainMsg.messageKind === 'Start') {
-//    let startMsg = WebWorkerStartRequest.FromEventData(e.data);
+  if (plainMsg.messageKind === 'Start') {
+    let startMsg = WebWorkerStartRequest.FromEventData(e.data);
 
-//    mapWorkingData = startMsg.getMapWorkingData();
-//    sectionNumber = startMsg.sectionNumber;
-//    console.log('Worker created MapWorkingData with element count = ' + mapWorkingData.elementCount);
+    mapWorkingData = startMsg.getMapWorkingData();
+    sectionNumber = startMsg.sectionNumber;
+    console.log('Worker created MapWorkingData with element count = ' + mapWorkingData.elementCount);
 
-//    let responseMsg = new WebWorkerMessage('StartResponse');
-//    console.log('Posting ' + responseMsg.messageKind + ' back to main script');
-//    self.postMessage(responseMsg, "*");
-//  }
-//  else if (plainMsg.messageKind === 'Iterate') {
-//    let iterateRequestMsg = WebWorkerIterateRequest.FromEventData(e.data);
-//    let iterCount = iterateRequestMsg.iterateCount;
-//    mapWorkingData.doIterationsForAll(iterCount);
-//    pixelData = mapWorkingData.getPixelData();
+    let responseMsg = new WebWorkerMessage('StartResponse');
+    console.log('Posting ' + responseMsg.messageKind + ' back to main script');
+    self.postMessage(responseMsg, "*");
+  }
+  else if (plainMsg.messageKind === 'Iterate') {
+    let iterateRequestMsg = WebWorkerIterateRequest.FromEventData(e.data);
+    let iterCount = iterateRequestMsg.iterateCount;
+    mapWorkingData.doIterationsForAll(iterCount);
+    pixelData = mapWorkingData.getPixelData();
 
-//    imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, pixelData);
+    imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, pixelData);
 
-//    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
-//    self.postMessage(imageDataResponse, "*", [pixelData.buffer]);
-//  }
-//  else if (plainMsg.messageKind === 'GetImageData') {
-//    //mapWorkingData.doIterationsForAll(1);
-//    pixelData = mapWorkingData.getPixelData();
-//    imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, pixelData);
+    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
+    self.postMessage(imageDataResponse, "*", [pixelData.buffer]);
+  }
+  else if (plainMsg.messageKind === 'GetImageData') {
+    //mapWorkingData.doIterationsForAll(1);
+    pixelData = mapWorkingData.getPixelData();
+    imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, pixelData);
 
-//    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
-//    self.postMessage(imageDataResponse, "*", [pixelData.buffer]);
-//  }
-//  else if (plainMsg.messageKind === "UpdateColorMap") {
-//    let upColorMapReq = WebWorkerUpdateColorMapRequest.FromEventData(e.data);
+    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
+    self.postMessage(imageDataResponse, "*", [pixelData.buffer]);
+  }
+  else if (plainMsg.messageKind === "UpdateColorMap") {
+    let upColorMapReq = WebWorkerUpdateColorMapRequest.FromEventData(e.data);
 
-//    mapWorkingData.colorMap = upColorMapReq.getColorMap();
-//    console.log('WebWorker received an UpdateColorMapRequest with ' + mapWorkingData.colorMap.ranges.length + ' entries.');
+    mapWorkingData.colorMap = upColorMapReq.getColorMap();
+    console.log('WebWorker received an UpdateColorMapRequest with ' + mapWorkingData.colorMap.ranges.length + ' entries.');
 
-//    pixelData = mapWorkingData.getPixelData();
+    pixelData = mapWorkingData.getPixelData();
 
-//    imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, pixelData);
+    imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, pixelData);
 
-//    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
-//    self.postMessage(imageDataResponse, "*", [pixelData.buffer]);
-//  }
-//  else if (plainMsg.messageKind === "GetHistogram") {
-//    let histogram = mapWorkingData.getHistogram();
-//    let histogramResponse = WebWorkerHistorgramResponse.CreateResponse(sectionNumber, histogram);
+    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
+    self.postMessage(imageDataResponse, "*", [pixelData.buffer]);
+  }
+  else if (plainMsg.messageKind === "GetHistogram") {
+    let histogram = mapWorkingData.getHistogram();
+    let histogramResponse = WebWorkerHistorgramResponse.CreateResponse(sectionNumber, histogram);
 
-//    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
-//    self.postMessage(histogramResponse, "*", [histogramResponse.vals.buffer, histogramResponse.occurances.buffer]);
-//  }
-//  else {
-//    console.log('Received unknown message kind: ' + plainMsg.messageKind);
-//  }
+    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
+    self.postMessage(histogramResponse, "*", [histogramResponse.vals.buffer, histogramResponse.occurances.buffer]);
+  }
+  else {
+    console.log('Received unknown message kind: ' + plainMsg.messageKind);
+  }
 
 
-//};
+};
 
 
 

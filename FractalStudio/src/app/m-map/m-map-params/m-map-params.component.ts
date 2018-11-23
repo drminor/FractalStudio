@@ -36,10 +36,10 @@ export class MMapParamsComponent implements OnInit {
   constructor() { }
 
   private updateForm(mapInfo: IMapInfo): void {
-    this.mapCoordsForm.controls["startX"].setValue(mapInfo.coords.start.x);
-    this.mapCoordsForm.controls["endX"].setValue(mapInfo.coords.end.x);
-    this.mapCoordsForm.controls["startY"].setValue(mapInfo.coords.start.y);
-    this.mapCoordsForm.controls["endY"].setValue(mapInfo.coords.end.y);
+    this.mapCoordsForm.controls["startX"].setValue(mapInfo.coords.botLeft.x);
+    this.mapCoordsForm.controls["endX"].setValue(mapInfo.coords.topRight.x);
+    this.mapCoordsForm.controls["startY"].setValue(mapInfo.coords.botLeft.y);
+    this.mapCoordsForm.controls["endY"].setValue(mapInfo.coords.topRight.y);
 
     this.mapCoordsForm.controls["maxIterations"].setValue(mapInfo.maxIterations);
     this.mapCoordsForm.controls["iterationsPerStep"].setValue(mapInfo.iterationsPerStep);
@@ -56,7 +56,9 @@ export class MMapParamsComponent implements OnInit {
     let maxIterations = parseInt(frm.controls["maxIterations"].value);
     let iterationsPerStep = parseInt(frm.controls["iterationsPerStep"].value);
 
-    result = new MapInfo(coords, maxIterations, iterationsPerStep);
+    // TODO: consider creating a field on our form to store the upsideDownValue.
+    // for rigth now, we know that the MapInfo we use in the UI is always right side up.
+    result = new MapInfo(coords, maxIterations, iterationsPerStep, false);
 
     return result;
   }
@@ -72,6 +74,46 @@ export class MMapParamsComponent implements OnInit {
     console.log('Params is handling form submit.'); // The stack now has ' + this.history.length + ' items.');
 
     this.mapInfoUpdated.emit(mapInfo);
+  }
+
+  onMoveL(evt: KeyboardEvent) {
+    let amount: number = evt.shiftKey ? 50 : 20;
+    this.moveMap('l', amount);
+  }
+
+  onMoveR(evt: KeyboardEvent) {
+    let amount: number = evt.shiftKey ? 50 : 20;
+    this.moveMap('r', amount);
+  }
+
+  onMoveU(evt: KeyboardEvent) {
+    let amount: number = evt.shiftKey ? 50 : 20;
+    this.moveMap('u', amount);
+  }
+
+  onMoveD(evt: KeyboardEvent) {
+    let amount: number = evt.shiftKey ? 50 : 20;
+
+    this.moveMap('d', amount);
+  }
+
+  onZoomOut(evt: KeyboardEvent) {
+    let amount: number = evt.shiftKey ? 50 : 20;
+    this.moveMap('o', amount);
+  }
+
+  private moveMap(dir: string, percent: number) {
+    let newCoords: IBox;
+
+    if (dir === 'o') {
+      newCoords = this.mapInfo.coords.getExpandedBox(percent);
+    }
+    else {
+      newCoords = this.mapInfo.coords.getShiftedBox(dir, percent);
+    }
+
+    let newMapInfo = new MapInfo(newCoords, this.mapInfo.maxIterations, this.mapInfo.iterationsPerStep, this.mapInfo.upsideDown);
+    this.mapInfoUpdated.emit(newMapInfo);
   }
 
   onGoBack() {

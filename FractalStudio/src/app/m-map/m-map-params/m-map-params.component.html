@@ -39,6 +39,14 @@
 
   <input type="file" #fileSelector value="Import" style="margin-left:15px" />
   <button id="Load" type="button" (click)="onLoadMapInfo()" style="margin-left:15px">Load</button>
+  <br />
+  <div style="margin-top:15px">
+    <button id="mLeft" type="button" (click)="onMoveL($event)" style="margin-left:15px">Left</button>
+    <button id="mRight" type="button" (click)="onMoveR($event)" style="margin-left:15px">Right</button>
+    <button id="mUp" type="button" (click)="onMoveU($event)" style="margin-left:15px">Up</button>
+    <button id="mDown" type="button" (click)="onMoveD($event)" style="margin-left:15px">Down</button>
+    <button id="zoomOut" type="button" (click)="onZoomOut($event)" style="margin-left:15px">Zoom Out</button>
+  </div>
 
   <!--<button id="Test" type="button" (click)="onTest()" style="margin-left:20px">Test</button>-->
 
