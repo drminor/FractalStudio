@@ -304,6 +304,50 @@ export class Histogram {
     this.entriesMap = new Map<number, number>();
   }
 
+  public getGroupCnts(breakPoints: number[]): number[] {
+    let result = new Array<number>(breakPoints.length);
+
+    let hes = this.getHistEntries();
+    let lastIdx = 0;
+
+    let ptr: number;
+    for (ptr = 0; ptr < breakPoints.length; ptr++) {
+
+      let accum = 0;
+
+      let thisBp = breakPoints[ptr];
+      let p2: number;
+      for (p2 = lastIdx; p2 < hes.length; p2++) {
+        if (hes[p2].val < thisBp) {
+          accum += hes[p2].occurances;
+        }
+        else {
+          break;
+        }
+      }
+
+      result[ptr] = accum;
+      lastIdx = p2;
+    }
+
+    return result;
+  }
+
+  public getGroupPercentages(groupCounts: number[]): number[] {
+    let result = new Array<number>(groupCounts.length);
+
+    let hes = this.getHistEntries();
+    let total = this.getSumHits(hes, 0, hes.length);
+    total = total / 100;
+
+    let ptr: number;
+    for (ptr = 0; ptr < groupCounts.length; ptr++) {
+      result[ptr] = groupCounts[ptr] / total;
+    }
+
+    return result;
+  }
+
   public getEqualGroupsForAll(numberOfGroups: number): number[] {
     let hes = this.getHistEntries();
 
@@ -321,16 +365,6 @@ export class Histogram {
     }
 
     return result;
-  }
-
-  private getFirstLargerThan(hes: HistEntry[], cutOff: number): number {
-    let ptr: number;
-    for (ptr = 0; ptr < hes.length; ptr++) {
-      if (hes[ptr].val > cutOff) {
-        break;
-      }
-    }
-    return ptr;
   }
 
   public getEqualGroups(numberOfGroups: number, hes: HistEntry[], start: number, cnt: number): number[] {
@@ -399,18 +433,25 @@ export class Histogram {
     return result;
   }
 
+  private getFirstLargerThan(hes: HistEntry[], cutOff: number): number {
+    let ptr: number;
+    for (ptr = 0; ptr < hes.length; ptr++) {
+      if (hes[ptr].val > cutOff) {
+        break;
+      }
+    }
+    return ptr;
+  }
+
   public getHistEntries(): HistEntry[] {
     let result: HistEntry[] = new Array<HistEntry>(this.entriesMap.size);
 
     let vals = Array.from(this.entriesMap.keys());
     let occs = Array.from(this.entriesMap.values());
 
-    //let lst = Array.from(this.entriesMap.entries());
-
     let ptr: number;
     for (ptr = 0; ptr < this.entriesMap.size; ptr++) {
       result[ptr] = new HistEntry(vals[ptr], occs[ptr]);
-      //result.push(new HistEntry(lst[ptr]["0"], lst[ptr]["1"]));
     }
 
     result.sort((a, b) => a.val - b.val);

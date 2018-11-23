@@ -22,12 +22,8 @@ export class ColorMapEditorComponent {
 
     this._colorMap = colorMap;
     this.updateForm(colorMap);
+    this.updatePercentages();
   }
-
-  //@Input('sectionCnt')
-  //set sectionCnt(secCnt: number) {
-  //  this.colorMapForm.controls.sectionCnt.setValue(secCnt);
-  //}
 
   @Input('histogram')
   set histogram(h: Histogram) {
@@ -66,6 +62,8 @@ export class ColorMapEditorComponent {
     this.colorMapForm.controls.sectionCnt.setValue(10);
     this.colorMapForm.controls.sectionStart.setValue(0);
     this.colorMapForm.controls.sectionEnd.setValue(9);
+
+    this._histogram = null;
   }
 
   getRgbaColor(idx: number): string {
@@ -153,12 +151,41 @@ export class ColorMapEditorComponent {
 
   private updatePercentages(): void {
 
+    if (this._histogram === null) {
+      console.log('The Histogram is null -- cannot use it to set offsets.');
+      return;
+    }
+
     let cEntryForms = this.colorEntryForms;
+    let cutOffs = new Array<number>(cEntryForms.length);
 
     let ptr: number;
     for (ptr = 0; ptr < cEntryForms.length; ptr++) {
       let cEntryForm = cEntryForms[ptr];
-      cEntryForm.controls.percentage.setValue('10');
+      cutOffs[ptr] = cEntryForm.controls.cutOff.value;
+    }
+
+    let bucketCnts = this._histogram.getGroupCnts(cutOffs);
+    let percentages = this._histogram.getGroupPercentages(bucketCnts);
+
+    for (ptr = 0; ptr < cEntryForms.length; ptr++) {
+      let cEntryForm = cEntryForms[ptr];
+      cEntryForm.controls.percentage.setValue(this.roundWithTwoDecPlaces(percentages[ptr]));
+    }
+  }
+
+  private roundWithTwoDecPlaces(val: number): string {
+    if (val === 0) {
+      return '0.0%';
+    }
+    else {
+      let result: number = parseInt((100 * val + 0.5).toString(), 10);
+      let strR = result.toString();
+      let res = strR.slice(0, strR.length - 2) + '.' + strR.slice(strR.length - 2) + '%';
+      if (result < 100) {
+        res = '0' + res;
+      }
+      return res;
     }
   }
 

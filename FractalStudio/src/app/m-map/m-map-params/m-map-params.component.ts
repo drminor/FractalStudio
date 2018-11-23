@@ -1,4 +1,4 @@
-import { Component, OnInit, EventEmitter, Output, Input, ViewChild, ElementRef } from '@angular/core';
+import { Component, EventEmitter, Output, Input, ViewChild, ElementRef } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 
 import {
@@ -11,7 +11,7 @@ import {
   templateUrl: './m-map-params.component.html',
   styleUrls: ['./m-map-params.component.css']
 })
-export class MMapParamsComponent implements OnInit {
+export class MMapParamsComponent {
   @Output() mapInfoUpdated = new EventEmitter<IMapInfo>();
   @Output() colorMapUpdated = new EventEmitter<ColorMapUI>();
 
@@ -157,6 +157,7 @@ export class MMapParamsComponent implements OnInit {
       let rawResult: string = fr.result as string;
       let miwcmfe: MapInfoWithColorMapForExport = JSON.parse(rawResult) as MapInfoWithColorMapForExport;
       let miwcm = MapInfoWithColorMap.fromForExport(miwcmfe);
+
       this.mapInfoLoaded.emit(miwcm);
     });
 
@@ -166,9 +167,6 @@ export class MMapParamsComponent implements OnInit {
 
   onTest() {
     this.goBack.emit(2);
-  }
-
-  ngOnInit() {
   }
 
 }
