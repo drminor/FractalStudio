@@ -1,4 +1,6 @@
 import { IterableChangeRecord_ } from "@angular/core/src/change_detection/differs/default_iterable_differ";
+import { currentId } from "async_hooks";
+import { ArrayType } from "@angular/compiler";
 
 const MAX_CANVAS_WIDTH: number = 50000;
 const MAX_CANVAS_HEIGHT: number = 50000;
@@ -294,6 +296,257 @@ export class HistEntry {
   public toString(): string {
     return this.val.toString() + ': ' + this.occurances.toString();
   }
+}
+
+export class Divisions {
+
+  public children: Divisions[];
+
+  constructor(total: number, start: number, numberOfDivs: number) {
+    this._numberOfDivs = 1;
+    this.total = total;
+    this.start = start;
+    this.numberOfDivs = numberOfDivs;
+  }
+
+  private _total: number;
+  public get total(): number {
+    return this._total;
+  }
+
+  public set total(value: number) {
+    this._total = value;
+    if (this._numberOfDivs > 1) {
+      let workDivs = this.buildDivisions(this._total, this._start, this._numberOfDivs);
+
+      let ptr: number;
+      for (ptr = 0; ptr < this.children.length; ptr++) {
+        this.children[ptr].setTotalAndStart(workDivs[ptr].total, workDivs[ptr].start);
+      }
+    }
+  }
+
+  private _start: number;
+  public get start(): number {
+    return this._start;
+  }
+
+  public set start(value: number) {
+    this._start = value;
+    if (this._numberOfDivs > 1) {
+      let workDivs = this.buildDivisions(this._total, this._start, this._numberOfDivs);
+
+      let ptr: number;
+      for (ptr = 0; ptr < this.children.length; ptr++) {
+        this.children[ptr].setTotalAndStart(workDivs[ptr].total, workDivs[ptr].start);
+      }
+    }
+  }
+
+  private _numberOfDivs: number;
+  public get numberOfDivs(): number {
+    return this._numberOfDivs;
+  }
+
+  public set numberOfDivs(value: number) {
+    if (value < 1 || parseInt(value.toString()) !== value) {
+      throw new RangeError('The numberOfDivs must be a whole number greater than 0.');
+    }
+
+    this._numberOfDivs = value;
+
+    if (value === 1) {
+      this.children = null;
+    }
+    else {
+      this.children = this.buildDivisions(this.total, this.start, value);
+    }
+  }
+
+  public setTotalAndStart(total: number, start: number): void {
+    this._total = total;
+    this._start = start;
+
+    if (this._numberOfDivs > 1) {
+      let workDivs = this.buildDivisions(this._total, this._start, this._numberOfDivs);
+
+      let ptr: number;
+      for (ptr = 0; ptr < this.children.length; ptr++) {
+        this.children[ptr].setTotalAndStart(workDivs[ptr].total, workDivs[ptr].start);
+      }
+    }
+  }
+
+  public insertChild(newChild: Divisions, index: number): void {
+    if (index < 0 || index > this._numberOfDivs) {
+      throw new RangeError('The index is out of bounds.');
+    }
+
+    this._numberOfDivs++;
+    let workDivs = this.buildDivisions(this._total, this._start, this._numberOfDivs);
+
+    if (this._numberOfDivs === 2) {
+      newChild.setTotalAndStart(this._total, this._start);
+      this.children = new Array<Divisions>(2);
+      if (index === 0) {
+        this.children.push(newChild);
+        this.children.push(workDivs[1]);
+      }
+      else {
+        this.children.push(workDivs[0]);
+        this.children.push(newChild);
+      }
+    }
+    else {
+      let ptr: number;
+
+      let newChildren: Divisions[];
+      if (index === 0) {
+        newChildren.push(newChild);
+        for (ptr = 0; ptr < this.children.length; ptr++) {
+          newChildren.push(this.children[ptr]);
+        }
+        this.children = newChildren;
+      }
+      else if (index === this.children.length) {
+        this.children.push(newChild);
+      }
+      else {
+        newChildren = this.children.slice(0, index);
+        newChildren.push(newChild);
+
+        for (ptr = index; ptr < this.children.length; ptr++) {
+          newChildren.push(this.children[ptr]);
+        }
+        this.children = newChildren;
+      }
+
+      for (ptr = 0; ptr < this.children.length; ptr++) {
+        this.children[ptr].setTotalAndStart(workDivs[ptr].total, workDivs[ptr].start);
+      }
+    }
+
+  }
+
+  public deleteChild(index: number): void {
+    if (index < 0 || index > this._numberOfDivs) {
+      throw new RangeError('The index is out of bounds.');
+    }
+
+    this._numberOfDivs--;
+    let workDivs = this.buildDivisions(this._total, this._start, this._numberOfDivs);
+
+
+    let ptr: number;
+
+    let newChildren: Divisions[];
+    if (index === 0) {
+      this.children = this.children.slice(1, this._numberOfDivs);
+    }
+    else if (index === this.children.length) {
+      this.children = this.children.slice(0, this._numberOfDivs);
+    }
+    else {
+      let newChildren = this.children.slice(0, index);
+      for (ptr = index + 1; ptr < this.children.length; ptr++) {
+        newChildren.push(this.children[ptr]);
+      }
+      this.children = newChildren;
+    }
+
+    for (ptr = 0; ptr < this.children.length; ptr++) {
+      this.children[ptr].setTotalAndStart(workDivs[ptr].total, workDivs[ptr].start);
+    }
+
+  }
+
+  private buildDivisions(total: number, start: number, divs: number): Divisions[] {
+    let result = new Array<Divisions>(divs);
+    let unit = total / divs;
+    let curStart = start;
+
+    let ptr: number;
+    for (ptr = 0; ptr < divs; ptr++) {
+      result[ptr] = new Divisions(unit, curStart, 1);
+      curStart += unit;
+    }
+
+    return result;
+  }
+
+  public getStartingValsAsPercentages(): string[] {
+    let result: string[] = [];
+    let startingVals = this.getStartingVals();
+
+    let ptr: number;
+    for (ptr = 0; ptr < startingVals.length; ptr++) {
+      result.push(this.roundWithTwoDecPlaces(startingVals[ptr]));
+    }
+    return result;
+  }
+
+  public getStartingVals(): number[] {
+    let curResult: number[] = [];
+    let result = this.getStartingValsInternal(curResult);
+    return result;
+  }
+
+  private getStartingValsInternal(curResult: number[]): number[] {
+    if (this._numberOfDivs === 1) {
+      curResult.push(this.start);
+    }
+    else {
+      let ptr: number;
+      for (ptr = 0; ptr < this.children.length; ptr++) {
+        curResult = this.children[ptr].getStartingValsInternal(curResult);
+      }
+    }
+    return curResult;
+  }
+
+  public toString(): string {
+    return this.toStringInternal('');
+  }
+
+  private toStringInternal(curResult: string): string {
+    let result = curResult;
+
+    if (this._numberOfDivs === 1) {
+      if (result !== '') {
+        result += ', ';
+      }
+      result = '\n(' + this.start + ':' + this.total + ')';
+    }
+    else {
+      result = '';
+      let ptr: number;
+      for (ptr = 0; ptr < this.children.length; ptr++) {
+        if (result !== '') {
+          result += ', ';
+        }
+        result += this.children[ptr].toStringInternal(result);
+      }
+      result = '\n(' + this.start + ':' + this.total + ')' + '[' + result + ']';
+    }
+
+    return result;
+  }
+
+  private roundWithTwoDecPlaces(val: number): string {
+    if (val === 0) {
+      return '0.0%';
+    }
+    else {
+      let result: number = parseInt((10000 * val + 0.5).toString(), 10);
+      let strR = result.toString();
+      let res = strR.slice(0, strR.length - 2) + '.' + strR.slice(strR.length - 2) + '%';
+      if (result < 100) {
+        res = '0' + res;
+      }
+      return res;
+    }
+  }
+
 }
 
 export class Histogram {
