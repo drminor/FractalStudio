@@ -43,12 +43,12 @@
   <div [ngStyle]="{'margin-left': colorEditorOffSet || '946px',
                         'width':  colorEditorWidth || '385px',
                         'padding': '3px 3px 3px 3px',
-                        'border': '2px solid black'
+                        'border': '2px solid black',
+                        'height': '817px'
                  }">
     <app-color-map-editor [colorMap]="colorMap"
                           [histogram]="histogram"
-                          (colorMapUpdated)="onColorMapUpdated($event)"
-                          (histogramRequested)="onHistogramRequested()">
+                          (colorMapUpdated)="onColorMapUpdated($event)">
     </app-color-map-editor>
 
     <!--[sectionCnt]="sectionCnt"

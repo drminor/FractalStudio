@@ -77,28 +77,27 @@ export class MMapParamsComponent {
   }
 
   onMoveL(evt: KeyboardEvent) {
-    let amount: number = evt.shiftKey ? 50 : 20;
+    let amount: number = evt.shiftKey ? 50 : evt.ctrlKey ? 5 : 20;
     this.moveMap('l', amount);
   }
 
   onMoveR(evt: KeyboardEvent) {
-    let amount: number = evt.shiftKey ? 50 : 20;
+    let amount: number = evt.shiftKey ? 50 : evt.ctrlKey ? 5 : 20;
     this.moveMap('r', amount);
   }
 
   onMoveU(evt: KeyboardEvent) {
-    let amount: number = evt.shiftKey ? 50 : 20;
+    let amount: number = evt.shiftKey ? 50 : evt.ctrlKey ? 5 : 20;
     this.moveMap('u', amount);
   }
 
   onMoveD(evt: KeyboardEvent) {
-    let amount: number = evt.shiftKey ? 50 : 20;
-
+    let amount: number = evt.shiftKey ? 50 : evt.ctrlKey ? 5 : 20;
     this.moveMap('d', amount);
   }
 
   onZoomOut(evt: KeyboardEvent) {
-    let amount: number = evt.shiftKey ? 50 : 20;
+    let amount: number = evt.shiftKey ? 50 : evt.ctrlKey ? 5 : 20;
     this.moveMap('o', amount);
   }
 

@@ -1,7 +1,3 @@
-import { IterableChangeRecord_ } from "@angular/core/src/change_detection/differs/default_iterable_differ";
-import { currentId } from "async_hooks";
-import { ArrayType } from "@angular/compiler";
-
 const MAX_CANVAS_WIDTH: number = 50000;
 const MAX_CANVAS_HEIGHT: number = 50000;
 
@@ -12,7 +8,7 @@ export interface IPoint {
 }
 
 export interface IBox {
-  botLeft: IPoint;
+  botLeft: IPoint;  
   topRight: IPoint;
   width: number;
   height: number;
@@ -69,13 +65,13 @@ export interface IMapWorkingData {
 
   getLinearIndex(c: IPoint): number;
   doIterationsForAll(iterCount: number): boolean;
-  doIterationsForLine(iterCount: number, y: number): boolean;
+  //doIterationsForLine(iterCount: number, y: number): boolean;
 
   getPixelData(): Uint8ClampedArray;
-  getImageDataForLine(y: number): ImageData;
+  //getImageDataForLine(y: number): ImageData;
 
-  updateImageData(imgData: Uint8ClampedArray): void;
-
+  //updateImageData(imgData: Uint8ClampedArray): void;
+  iterationCountForNextStep(): number;
   getHistogram(): Histogram;
 }
 
@@ -286,26 +282,15 @@ export class MapInfo implements IMapInfo {
   }
 }
 
-export class HistArrayPair {
-  constructor(public vals: Uint16Array, public occurances: Uint16Array) { }
-}
-
-export class HistEntry {
-  constructor(public val: number, public occurances: number) { }
-
-  public toString(): string {
-    return this.val.toString() + ': ' + this.occurances.toString();
-  }
-}
-
 export class Divisions {
 
   public children: Divisions[];
 
-  constructor(total: number, start: number, numberOfDivs: number) {
+  constructor(total: number, startVal: number, startIdx: number, numberOfDivs: number) {
     this._numberOfDivs = 1;
     this.total = total;
-    this.start = start;
+    this.startVal = startVal;
+    this.startIdx = startIdx;
     this.numberOfDivs = numberOfDivs;
   }
 
@@ -317,28 +302,46 @@ export class Divisions {
   public set total(value: number) {
     this._total = value;
     if (this._numberOfDivs > 1) {
-      let workDivs = this.buildDivisions(this._total, this._start, this._numberOfDivs);
+      let workDivs = this.buildDivisions(this._total, this._startVal, this._startIdx, this._numberOfDivs);
 
+      let curStartIdx = this._startIdx + 1;
       let ptr: number;
       for (ptr = 0; ptr < this.children.length; ptr++) {
-        this.children[ptr].setTotalAndStart(workDivs[ptr].total, workDivs[ptr].start);
+        curStartIdx = this.children[ptr].setTotalAndStart(workDivs[ptr].total, workDivs[ptr].startVal, curStartIdx);
       }
     }
   }
 
-  private _start: number;
-  public get start(): number {
-    return this._start;
+  private _startVal: number;
+  public get startVal(): number {
+    return this._startVal;
   }
 
-  public set start(value: number) {
-    this._start = value;
+  public set startVal(value: number) {
+    this._startVal = value;
     if (this._numberOfDivs > 1) {
-      let workDivs = this.buildDivisions(this._total, this._start, this._numberOfDivs);
+      let workDivs = this.buildDivisions(this._total, this._startVal, this._startIdx, this._numberOfDivs);
+
+      let curStartIdx = this._startIdx + 1;
+      let ptr: number;
+      for (ptr = 0; ptr < this.children.length; ptr++) {
+        curStartIdx = this.children[ptr].setTotalAndStart(workDivs[ptr].total, workDivs[ptr].startVal, curStartIdx);
+      }    }
+  }
+
+  private _startIdx: number;
+  public get startIdx(): number {
+    return this._startIdx;
+  }
+
+  public set startIdx(value: number) {
+    this._startIdx = value;
+    if (this._numberOfDivs > 1) {
+      let curStartIdx = value + 1;
 
       let ptr: number;
       for (ptr = 0; ptr < this.children.length; ptr++) {
-        this.children[ptr].setTotalAndStart(workDivs[ptr].total, workDivs[ptr].start);
+        curStartIdx = this.children[ptr].setTotalAndStart(this.total, this.startVal, curStartIdx);
       }
     }
   }
@@ -359,22 +362,27 @@ export class Divisions {
       this.children = null;
     }
     else {
-      this.children = this.buildDivisions(this.total, this.start, value);
+      this.children = this.buildDivisions(this.total, this.startVal, this._startIdx, value);
     }
   }
 
-  public setTotalAndStart(total: number, start: number): void {
+  public setTotalAndStart(total: number, startVal: number, startIdx: number): number {
     this._total = total;
-    this._start = start;
+    this._startVal = startVal;
+    this._startIdx = startIdx;
 
+    let curStartIdx = startIdx + 1;
     if (this._numberOfDivs > 1) {
-      let workDivs = this.buildDivisions(this._total, this._start, this._numberOfDivs);
+      let workDivs = this.buildDivisions(this._total, this._startVal, this._startIdx, this._numberOfDivs);
 
       let ptr: number;
       for (ptr = 0; ptr < this.children.length; ptr++) {
-        this.children[ptr].setTotalAndStart(workDivs[ptr].total, workDivs[ptr].start);
+        curStartIdx = this.children[ptr].setTotalAndStart(workDivs[ptr].total, workDivs[ptr].startVal, curStartIdx);
       }
     }
+
+    return curStartIdx;
+
   }
 
   public insertChild(newChild: Divisions, index: number): void {
@@ -383,47 +391,52 @@ export class Divisions {
     }
 
     this._numberOfDivs++;
-    let workDivs = this.buildDivisions(this._total, this._start, this._numberOfDivs);
+    let workDivs = this.buildDivisions(this._total, this._startVal, this._startIdx, this._numberOfDivs);
 
     if (this._numberOfDivs === 2) {
-      newChild.setTotalAndStart(this._total, this._start);
       this.children = new Array<Divisions>(2);
       if (index === 0) {
+        newChild.setTotalAndStart(this._total, this._startVal, this._startIdx + 1);
         this.children.push(newChild);
         this.children.push(workDivs[1]);
       }
       else {
+        newChild.setTotalAndStart(this._total, this._startVal, this._startIdx + 2);
         this.children.push(workDivs[0]);
         this.children.push(newChild);
       }
     }
     else {
+      this.children.splice(index, 0, newChild);
+      //let ptr: number;
+      //let newChildren: Divisions[];
+
+      //if (index === 0) {
+      //  newChildren.push(newChild);
+      //  for (ptr = 0; ptr < this.children.length; ptr++) {
+      //    newChildren.push(this.children[ptr]);
+      //  }
+      //  this.children = newChildren;
+      //}
+      //else if (index === this.children.length) {
+      //  this.children.push(newChild);
+      //}
+      //else {
+      //  newChildren = this.children.slice(0, index);
+      //  newChildren.push(newChild);
+
+      //  for (ptr = index; ptr < this.children.length; ptr++) {
+      //    newChildren.push(this.children[ptr]);
+      //  }
+      //  this.children = newChildren;
+      //}
+
+      let curStartIdx = this._startIdx + 1;
       let ptr: number;
-
-      let newChildren: Divisions[];
-      if (index === 0) {
-        newChildren.push(newChild);
-        for (ptr = 0; ptr < this.children.length; ptr++) {
-          newChildren.push(this.children[ptr]);
-        }
-        this.children = newChildren;
-      }
-      else if (index === this.children.length) {
-        this.children.push(newChild);
-      }
-      else {
-        newChildren = this.children.slice(0, index);
-        newChildren.push(newChild);
-
-        for (ptr = index; ptr < this.children.length; ptr++) {
-          newChildren.push(this.children[ptr]);
-        }
-        this.children = newChildren;
-      }
-
       for (ptr = 0; ptr < this.children.length; ptr++) {
-        this.children[ptr].setTotalAndStart(workDivs[ptr].total, workDivs[ptr].start);
+        curStartIdx = this.children[ptr].setTotalAndStart(workDivs[ptr].total, workDivs[ptr].startVal, curStartIdx);
       }
+
     }
 
   }
@@ -434,41 +447,44 @@ export class Divisions {
     }
 
     this._numberOfDivs--;
-    let workDivs = this.buildDivisions(this._total, this._start, this._numberOfDivs);
+    let workDivs = this.buildDivisions(this._total, this._startVal, this._startIdx, this._numberOfDivs);
 
+    //let ptr: number;
 
+    //if (index === 0) {
+    //  this.children = this.children.slice(1, this._numberOfDivs);
+    //}
+    //else if (index === this.children.length) {
+    //  this.children = this.children.slice(0, this._numberOfDivs);
+    //}
+    //else {
+    //  let newChildren = this.children.slice(0, index);
+    //  for (ptr = index + 1; ptr < this.children.length; ptr++) {
+    //    newChildren.push(this.children[ptr]);
+    //  }
+    //  this.children = newChildren;
+    //}
+
+    this.children.splice(index, 1);
+
+    let curStartIdx = this._startIdx + 1;
     let ptr: number;
-
-    let newChildren: Divisions[];
-    if (index === 0) {
-      this.children = this.children.slice(1, this._numberOfDivs);
-    }
-    else if (index === this.children.length) {
-      this.children = this.children.slice(0, this._numberOfDivs);
-    }
-    else {
-      let newChildren = this.children.slice(0, index);
-      for (ptr = index + 1; ptr < this.children.length; ptr++) {
-        newChildren.push(this.children[ptr]);
-      }
-      this.children = newChildren;
-    }
-
     for (ptr = 0; ptr < this.children.length; ptr++) {
-      this.children[ptr].setTotalAndStart(workDivs[ptr].total, workDivs[ptr].start);
+      curStartIdx = this.children[ptr].setTotalAndStart(workDivs[ptr].total, workDivs[ptr].startVal, curStartIdx);
     }
 
   }
 
-  private buildDivisions(total: number, start: number, divs: number): Divisions[] {
+  private buildDivisions(total: number, startVal: number, startIdx: number, divs: number): Divisions[] {
     let result = new Array<Divisions>(divs);
     let unit = total / divs;
-    let curStart = start;
+    let curStartVal = startVal;
+    let firstChildStartIdx = startIdx + 1;
 
     let ptr: number;
     for (ptr = 0; ptr < divs; ptr++) {
-      result[ptr] = new Divisions(unit, curStart, 1);
-      curStart += unit;
+      result[ptr] = new Divisions(unit, curStartVal, firstChildStartIdx++, 1);
+      curStartVal += unit;
     }
 
     return result;
@@ -480,11 +496,12 @@ export class Divisions {
 
     let ptr: number;
     for (ptr = 0; ptr < startingVals.length; ptr++) {
-      result.push(this.roundWithTwoDecPlaces(startingVals[ptr]));
+      result.push(this.formatAsPercentage(startingVals[ptr]));
     }
     return result;
   }
 
+  // Returns a list of numeric values, each value is between 0 and 1.
   public getStartingVals(): number[] {
     let curResult: number[] = [];
     let result = this.getStartingValsInternal(curResult);
@@ -493,7 +510,7 @@ export class Divisions {
 
   private getStartingValsInternal(curResult: number[]): number[] {
     if (this._numberOfDivs === 1) {
-      curResult.push(this.start);
+      curResult.push(this.startVal);
     }
     else {
       let ptr: number;
@@ -515,7 +532,7 @@ export class Divisions {
       if (result !== '') {
         result += ', ';
       }
-      result = '\n(' + this.start + ':' + this.total + ')';
+      result = '\n(entry:' + this.startIdx + '-' + this.startVal + ':' + this.total + ')';
     }
     else {
       result = '';
@@ -526,27 +543,43 @@ export class Divisions {
         }
         result += this.children[ptr].toStringInternal(result);
       }
-      result = '\n(' + this.start + ':' + this.total + ')' + '[' + result + ']';
+      result = '\n(entry:' + this.startIdx + '-' + this.startVal + ':' + this.total + ')' + '[' + result + ']';
     }
 
     return result;
   }
 
-  private roundWithTwoDecPlaces(val: number): string {
+  private formatAsPercentage(val: number): string {
     if (val === 0) {
       return '0.0%';
     }
     else {
-      let result: number = parseInt((10000 * val + 0.5).toString(), 10);
-      let strR = result.toString();
-      let res = strR.slice(0, strR.length - 2) + '.' + strR.slice(strR.length - 2) + '%';
-      if (result < 100) {
+      let percentX100: number = parseInt((10000 * val + 0.5).toString(), 10);
+      let s = percentX100.toString();
+      let res = s.slice(0, s.length - 2) + '.' + s.slice(s.length - 2) + '%';
+      if (percentX100 < 100) {
         res = '0' + res;
       }
       return res;
     }
   }
 
+}
+
+//export class CutoffAndPercentage {
+//  constructor(public cutOff: number, public percentage: number) { }
+//}
+
+export class HistArrayPair {
+  constructor(public vals: Uint16Array, public occurances: Uint16Array) { }
+}
+
+export class HistEntry {
+  constructor(public val: number, public occurances: number) { }
+
+  public toString(): string {
+    return this.val.toString() + ': ' + this.occurances.toString();
+  }
 }
 
 export class Histogram {
@@ -557,46 +590,14 @@ export class Histogram {
     this.entriesMap = new Map<number, number>();
   }
 
-  public getGroupCnts(breakPoints: number[]): number[] {
-    let result = new Array<number>(breakPoints.length);
+  //public getCutoffs(percentages: number[]): CutoffAndPercentage[] {
+  //  let result = new Array<CutoffAndPercentage>(percentages.length);
 
-    let hes = this.getHistEntries();
-    let lastIdx = 0;
+  //  return result;
+  //}
 
-    let ptr: number;
-    for (ptr = 0; ptr < breakPoints.length; ptr++) {
-
-      let accum = 0;
-
-      let thisBp = breakPoints[ptr];
-      let p2: number;
-      for (p2 = lastIdx; p2 < hes.length; p2++) {
-        if (hes[p2].val < thisBp) {
-          accum += hes[p2].occurances;
-        }
-        else {
-          break;
-        }
-      }
-
-      result[ptr] = accum;
-      lastIdx = p2;
-    }
-
-    return result;
-  }
-
-  public getGroupPercentages(groupCounts: number[]): number[] {
-    let result = new Array<number>(groupCounts.length);
-
-    let hes = this.getHistEntries();
-    let total = this.getSumHits(hes, 0, hes.length);
-    total = total / 100;
-
-    let ptr: number;
-    for (ptr = 0; ptr < groupCounts.length; ptr++) {
-      result[ptr] = groupCounts[ptr] / total;
-    }
+  public getCutoffs(percentages: number[]): number[] {
+    let result = new Array<number>(percentages.length);
 
     return result;
   }
@@ -780,6 +781,50 @@ export class Histogram {
         this.entriesMap.set(val, occ + arrayPair.occurances[ptr]);
       }
     }
+  }
+
+  public getGroupCnts(breakPoints: number[]): number[] {
+    let result = new Array<number>(breakPoints.length);
+
+    let hes = this.getHistEntries();
+    let lastIdx = 0;
+
+    let ptr: number;
+    for (ptr = 0; ptr < breakPoints.length; ptr++) {
+
+      let accum = 0;
+
+      let thisBp = breakPoints[ptr];
+      let p2: number;
+      for (p2 = lastIdx; p2 < hes.length; p2++) {
+        if (hes[p2].val < thisBp) {
+          accum += hes[p2].occurances;
+        }
+        else {
+          break;
+        }
+      }
+
+      result[ptr] = accum;
+      lastIdx = p2;
+    }
+
+    return result;
+  }
+
+  public getGroupPercentages(groupCounts: number[]): number[] {
+    let result = new Array<number>(groupCounts.length);
+
+    let hes = this.getHistEntries();
+    let total = this.getSumHits(hes, 0, hes.length);
+    total = total / 100;
+
+    let ptr: number;
+    for (ptr = 0; ptr < groupCounts.length; ptr++) {
+      result[ptr] = groupCounts[ptr] / total;
+    }
+
+    return result;
   }
 
   public toString(): string {
@@ -1109,54 +1154,68 @@ export class MapWorkingData implements IMapWorkingData {
     }
   }
   
-  public getImageDataForLine(y: number): ImageData {
-    const imageData = new ImageData(this.canvasSize.width, 1);
-    this.updateImageDataForLine(imageData, y);
-    return imageData;
-  }
+  //public getImageDataForLine(y: number): ImageData {
+  //  const imageData = new ImageData(this.canvasSize.width, 1);
+  //  this.updateImageDataForLine(imageData, y);
+  //  return imageData;
+  //}
 
-  private updateImageDataForLine(imageData: ImageData, y: number): void {
-    let data: Uint8ClampedArray = imageData.data;
-    if (data.length !== 4 * this.canvasSize.width) {
-      console.log("The imagedata data does not have the correct number of elements.");
-      return;
-    }
+  //private updateImageDataForLine(imageData: ImageData, y: number): void {
+  //  let data: Uint8ClampedArray = imageData.data;
+  //  if (data.length !== 4 * this.canvasSize.width) {
+  //    console.log("The imagedata data does not have the correct number of elements.");
+  //    return;
+  //  }
 
-    let start: number = this.getLinearIndex(new Point(0, y));
-    let end: number = start + this.canvasSize.width;
+  //  let start: number = this.getLinearIndex(new Point(0, y));
+  //  let end: number = start + this.canvasSize.width;
 
-    let i: number;
+  //  let i: number;
 
-    for (i = start; i < end; i++) {
-      const inTheSet: boolean = this.flags[i] === 0;
-      this.setPixelValueBinary(inTheSet, i * 4, data);
-    }
-  }
+  //  for (i = start; i < end; i++) {
+  //    const inTheSet: boolean = this.flags[i] === 0;
+  //    this.setPixelValueBinary(inTheSet, i * 4, data);
+  //  }
+  //}
 
-  private setPixelValueBinary(on: boolean, ptr: number, imageData: Uint8ClampedArray) {
-    if (on) {
-      // Points within the set are drawn in black.
-      imageData[ptr] = 0;
-      imageData[ptr + 1] = 0;
-      imageData[ptr + 2] = 0;
-      imageData[ptr + 3] = 255;
-    } else {
-      // Points outside the set are drawn in white.
-      imageData[ptr] = 255;
-      imageData[ptr + 1] = 255;
-      imageData[ptr + 2] = 255;
-      imageData[ptr + 3] = 255;
-    }
-  }
+  //private setPixelValueBinary(on: boolean, ptr: number, imageData: Uint8ClampedArray) {
+  //  if (on) {
+  //    // Points within the set are drawn in black.
+  //    imageData[ptr] = 0;
+  //    imageData[ptr + 1] = 0;
+  //    imageData[ptr + 2] = 0;
+  //    imageData[ptr + 3] = 255;
+  //  } else {
+  //    // Points outside the set are drawn in white.
+  //    imageData[ptr] = 255;
+  //    imageData[ptr + 1] = 255;
+  //    imageData[ptr + 2] = 255;
+  //    imageData[ptr + 3] = 255;
+  //  }
+  //}
                                                                                            
-  // Returns a 'regular' linear array of booleans from the flags TypedArray.
-  private getFlagData(mapWorkingData: IMapWorkingData): boolean[] {
+  //// Returns a 'regular' linear array of booleans from the flags TypedArray.
+  //private getFlagData(mapWorkingData: IMapWorkingData): boolean[] {
 
-    var result: boolean[] = new Array<boolean>(mapWorkingData.elementCount);
+  //  var result: boolean[] = new Array<boolean>(mapWorkingData.elementCount);
 
-    var i: number;
-    for (i = 0; i < result.length; i++) {
-      result[i] = mapWorkingData.flags[i] !== 0;
+  //  var i: number;
+  //  for (i = 0; i < result.length; i++) {
+  //    result[i] = mapWorkingData.flags[i] !== 0;
+  //  }
+
+  //  return result;
+  //}
+
+  public iterationCountForNextStep(): number {
+    let result: number;
+    let gap = this.mapInfo.maxIterations - this.curIterations;
+
+    if (gap > this.mapInfo.iterationsPerStep) {
+      result = this.mapInfo.iterationsPerStep;
+    }
+    else {
+      result = gap;
     }
 
     return result;
@@ -1181,33 +1240,21 @@ export class ColorMapEntry {
 }
 
 export class ColorMapEntryForExport {
-  constructor(public cutOff: number, public cssColor: string) {
+  constructor(public cutOff: number, public targetPercentage: number, public cssColor: string) {
+    if (this.targetPercentage === undefined) this.targetPercentage = 0;
   }
 }
 
 export class ColorMapUIEntry {
 
+  //public targetPercentage: number;
   public colorNum: number;
   public r: number;
   public g: number;
   public b: number;
-  public alpha: number = 255;
+  public alpha: number;
 
-  public get rgbHex(): string {
-
-    let result: string = '#' + ('0' + this.r.toString(16)).slice(-2) + ('0' + this.g.toString(16)).slice(-2) + ('0' + this.b.toString(16)).slice(-2);
-    //return "#FFFF00";
-    return result;
-  }
-
-
-  public get rgbaString(): string {
-    let result: string = 'rgba(' + this.r.toString(10) + ',' + this.g.toString(10) + ',' + this.b.toString(10) + ',1)';
-    //return 'rgba(200,20,40,1)';
-    return result;
-  }
-
-  constructor(public cutOff: number, colorVals: number[]) {
+  constructor(public cutOff: number, public targetPercentage: number, colorVals: number[]) {
 
     if (colorVals.length === 3) {
       this.r = colorVals[0];
@@ -1228,40 +1275,43 @@ export class ColorMapUIEntry {
     this.colorNum = ColorNumbers.getColor(this.r, this.g, this.b, this.alpha);
   }
 
+  public get rgbHex(): string {
+
+    let result: string = '#' + ('0' + this.r.toString(16)).slice(-2) + ('0' + this.g.toString(16)).slice(-2) + ('0' + this.b.toString(16)).slice(-2);
+    //return "#FFFF00";
+    return result;
+  }
+
+
+  public get rgbaString(): string {
+    let result: string = 'rgba(' + this.r.toString(10) + ',' + this.g.toString(10) + ',' + this.b.toString(10) + ',1)';
+    //return 'rgba(200,20,40,1)';
+    return result;
+  }
+
   public static fromColorMapEntry(cme: ColorMapEntry): ColorMapUIEntry {
-    let result = ColorMapUIEntry.fromOffsetAndColorNum(cme.cutOff, cme.colorNum);
+    let result = ColorMapUIEntry.fromOffsetAndColorNum(cme.cutOff, 0, cme.colorNum);
     return result;
   }
 
-  public static fromOffsetAndColorNum(cutOff: number, cNum: number): ColorMapUIEntry {
+  public static fromOffsetAndColorNum(cutOff: number, tPercentage: number, cNum: number): ColorMapUIEntry {
     let colorComps: number[] = ColorNumbers.getColorComponents(cNum);
-    let result = new ColorMapUIEntry(cutOff, colorComps);
+    let result = new ColorMapUIEntry(cutOff, tPercentage, colorComps);
     return result;
   }
 
-  public static fromOffsetAndCssColor(cutOff: number, cssColor: string): ColorMapUIEntry {
+  public static fromOffsetAndCssColor(cutOff: number, tPercentage: number, cssColor: string): ColorMapUIEntry {
     let colorComps: number[] = ColorNumbers.getColorComponentsFromCssColor(cssColor);
-    let result = new ColorMapUIEntry(cutOff, colorComps);
+    let result = new ColorMapUIEntry(cutOff, tPercentage, colorComps);
     return result;
   }
 
-  public static fromOffsetAndRgba(cutOff: number, rgbaColor: string): ColorMapUIEntry {
+  public static fromOffsetAndRgba(cutOff: number, tPercentage: number, rgbaColor: string): ColorMapUIEntry {
     let colorComps: number[] = ColorNumbers.getColorComponentsFromRgba(rgbaColor);
-    let result = new ColorMapUIEntry(cutOff, colorComps);
+    let result = new ColorMapUIEntry(cutOff, tPercentage, colorComps);
     return result;
   }
 }
-
-//export interface IColorMap {
-//  ranges: ColorMapEntry[]
-//  highColor: number;
-
-//  getColor(countValue: number): number;
-//  insertColorMapEntry(entry: ColorMapEntry, index: number);
-
-//  getCutOffs(): Uint16Array;
-//  getColorNums(): Uint32Array;
-//}
 
 export class ColorMap {
 
@@ -1366,24 +1416,54 @@ export class ColorMap {
 }
 
 export class ColorMapUI {
-
-  //public get uIRanges(): ColorMapUIEntry[] {
-  //  return this.ranges as ColorMapUIEntry[];
-  //}
-
   constructor(public ranges: ColorMapUIEntry[], public highColor: number) { }
 
-  //insertColorMapEntry(entry: IColorMapEntry, index: number) {
+  public mergeCutoffs(cutOffs: number[]): ColorMapUI {
 
-  //  throw new RangeError("Not Implemented.");
-  //}
+    let ranges: ColorMapUIEntry[] = [];
+    let ptrToExistingCmes = 0;
+
+    let ptr: number;
+    for (ptr = 0; ptr < cutOffs.length; ptr++) {
+      let existingColorNum = this.ranges[ptrToExistingCmes++].colorNum;
+
+      ranges.push(ColorMapUIEntry.fromOffsetAndColorNum(cutOffs[ptr], 0, existingColorNum));
+
+      if (ptrToExistingCmes > this.ranges.length - 1) {
+        ptrToExistingCmes = 0;
+      }
+    }
+
+    let result: ColorMapUI = new ColorMapUI(ranges, this.highColor);
+    return result;
+  }
+
+  public getOffsets(): number[] {
+    let result = new Array<number>(this.ranges.length);
+
+    let ptr: number;
+    for (ptr = 0; ptr < this.ranges.length; ptr++) {
+      result[ptr] = this.ranges[ptr].cutOff;
+    }
+
+    return result;
+  }
+
+  public getTargetPercentages(): number[] {
+    let result = new Array<number>(this.ranges.length);
+
+    let ptr: number;
+    for (ptr = 0; ptr < this.ranges.length; ptr++) {
+      result[ptr] = this.ranges[ptr].targetPercentage;
+    }
+
+    return result;
+  }
 
   public getRegularColorMap(): ColorMap {
-
     let regularRanges: ColorMapEntry[] = [];
 
     let ptr: number;
-
     for (ptr = 0; ptr < this.ranges.length; ptr++) {
       let cmuie = this.ranges[ptr];
       let cme: ColorMapEntry = new ColorMapEntry(cmuie.cutOff, cmuie.colorNum);
@@ -1395,14 +1475,12 @@ export class ColorMapUI {
   }
 
   public static FromColorMapForExport(cmfe: ColorMapForExport): ColorMapUI {
-
     let ranges: ColorMapUIEntry[] = [];
 
     let ptr: number;
-
     for (ptr = 0; ptr < cmfe.ranges.length; ptr++) {
       let cmeForExport = cmfe.ranges[ptr];
-      let cme: ColorMapUIEntry = ColorMapUIEntry.fromOffsetAndCssColor(cmeForExport.cutOff, cmeForExport.cssColor);
+      let cme: ColorMapUIEntry = ColorMapUIEntry.fromOffsetAndCssColor(cmeForExport.cutOff, cmeForExport.targetPercentage, cmeForExport.cssColor);
       ranges.push(cme);
     }
 
@@ -1412,19 +1490,16 @@ export class ColorMapUI {
 }
 
 export class ColorMapForExport {
-
   constructor(public ranges: ColorMapEntryForExport[], public highColor: number) { }
 
   public static FromColorMap(colorMap: ColorMapUI): ColorMapForExport {
-
     let ranges: ColorMapEntryForExport[] = [];
 
     let ptr: number;
-
     for (ptr = 0; ptr < colorMap.ranges.length; ptr++) {
       let cme: ColorMapUIEntry = colorMap.ranges[ptr];
       let cssColor: string = cme.rgbHex;
-      let cmeForExport = new ColorMapEntryForExport(cme.cutOff, cssColor);
+      let cmeForExport = new ColorMapEntryForExport(cme.cutOff, cme.targetPercentage, cssColor);
       ranges.push(cmeForExport);
     }
 
@@ -1459,23 +1534,6 @@ export class ColorNumbers {
     if (r > 255 || r < 0) throw new RangeError('R must be between 0 and 255.');
     if (g > 255 || g < 0) throw new RangeError('G must be between 0 and 255.');
     if (b > 255 || b < 0) throw new RangeError('B must be between 0 and 255.');
-
-    //let result: number;
-
-    //if (alpha !== null) {
-    //  if (alpha > 255 || alpha < 0) throw new RangeError('Alpha must be between 0 and 255.');
-
-    //  result = alpha << 24;
-    //  result |= b << 16;
-    //  result |= g << 8;
-    //  result |= r;
-    //}
-    //else {
-    //  result = 255 << 24; // 65536 * 65280; // FF00 0000 - opaque Black
-    //  result |= b << 16;
-    //  result |= g << 8;
-    //  result |= r;
-    //}
 
     if (alpha === null) {
       alpha = 255;
@@ -1861,77 +1919,75 @@ export class WebWorkerUpdateColorMapRequest implements IWebWorkerUpdateColorMapR
 
 }
 
-// Only used when the javascript produced from compiling this TypeScript is used to create worker.js
+//// Only used when the javascript produced from compiling this TypeScript is used to create worker.js
 
-var mapWorkingData: IMapWorkingData = null;
-var sectionNumber: number = 0;
+//var mapWorkingData: IMapWorkingData = null;
+//var sectionNumber: number = 0;
 
-// Handles messages sent from the window that started this web worker.
-onmessage = function (e) {
+//// Handles messages sent from the window that started this web worker.
+//onmessage = function (e) {
 
-  var pixelData: Uint8ClampedArray;
-  var imageData: ImageData;
-  var imageDataResponse: IWebWorkerImageDataResponse;
+//  var pixelData: Uint8ClampedArray;
+//  var imageDataResponse: IWebWorkerImageDataResponse;
 
-  //console.log('Worker received message: ' + e.data + '.');
-  let plainMsg: IWebWorkerMessage = WebWorkerMessage.FromEventData(e.data);
+//  //console.log('Worker received message: ' + e.data + '.');
+//  let plainMsg: IWebWorkerMessage = WebWorkerMessage.FromEventData(e.data);
 
-  if (plainMsg.messageKind === 'Start') {
-    let startMsg = WebWorkerStartRequest.FromEventData(e.data);
+//  if (plainMsg.messageKind === 'Start') {
+//    let startMsg = WebWorkerStartRequest.FromEventData(e.data);
 
-    mapWorkingData = startMsg.getMapWorkingData();
-    sectionNumber = startMsg.sectionNumber;
-    console.log('Worker created MapWorkingData with element count = ' + mapWorkingData.elementCount);
+//    mapWorkingData = startMsg.getMapWorkingData();
+//    sectionNumber = startMsg.sectionNumber;
+//    console.log('Worker created MapWorkingData with element count = ' + mapWorkingData.elementCount);
 
-    let responseMsg = new WebWorkerMessage('StartResponse');
-    console.log('Posting ' + responseMsg.messageKind + ' back to main script');
-    self.postMessage(responseMsg, "*");
-  }
-  else if (plainMsg.messageKind === 'Iterate') {
-    let iterateRequestMsg = WebWorkerIterateRequest.FromEventData(e.data);
-    let iterCount = iterateRequestMsg.iterateCount;
-    mapWorkingData.doIterationsForAll(iterCount);
-    pixelData = mapWorkingData.getPixelData();
+//    let responseMsg = new WebWorkerMessage('StartResponse');
+//    console.log('Posting ' + responseMsg.messageKind + ' back to main script');
+//    self.postMessage(responseMsg, "*");
+//  }
+//  else if (plainMsg.messageKind === 'Iterate') {
+//    let iterateRequestMsg = WebWorkerIterateRequest.FromEventData(e.data);
+//    let iterCount = iterateRequestMsg.iterateCount;
+//    mapWorkingData.doIterationsForAll(iterCount);
+//    pixelData = mapWorkingData.getPixelData();
 
-    imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, pixelData);
+//    imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, pixelData);
 
-    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
-    self.postMessage(imageDataResponse, "*", [pixelData.buffer]);
-  }
-  else if (plainMsg.messageKind === 'GetImageData') {
-    //mapWorkingData.doIterationsForAll(1);
-    pixelData = mapWorkingData.getPixelData();
-    imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, pixelData);
+//    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
+//    self.postMessage(imageDataResponse, "*", [pixelData.buffer]);
+//  }
+//  else if (plainMsg.messageKind === 'GetImageData') {
+//    //mapWorkingData.doIterationsForAll(1);
+//    pixelData = mapWorkingData.getPixelData();
+//    imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, pixelData);
 
-    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
-    self.postMessage(imageDataResponse, "*", [pixelData.buffer]);
-  }
-  else if (plainMsg.messageKind === "UpdateColorMap") {
-    let upColorMapReq = WebWorkerUpdateColorMapRequest.FromEventData(e.data);
+//    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
+//    self.postMessage(imageDataResponse, "*", [pixelData.buffer]);
+//  }
+//  else if (plainMsg.messageKind === "UpdateColorMap") {
+//    let upColorMapReq = WebWorkerUpdateColorMapRequest.FromEventData(e.data);
 
-    mapWorkingData.colorMap = upColorMapReq.getColorMap();
-    console.log('WebWorker received an UpdateColorMapRequest with ' + mapWorkingData.colorMap.ranges.length + ' entries.');
+//    mapWorkingData.colorMap = upColorMapReq.getColorMap();
+//    console.log('WebWorker received an UpdateColorMapRequest with ' + mapWorkingData.colorMap.ranges.length + ' entries.');
 
-    pixelData = mapWorkingData.getPixelData();
+//    pixelData = mapWorkingData.getPixelData();
 
-    imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, pixelData);
+//    imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, pixelData);
 
-    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
-    self.postMessage(imageDataResponse, "*", [pixelData.buffer]);
-  }
-  else if (plainMsg.messageKind === "GetHistogram") {
-    let histogram = mapWorkingData.getHistogram();
-    let histogramResponse = WebWorkerHistorgramResponse.CreateResponse(sectionNumber, histogram);
+//    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
+//    self.postMessage(imageDataResponse, "*", [pixelData.buffer]);
+//  }
+//  else if (plainMsg.messageKind === "GetHistogram") {
+//    let histogram = mapWorkingData.getHistogram();
+//    let histogramResponse = WebWorkerHistorgramResponse.CreateResponse(sectionNumber, histogram);
 
-    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
-    self.postMessage(histogramResponse, "*", [histogramResponse.vals.buffer, histogramResponse.occurances.buffer]);
-  }
-  else {
-    console.log('Received unknown message kind: ' + plainMsg.messageKind);
-  }
+//    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
+//    self.postMessage(histogramResponse, "*", [histogramResponse.vals.buffer, histogramResponse.occurances.buffer]);
+//  }
+//  else {
+//    console.log('Received unknown message kind: ' + plainMsg.messageKind);
+//  }
 
-
-};
+//};
 
 
 

@@ -188,14 +188,14 @@ export class AppComponent {
     let cNumGenerator = new ColorNumbers();
 
     let ranges: ColorMapUIEntry[] = new Array<ColorMapUIEntry>(7);
-    ranges[0] = ColorMapUIEntry.fromOffsetAndColorNum(3, cNumGenerator.white);
-    ranges[1] = ColorMapUIEntry.fromOffsetAndColorNum(5, cNumGenerator.red);
-    ranges[2] = ColorMapUIEntry.fromOffsetAndColorNum(8, cNumGenerator.green);
-    ranges[3] = ColorMapUIEntry.fromOffsetAndColorNum(13, cNumGenerator.blue);
+    ranges[0] = ColorMapUIEntry.fromOffsetAndColorNum(3, 0, cNumGenerator.white);
+    ranges[1] = ColorMapUIEntry.fromOffsetAndColorNum(5, 0, cNumGenerator.red);
+    ranges[2] = ColorMapUIEntry.fromOffsetAndColorNum(8, 0, cNumGenerator.green);
+    ranges[3] = ColorMapUIEntry.fromOffsetAndColorNum(13, 0, cNumGenerator.blue);
 
-    ranges[4] = ColorMapUIEntry.fromOffsetAndColorNum(21, cNumGenerator.red);
-    ranges[5] = ColorMapUIEntry.fromOffsetAndColorNum(34, cNumGenerator.green);
-    ranges[6] = ColorMapUIEntry.fromOffsetAndColorNum(55, cNumGenerator.blue);
+    ranges[4] = ColorMapUIEntry.fromOffsetAndColorNum(21, 0, cNumGenerator.red);
+    ranges[5] = ColorMapUIEntry.fromOffsetAndColorNum(34, 0, cNumGenerator.green);
+    ranges[6] = ColorMapUIEntry.fromOffsetAndColorNum(55, 0, cNumGenerator.blue);
 
     let n = ColorNumbers.getColorComponents(cNumGenerator.red);
     let h = ColorNumbers.getColorComponentsFromRgba('rgba(255,0,0,1)');
@@ -219,14 +219,14 @@ export class AppComponent {
   }
 
   private doDivisionsTest() {
-    let div: Divisions = new Divisions(1, 0, 5);
+    let div: Divisions = new Divisions(1, 0, 0, 5);
     div.children[0].numberOfDivs = 3;
     div.children[4].numberOfDivs = 3;
 
-    div.children[4].insertChild(new Divisions(1, 0, 1), 1);
+    div.children[4].insertChild(new Divisions(1, 0, 0, 1), 1);
     div.children[0].deleteChild(1);
 
-    let div2: Divisions = new Divisions(1, 0, 2);
+    let div2: Divisions = new Divisions(1, 0, 0, 2);
     div2.children[1].numberOfDivs = 2;
 
     div.insertChild(div2, 5);

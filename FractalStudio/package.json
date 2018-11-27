@@ -24,8 +24,7 @@
     "rxjs": "~6.2.0",
     "zone.js": "~0.8.26",
     "@types/mathjs": "4.4.1",
-    "@ngxs/store": "3.2.0",
-    "file-saver": "2.0.0-rc.4"
+    "ngx-ui-scroll": "1.0.1"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "~0.8.0",

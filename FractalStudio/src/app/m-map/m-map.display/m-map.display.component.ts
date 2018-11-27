@@ -1,5 +1,5 @@
 import { Component, OnInit, AfterViewInit, ElementRef, ViewChild, Input, EventEmitter, Output } from '@angular/core';
-import { saveAs } from 'file-saver';
+//import { saveAs } from 'file-saver';
 
 import {
   IPoint, Point, IBox, Box, ICanvasSize, CanvasSize,
@@ -430,11 +430,11 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
           let mapWorkingData: IMapWorkingData = this.sections[sectionNumber];
           let imageData: ImageData = updatedMapDataMsg.getImageData(mapWorkingData.canvasSize);
 
-          if (mapWorkingData.curIterations < this._mapInfo.maxIterations) {
-
-            let iterateRequest = WebWorkerIterateRequest.CreateRequest(this._mapInfo.iterationsPerStep);
+          let numberOfIterations = mapWorkingData.iterationCountForNextStep();
+          if (numberOfIterations > 0) {
+            let iterateRequest = WebWorkerIterateRequest.CreateRequest(numberOfIterations);
             this.workers[sectionNumber].postMessage(iterateRequest);
-            mapWorkingData.curIterations += this._mapInfo.iterationsPerStep;
+            mapWorkingData.curIterations += numberOfIterations;
 
             // Call draw after sending the request to get the next ImageData.
             this.draw(imageData, sectionNumber);
@@ -482,6 +482,8 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
     return result;
   }
+
+
 
   private initWebWorkersForExport(workingMaps: IMapWorkingData[], iterCount: number): Worker[] {
 
@@ -537,14 +539,16 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     this.resetSectionCompleteFlags();
 
     let ptr: number = 0;
-
     for (ptr = 0; ptr < this.numberOfSections; ptr++) {
       let webWorker = this.workers[ptr];
       let mapWorkingData = this.sections[ptr];
 
-      let iterateRequest = WebWorkerIterateRequest.CreateRequest(this._mapInfo.iterationsPerStep);
-      webWorker.postMessage(iterateRequest);
-      mapWorkingData.curIterations += this._mapInfo.iterationsPerStep;
+      let numberOfIterations = mapWorkingData.iterationCountForNextStep();
+      if (numberOfIterations > 0) {
+        let iterateRequest = WebWorkerIterateRequest.CreateRequest(numberOfIterations);
+        webWorker.postMessage(iterateRequest);
+        mapWorkingData.curIterations += numberOfIterations;
+      }
     }
   }
 
