@@ -570,6 +570,10 @@ export class Divisions {
 //  constructor(public cutOff: number, public percentage: number) { }
 //}
 
+class IndexAndRunningSum {
+  constructor(public idx: number, public runningSum: number) { }
+}
+
 export class HistArrayPair {
   constructor(public vals: Uint16Array, public occurances: Uint16Array) { }
 }
@@ -590,6 +594,7 @@ export class Histogram {
     this.entriesMap = new Map<number, number>();
   }
 
+  /// --- By Target Percentage ---
   //public getCutoffs(percentages: number[]): CutoffAndPercentage[] {
   //  let result = new Array<CutoffAndPercentage>(percentages.length);
 
@@ -599,9 +604,59 @@ export class Histogram {
   public getCutoffs(percentages: number[]): number[] {
     let result = new Array<number>(percentages.length);
 
+    let hes = this.getHistEntries();
+
+    let total = this.getSumHits(hes, 0, hes.length);
+    let runningPercent = 0;
+
+    let idxAndSum = new IndexAndRunningSum(0, 0);
+
+    let ptr: number;
+    for (ptr = 0; ptr < percentages.length; ptr++) {
+      runningPercent += percentages[ptr] / 100;
+      let target = runningPercent * total;
+      idxAndSum = this.getCutOff(target, hes, idxAndSum);
+      result[ptr] = hes[idxAndSum.idx].val;
+    }
+
     return result;
   }
 
+
+  public getCutOff(targetVal: number, hes: HistEntry[], startIdxAndSum: IndexAndRunningSum): IndexAndRunningSum {
+
+    let ptr = startIdxAndSum.idx;
+    let rs = startIdxAndSum.runningSum;
+
+    //if (targetVal > rs) {
+    //  throw new RangeError('targetVal > running sum on call to getCutOff.');
+    //}
+
+    while (ptr < hes.length) {
+      let newRs = rs + hes[ptr].occurances;
+
+      if (newRs > targetVal) {
+        let diffPrev = targetVal - rs;
+        let diffNext = newRs - targetVal;
+
+        if (diffNext <= diffPrev) {
+          rs = newRs;
+          ptr++;
+        }
+        break;
+      }
+      else {
+        rs = newRs;
+        ptr++;
+      }
+    }
+
+    let result = new IndexAndRunningSum(ptr, rs);
+    return result;
+  }
+  /// --- End Target Percentage ---
+
+  /// ---  By Division ----
   public getEqualGroupsForAll(numberOfGroups: number): number[] {
     let hes = this.getHistEntries();
 
@@ -696,6 +751,8 @@ export class Histogram {
     }
     return ptr;
   }
+
+  /// --- End By Division ---
 
   public getHistEntries(): HistEntry[] {
     let result: HistEntry[] = new Array<HistEntry>(this.entriesMap.size);

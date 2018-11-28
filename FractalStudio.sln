@@ -7,6 +7,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FractalStudio", "FractalStu
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Notes", "Notes", "{6DDAFE11-7F7E-4F56-8022-28D1C214200D}"
 	ProjectSection(SolutionItems) = preProject
+		ColorMapFromHistogramData.txt = ColorMapFromHistogramData.txt
 		Formula.txt = Formula.txt
 		Printing Resolution and Sizes.txt = Printing Resolution and Sizes.txt
 	EndProjectSection

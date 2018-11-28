@@ -3,11 +3,13 @@
 
   <form [formGroup]="colorMapForm" (ngSubmit)="onSubmit()">
 
+    <!-- Apply / Save -->
     <div class="btnGroup">
       <button type="submit" [disabled]="!colorMapForm.valid"> Apply</button>
       <button type="button" (click)="onSaveColorMap()">Save</button>
     </div>
 
+    <!-- Divide -->
     <div class="btnGroup" style="border: 1px solid black; margin:2px 2px 2px 2px; padding: 8px 3px 8px 3px">
       <button type="button" (click)="onUseHistogram()" style="width:100px; margin: 2px 5px 3px 8px">Divide</button>
       <br/>
@@ -17,6 +19,13 @@
       <!--<label style="margin: 5px 0px 5px 8px">sections</label>-->
     </div>
 
+    <!-- Use Target Percentages -->
+    <div class="btnGroup" style="border: 1px solid black; margin:2px 2px 2px 2px; padding: 8px 3px 8px 3px">
+      <button type="button" (click)="onUpdateOffsets()" style="width:180px; margin: 2px 5px 3px 8px">Use Target Percentages</button>
+      <button type="button" (click)="onCopyActualPercents()" style="width:100px; margin: 2px 5px 3px 5px">Copy Actuals</button>
+    </div>
+
+    <!-- Load -->
     <div class="btnGroup">
       <input type="file" #fileSelector value="Import" style="margin-top:8px" />
       <button type="button" (click)="onLoadColorMap()">Load</button><br/>
@@ -25,7 +34,7 @@
 
     <a #download href="#" hidden="hidden">Download</a>
 
-    <div formArrayName="cEntries" style="margin-left:10px; height:609px; overflow-y:auto">
+    <div formArrayName="cEntries" style="margin-left:10px; height:525px; overflow-y:auto">
       <div *ngFor="let colEntry of colorEntryForms; let i=index">
 
         <div [formGroupName]="i" style="width:320px; border: 1px solid lightgray; padding: 3px 1px 3px 18px; margin-bottom:2px;">
