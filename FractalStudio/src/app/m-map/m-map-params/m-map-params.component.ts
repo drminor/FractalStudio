@@ -12,11 +12,11 @@ import {
   styleUrls: ['./m-map-params.component.css']
 })
 export class MMapParamsComponent {
-  @Output() mapInfoUpdated = new EventEmitter<IMapInfo>();
-  @Output() colorMapUpdated = new EventEmitter<ColorMapUI>();
+  //@Output() colorMapUpdated = new EventEmitter<ColorMapUI>();
 
-  @Output() goBack = new EventEmitter<number>();
+  @Output() mapInfoUpdated = new EventEmitter<IMapInfo>();
   @Output() mapInfoLoaded = new EventEmitter<MapInfoWithColorMap>();
+  @Output() goBack = new EventEmitter<number>();
 
   @Input('mapInfo') mapInfo: IMapInfo;
   @Input('colorMap') colorMap: ColorMapUI;

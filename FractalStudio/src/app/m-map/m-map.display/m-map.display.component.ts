@@ -553,6 +553,9 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
   }
 
   private updateWorkersColorMap() {
+    if (this._buildingNewMap) {
+      throw new RangeError('The buildingNewMap flag is true on call to updateWorkersColorMap.');
+    }
     let regularColorMap = this._colorMap.getRegularColorMap();
     let upColorMapMsg = WebWorkerUpdateColorMapRequest.CreateRequest(regularColorMap);
 

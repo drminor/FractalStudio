@@ -1,9 +1,9 @@
 import { Component, ViewChild, ElementRef } from '@angular/core';
 
 import {
-  IMapInfo, IPoint, Point, MapInfo, IBox, Box,
-  ColorMap, ColorMapEntry, ColorMapUI, ColorMapUIEntry, ColorNumbers, MapInfoWithColorMap,
-  Histogram, HistEntry, Divisions
+  IPoint, Point, IMapInfo, MapInfo, IBox, Box,
+  ColorMapUI, ColorMapUIEntry, ColorNumbers, MapInfoWithColorMap,
+  Histogram, Divisions
 } from './m-map/m-map-common';
 import { MMapDisplayComponent } from './m-map/m-map.display/m-map.display.component';
 
@@ -52,7 +52,7 @@ export class AppComponent {
 
   constructor() {
 
-    this.doDivisionsTest();
+    //this.doDivisionsTest();
 
     this.mapInfo = this.buildMapInfo();
     this.colorMap = this.buildColorMap();
@@ -73,16 +73,6 @@ export class AppComponent {
     this.updateDownloadLinkVisibility(false);
     this.colorMap = colorMap;
   }
-
-  //onBuildColorMapFromHistorgram(sectionCnt: number) {
-  //  //alert('We have been asked to build the color map from the historgram.');
-  //  this.sectionCnt = sectionCnt;
-  //  this.mapDisplayComponent.getHistogram();
-  //}
-
-  //onHistogramRequested() {
-  //  this.mapDisplayComponent.getHistogram();
-  //}
 
   onHaveHistogram(h: Histogram) {
     console.log('We now have a histogram. It has ' + h.entriesMap.size + ' entries.');
