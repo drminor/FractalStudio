@@ -1,7 +1,8 @@
-﻿using System;
-using System.Drawing;
-using FractalServer;
+﻿using FractalServer;
+using Hjg.Pngcs;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using PngImageBuilder;
+using System.Drawing;
 
 namespace FractalServerTests
 {
@@ -11,36 +12,129 @@ namespace FractalServerTests
         [TestMethod]
         public void BuildTestMap()
         {
+            //Size canvasSize = new Size(1440, 960);
+            //Size canvasSize = new Size(7200, 4800);
+            //Size canvasSize = new Size(10800, 7200);
             //Size canvasSize = new Size(14400, 9600);
             Size canvasSize = new Size(21600, 14400);
 
-            RectangleF coords = new RectangleF(-2, 1, 3, 2);
-            int maxIterations = 5000;
-            MapInfo mapInfo = new MapInfo(coords, maxIterations);
+            DPoint leftBot = new DPoint(-0.7764118407199196, 0.13437492059936854);
+            DPoint rightTop = new DPoint(-0.7764117329761986, 0.13437499747905846);
+
+            int maxIterations = 400;
+            MapInfo mapInfo = new MapInfo(leftBot, rightTop, maxIterations);
 
             ColorMap colorMap = BuildColorMap();
 
             MapWorkingData mapWorkingData = new MapWorkingData(canvasSize, mapInfo, colorMap);
 
-            for(int linePtr = 0; linePtr < 14400; linePtr++)
+            string path = @"C:\MBY1.png";
+            //using (PngImage pngImage = new PngImage(path, canvasSize.Width, canvasSize.Height))
+            //{
+            //    for (int linePtr = 0; linePtr < canvasSize.Height; linePtr++)
+            //    {
+            //        //int[] cnts = mapWorkingData.IterateLine(linePtr, mapInfo.MaxIterations);
+            //        int[] pixelData = mapWorkingData.GetPixelDataForLine(linePtr, mapInfo.MaxIterations);
+            //        pngImage.WriteLine(pixelData);
+            //        //if(linePtr % 10 == 0)
+            //        //{
+            //        //    System.Diagnostics.Debug.WriteLine($"Just sent line #{linePtr}.");
+            //        //}
+            //    }
+            //}
+
+            using (PngImage pngImage = new PngImage(path, canvasSize.Width, canvasSize.Height))
             {
-                //int[] cnts = mapWorkingData.IterateLine(linePtr, mapInfo.MaxIterations);
-                int[] pixelData = mapWorkingData.GetPixelDataForLine(linePtr, mapInfo.MaxIterations);
+                ImageLine iLine = pngImage.ImageLine;
+
+                for (int linePtr = 0; linePtr < canvasSize.Height; linePtr++)
+                {
+                    mapWorkingData.BuildPngImageLine(linePtr, mapInfo.MaxIterations, iLine);
+                    pngImage.WriteLine(iLine);
+                }
             }
+        }
+
+        [TestMethod]
+        public void TestColorMap()
+        {
+            ColorMap colorMap = BuildColorMap();
+
+            int val = colorMap.GetColorMapEntry(0).CutOff;
+
+            System.Diagnostics.Debug.WriteLine($"Got co:{val} for cnt:0.");
+            foreach(int co in colorMap._cutOffs)
+            {
+                val = colorMap.GetColorMapEntry(co - 1).CutOff;
+                System.Diagnostics.Debug.WriteLine($"Got co:{val} for cnt:{co - 1}.");
+
+                val = colorMap.GetColorMapEntry(co).CutOff;
+                System.Diagnostics.Debug.WriteLine($"Got co:{val} for cnt:{co}.");
+
+                val = colorMap.GetColorMapEntry(co + 1).CutOff;
+                System.Diagnostics.Debug.WriteLine($"Got co:{val} for cnt:{co + 1}.");
+            }
+
+            val = colorMap.GetColorMapEntry(400).CutOff;
+            System.Diagnostics.Debug.WriteLine($"Got co:{val} for cnt:400.");
         }
 
         private ColorMap BuildColorMap()
         {
-            ColorMapEntry[] colorMapEntries = new ColorMapEntry[6];
+            //ColorMapEntry[] colorMapEntries = new ColorMapEntry[18];
 
-            colorMapEntries[0] = new ColorMapEntry(3, 0);
-            colorMapEntries[1] = new ColorMapEntry(5, 255);
-            colorMapEntries[2] = new ColorMapEntry(10, 16000);
-            colorMapEntries[3] = new ColorMapEntry(100, 54000);
-            colorMapEntries[4] = new ColorMapEntry(200, 90000);
-            colorMapEntries[5] = new ColorMapEntry(700, 12000);
+            //colorMapEntries[0] = new ColorMapEntry(258, "#ffffff");
+            //colorMapEntries[1] = new ColorMapEntry(260, "#bf2ae2");
+            //colorMapEntries[2] = new ColorMapEntry(262, "#f017c6");
+            //colorMapEntries[3] = new ColorMapEntry(265, "#e1e10f");
+            //colorMapEntries[4] = new ColorMapEntry(269, "#24d0e3");
+            //colorMapEntries[5] = new ColorMapEntry(273, "#00ff00");
+            //colorMapEntries[6] = new ColorMapEntry(277, "#0000ff");
+            //colorMapEntries[7] = new ColorMapEntry(280, "#ff0000");
+            //colorMapEntries[8] = new ColorMapEntry(283, "#00ff00");
+            //colorMapEntries[9] = new ColorMapEntry(287, "#e77d4d");
+            //colorMapEntries[10] = new ColorMapEntry(292, "#13bcb4");
+            //colorMapEntries[11] = new ColorMapEntry(298, "#9da5b3");
+            //colorMapEntries[12] = new ColorMapEntry(304, "#f50050");
+            //colorMapEntries[13] = new ColorMapEntry(310, "#ffffff");
+            //colorMapEntries[14] = new ColorMapEntry(318, "#bf2ae2");
+            //colorMapEntries[15] = new ColorMapEntry(328, "#f017c6");
+            //colorMapEntries[16] = new ColorMapEntry(340, "#e1e10f");
+            //colorMapEntries[17] = new ColorMapEntry(357, "#24d0e3");
 
-            int highColor = 0;
+            //ColorMapEntry[] colorMapEntries = new ColorMapEntry[13];
+
+            //colorMapEntries[0] = new ColorMapEntry(249, "#ffffff");
+            //colorMapEntries[1] = new ColorMapEntry(252, "#bf2ae2");
+            //colorMapEntries[2] = new ColorMapEntry(255, "#f017c6");
+            //colorMapEntries[3] = new ColorMapEntry(259, "#e1e10f");
+            //colorMapEntries[4] = new ColorMapEntry(263, "#24d0e3");
+            //colorMapEntries[5] = new ColorMapEntry(268, "#00ff00");
+            //colorMapEntries[6] = new ColorMapEntry(274, "#0000ff");
+            //colorMapEntries[7] = new ColorMapEntry(280, "#ff0000");
+            //colorMapEntries[8] = new ColorMapEntry(286, "#00ff00");
+            //colorMapEntries[9] = new ColorMapEntry(294, "#e77d4d");
+            //colorMapEntries[10] = new ColorMapEntry(304, "#13bcb4");
+            //colorMapEntries[11] = new ColorMapEntry(316, "#9da5b3");
+            //colorMapEntries[12] = new ColorMapEntry(333, "#f50050");
+
+            ColorMapEntry[] colorMapEntries = new ColorMapEntry[13];
+
+            colorMapEntries[0] = new ColorMapEntry(260, "#ffffff");
+            colorMapEntries[1] = new ColorMapEntry(263, "#bf2ae2");
+            colorMapEntries[2] = new ColorMapEntry(267, "#f017c6");
+            colorMapEntries[3] = new ColorMapEntry(271, "#e1e10f");
+            colorMapEntries[4] = new ColorMapEntry(276, "#24d0e3");
+            colorMapEntries[5] = new ColorMapEntry(281, "#00ff00");
+            colorMapEntries[6] = new ColorMapEntry(286, "#0000ff");
+            colorMapEntries[7] = new ColorMapEntry(292, "#ff0000");
+            colorMapEntries[8] = new ColorMapEntry(299, "#00ff00");
+            colorMapEntries[9] = new ColorMapEntry(307, "#e77d4d");
+            colorMapEntries[10] = new ColorMapEntry(317, "#13bcb4");
+            colorMapEntries[11] = new ColorMapEntry(330, "#9da5b3");
+            colorMapEntries[12] = new ColorMapEntry(347, "#f50050");
+
+            string highColor = "#000000"; // black
             ColorMap result = new ColorMap(colorMapEntries, highColor);
 
             return result;

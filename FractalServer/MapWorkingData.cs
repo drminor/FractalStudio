@@ -1,4 +1,5 @@
-﻿using System.Drawing;
+﻿using Hjg.Pngcs;
+using System.Drawing;
 
 namespace FractalServer
 {
@@ -22,8 +23,10 @@ namespace FractalServer
 
             ElementCount = GetNumberOfElementsForCanvas(CanvasSize);
 
-            _xVals = BuildVals(CanvasSize.Width, MapInfo.Coords.Left, MapInfo.Coords.Right);
-            _yVals = BuildValsRev(CanvasSize.Height, MapInfo.Coords.Bottom, MapInfo.Coords.Top);
+            _xVals = BuildVals(CanvasSize.Width, MapInfo.LeftBot.X, MapInfo.RightTop.X);
+            _yVals = BuildVals(CanvasSize.Height, MapInfo.RightTop.Y, MapInfo.LeftBot.Y);
+
+            System.Diagnostics.Debug.WriteLine($"The aspect ratio (w/h) is {MapInfo.AspectRatio}.");
 
             //_cnts = new int[ElementCount];
         }
@@ -39,40 +42,73 @@ namespace FractalServer
         //    return _cnts;
         //}
 
-        public int[] GetPixelDataForLine(int lineNumber, int iterCount)
+        //public int[] GetPixelDataForLine(int lineNumber, int iterCount)
+        //{
+        //    int[] result = new int[this.CanvasSize.Width];
+
+        //    for (int xPtr = 0; xPtr < CanvasSize.Width; xPtr++)
+        //    {
+        //        Point mapCoordinate = new Point(xPtr, lineNumber);
+        //        //int elementPtr = GetLinearIndex(mapCoordinate);
+        //        int cnt = IterateElement(mapCoordinate, iterCount);
+
+        //        result[xPtr] = ColorMap.GetColorNum(cnt);
+        //    }
+
+        //    return result;
+        //}
+
+        public void BuildPngImageLine(int lineNumber, int iterCount, ImageLine iLine)
         {
-            int[] result = new int[this.CanvasSize.Width];
+            DPoint c = new DPoint(0, _yVals[lineNumber]);
 
             for (int xPtr = 0; xPtr < CanvasSize.Width; xPtr++)
             {
-                Point mapCoordinate = new Point(xPtr, lineNumber);
-                //int elementPtr = GetLinearIndex(mapCoordinate);
-                int cnt = IterateElement(mapCoordinate, iterCount);
+                //Point mapCoordinate = new Point(xPtr, lineNumber);
+                c.X = _xVals[xPtr];
+                int cnt = IterateElement(c, iterCount);
 
-                result[xPtr] = ColorMap.GetColorNum(cnt);
+                ColorMapEntry cme;
+                if (cnt == iterCount)
+                {
+                    cme = ColorMap.HighColorEntry;
+                }
+                else
+                {
+                    cme = ColorMap.GetColorMapEntry(cnt);
+                }
+
+                //cme = ColorMap.GetColorMapEntry(cnt);
+
+
+                int[] cComps = cme.ColorComps;
+                ImageLineHelper.SetPixel(iLine, xPtr, cComps[0], cComps[1], cComps[2]);
             }
-
-            return result;
         }
 
         public int[] IterateLine(int lineNumber, int iterCount)
         {
             int[] result = new int[this.CanvasSize.Width];
 
-            for(int xPtr = 0; xPtr < CanvasSize.Width; xPtr++)
+            DPoint c = new DPoint(0, _yVals[lineNumber]);
+
+            for (int xPtr = 0; xPtr < CanvasSize.Width; xPtr++)
             {
-                Point mapCoordinate = new Point(xPtr, lineNumber);
+                //Point mapCoordinate = new Point(xPtr, lineNumber);
                 //int elementPtr = GetLinearIndex(mapCoordinate);
-                result[xPtr] = IterateElement(mapCoordinate, iterCount);
+                c.X = _xVals[xPtr];
+                result[xPtr] = IterateElement(c, iterCount);
             }
 
             return result;
         }
 
-        private int IterateElement(Point mapCoordinate, int iterCount)
+        //private int IterateElement(Point mapCoordinate, int iterCount)
+
+        private int IterateElement(DPoint c, int iterCount)
         {
             DPoint z = new DPoint(0, 0);
-            DPoint c = new DPoint(_xVals[mapCoordinate.X], _yVals[mapCoordinate.Y]);
+            //DPoint c = new DPoint(_xVals[mapCoordinate.X], _yVals[mapCoordinate.Y]);
 
             int cntr;
             for(cntr = 0; cntr < iterCount; cntr++)
@@ -121,27 +157,27 @@ namespace FractalServer
             return result;
         }
 
-        private double[] BuildValsRev(int canvasExtent, double start, double end)
-        {
-            double mapExtent = end - start;
-            double unitExtent = mapExtent / canvasExtent;
+        //private double[] BuildValsRev(int canvasExtent, double start, double end)
+        //{
+        //    double mapExtent = end - start;
+        //    double unitExtent = mapExtent / canvasExtent;
 
-            double[] result = new double[canvasExtent];
+        //    double[] result = new double[canvasExtent];
 
-            int ptr = 0;
-            for (int i = canvasExtent - 1; i > -1; i--)
-            {
-                result[ptr++] = start + i * unitExtent;
-            }
+        //    int ptr = 0;
+        //    for (int i = canvasExtent - 1; i > -1; i--)
+        //    {
+        //        result[ptr++] = start + i * unitExtent;
+        //    }
 
-            return result;
-        }
+        //    return result;
+        //}
 
-        private int GetLinearIndex(Point c)
-        {
-            int result = c.X + c.Y * this.CanvasSize.Width;
-            return result;
-        }
+        //private int GetLinearIndex(Point c)
+        //{
+        //    int result = c.X + c.Y * this.CanvasSize.Width;
+        //    return result;
+        //}
 
     }
 }
