@@ -18,8 +18,31 @@ export class MMapParamsComponent {
   @Output() mapInfoLoaded = new EventEmitter<MapInfoWithColorMap>();
   @Output() goBack = new EventEmitter<number>();
 
-  @Input('mapInfo') mapInfo: IMapInfo;
-  @Input('colorMap') colorMap: ColorMapUI;
+  private _miwcm: MapInfoWithColorMap;
+  @Input('mapInfoWithColorMap')
+
+  set mapInfoWithColorMap(value: MapInfoWithColorMap) {
+    this._miwcm = value;
+    this.updateForm(this._miwcm.mapInfo);
+  }
+  get mapInfoWithColorMap(): MapInfoWithColorMap {
+    return this._miwcm;
+  }
+
+  //private _mapInfo: IMapInfo;
+
+  //@Input('mapInfo')
+  //set mapInfo(value: IMapInfo) {
+  //  this._mapInfo = value;
+  //  this.updateForm(this._mapInfo);
+  //}
+
+  //get mapInfo(): IMapInfo {
+  //  return this._mapInfo;
+  //}
+
+
+  //@Input('colorMap') colorMap: ColorMapUI;
 
   @ViewChild('download') downloadRef: ElementRef;
   @ViewChild('fileSelector') fileSelectorRef: ElementRef;
@@ -63,10 +86,10 @@ export class MMapParamsComponent {
     return result;
   }
 
-  ngOnChanges() {
-    console.log('Params is handling ngOnChanges.'); // and is pushing the new MapInfo on the stack. The stack now has ' + this.history.length + ' items.');
-    this.updateForm(this.mapInfo);
-  }
+  //ngOnChanges() {
+  //  console.log('Params is handling ngOnChanges.'); // and is pushing the new MapInfo on the stack. The stack now has ' + this.history.length + ' items.');
+  //  this.updateForm(this.mapInfo);
+  //}
 
   onSubmit() {
     //console.warn(this.mapCoordsForm.value);
@@ -104,14 +127,16 @@ export class MMapParamsComponent {
   private moveMap(dir: string, percent: number) {
     let newCoords: IBox;
 
+    let mi = this.mapInfoWithColorMap.mapInfo;
+
     if (dir === 'o') {
-      newCoords = this.mapInfo.coords.getExpandedBox(percent);
+      newCoords = mi.coords.getExpandedBox(percent);
     }
     else {
-      newCoords = this.mapInfo.coords.getShiftedBox(dir, percent);
+      newCoords = mi.coords.getShiftedBox(dir, percent);
     }
 
-    let newMapInfo = new MapInfo(newCoords, this.mapInfo.maxIterations, this.mapInfo.iterationsPerStep, this.mapInfo.upsideDown);
+    let newMapInfo = new MapInfo(newCoords, mi.maxIterations, mi.iterationsPerStep, mi.upsideDown);
     this.mapInfoUpdated.emit(newMapInfo);
   }
 
@@ -124,7 +149,7 @@ export class MMapParamsComponent {
   }
 
   onSaveMapInfo() {
-    let colorMapForExport: ColorMapForExport = ColorMapForExport.FromColorMap(this.colorMap);
+    let colorMapForExport: ColorMapForExport = ColorMapForExport.FromColorMap(this.mapInfoWithColorMap.colorMapUi);
     let mapInfo = this.getMapInfo(this.mapCoordsForm);
     let miwcmfe = new MapInfoWithColorMapForExport(mapInfo, colorMapForExport);
 
@@ -155,7 +180,7 @@ export class MMapParamsComponent {
     fr.onload = (ev => {
       let rawResult: string = fr.result as string;
       let miwcmfe: MapInfoWithColorMapForExport = JSON.parse(rawResult) as MapInfoWithColorMapForExport;
-      let miwcm = MapInfoWithColorMap.fromForExport(miwcmfe);
+      let miwcm = MapInfoWithColorMap.fromForExport(miwcmfe, -1);
 
       this.mapInfoLoaded.emit(miwcm);
     });

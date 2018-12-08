@@ -25,24 +25,55 @@ export class AppComponent {
   @ViewChild('download') downloadRef: ElementRef;
   @ViewChild('mapDisplay') mapDisplayComponent: MMapDisplayComponent
 
-  private _mapInfo: IMapInfo;
+  //mapCoords: IBox;
+  //maxIterations: number;
+  //iterationsPerStep: number;
 
-  get mapInfo(): IMapInfo {
-    return this._mapInfo;
+  mapInfo: IMapInfo;
+
+  _colorMap: ColorMapUI = null;
+  set colorMap(value: ColorMapUI) {
+    if (this._colorMap === null || (this._colorMap !== null && value === null)) {
+      this._colorMap = value;
+    }
+    else
+    {
+      if (this._colorMap.serialNumber !== value.serialNumber) {
+        this._colorMap = value;
+      }
+    }
   }
 
-  set mapInfo(mapInfo: IMapInfo) {
-    this._mapInfo = mapInfo;
-    this.mapCoords = mapInfo.coords;
-    this.maxIterations = mapInfo.maxIterations;
-    this.iterationsPerStep = mapInfo.iterationsPerStep;
+  get colorMap(): ColorMapUI {
+    return this._colorMap;
+  }
+  
+
+  //private _mapInfo: IMapInfo;
+
+  //get mapInfo(): IMapInfo {
+  //  return this._mapInfo;
+  //}
+
+  //set mapInfo(mapInfo: IMapInfo) {
+  //  this._mapInfo = mapInfo;
+  //  //this.mapCoords = mapInfo.coords;
+  //  //this.maxIterations = mapInfo.maxIterations;
+  //  //this.iterationsPerStep = mapInfo.iterationsPerStep;
+  //}
+
+  private _miwcm: MapInfoWithColorMap;
+
+  set mapInfoWithColorMap(value: MapInfoWithColorMap) {
+    this._miwcm = value;
+    this.colorMap = value.colorMapUi;
+    this.mapInfo = value.mapInfo;
   }
 
-  mapCoords: IBox;
-  maxIterations: number;
-  iterationsPerStep: number;
+  get mapInfoWithColorMap(): MapInfoWithColorMap {
+    return this._miwcm;
+  }
 
-  colorMap: ColorMapUI;
   histogram: Histogram;
 
   history: IMapInfo[] = [];
@@ -50,12 +81,19 @@ export class AppComponent {
 
   sectionCnt: number;
 
+  public ColorMapSerialNumber: number;
+
+
   constructor() {
 
     //this.doDivisionsTest();
+    this.ColorMapSerialNumber = 0;
 
-    this.mapInfo = this.buildMapInfo();
-    this.colorMap = this.buildColorMap();
+    let mi = this.buildMapInfo();
+    let cm = this.buildColorMap(this.ColorMapSerialNumber++);
+
+    this.mapInfoWithColorMap = new MapInfoWithColorMap(mi, cm);
+
     this.histogram = null;
 
     this.atHome = true;
@@ -71,7 +109,15 @@ export class AppComponent {
   onColorMapUpdated(colorMap: ColorMapUI) {
     console.log('App Component is handling onColorMapUpdated.');
     this.updateDownloadLinkVisibility(false);
-    this.colorMap = colorMap;
+
+    if (colorMap.serialNumber === -1) {
+      colorMap.serialNumber = this.ColorMapSerialNumber++;
+    }
+
+    // Update the color map, but keep the existing map info.
+    this.mapInfoWithColorMap = new MapInfoWithColorMap(this.mapInfo, colorMap);
+
+    //this.colorMap = colorMap;
   }
 
   onHaveHistogram(h: Histogram) {
@@ -98,7 +144,11 @@ export class AppComponent {
     console.log('Received the updated mapinfo from Param Form ' + mapInfo.bottomLeft.x + '.');
     this.history.push(this.mapInfo);
     this.updateDownloadLinkVisibility(false);
-    this.mapInfo = mapInfo;
+
+    // Update the MapInfo, but keep the exiting colorMap.
+    this.mapInfoWithColorMap = new MapInfoWithColorMap(mapInfo, this.colorMap);
+
+    //this.mapInfo = mapInfo;
     this.atHome = false;
   }
 
@@ -107,8 +157,20 @@ export class AppComponent {
     this.history = [];
     this.updateDownloadLinkVisibility(false);
 
-    this.mapInfo = miwcm.mapInfo;
-    this.colorMap = miwcm.colorMapUi;
+    //// It is important to set the color map before setting the Map Info
+    //// so as to avoid the display component having to do extra work.
+    //console.log('MapInfoLoaded -- About to set the color map.');
+    //this.colorMap = miwcm.colorMapUi;
+
+    //console.log('MapInfoLoaded -- About to set the map info.');
+    //this.mapInfo = miwcm.mapInfo;
+
+    if (miwcm.colorMapUi.serialNumber === -1) {
+      miwcm.colorMapUi.serialNumber = this.ColorMapSerialNumber++;
+    }
+
+
+    this.mapInfoWithColorMap = miwcm;
 
     this.atHome = false;
   }
@@ -117,7 +179,15 @@ export class AppComponent {
     console.log('Received the updated mapinfo from zoom ' + mapCoords.botLeft.x + '.');
     this.history.push(this.mapInfo);
     this.updateDownloadLinkVisibility(false);
-    this.mapInfo = new MapInfo(mapCoords, this.mapInfo.maxIterations, this.mapInfo.iterationsPerStep, this.mapInfo.upsideDown);
+
+    //this.mapInfo = new MapInfo(mapCoords, this.mapInfo.maxIterations, this.mapInfo.iterationsPerStep, this.mapInfo.upsideDown);
+
+    // Build a new MapInfo using the existing Max Iterations and IterationsPerStep
+    let mi = new MapInfo(mapCoords, this.mapInfo.maxIterations, this.mapInfo.iterationsPerStep, this.mapInfo.upsideDown);
+
+    // Update the MapInfo, keeping the existing Color Map.
+    this.mapInfoWithColorMap = new MapInfoWithColorMap(mi, this.colorMap);
+
     this.atHome = false;
   }
 
@@ -126,14 +196,18 @@ export class AppComponent {
     if (steps === -1) {
       if (!this.atHome) {
         this.history = [];
-        this.mapInfo = this.buildMapInfo();
+
+        let mi = this.buildMapInfo();
+        let cm = this.buildColorMap(this.ColorMapSerialNumber++);
+        this.mapInfoWithColorMap = new MapInfoWithColorMap(mi, cm);
         this.atHome = true;
       }
     }
     else if (steps === 1) {
       // Go Back 1 step
       if (this.history.length > 0) {
-        this.mapInfo = this.history.pop();
+        let mi = this.history.pop();
+        this.mapInfoWithColorMap = new MapInfoWithColorMap(mi, this.colorMap);
       }
     }
     //else if (steps === 2) {
@@ -173,19 +247,19 @@ export class AppComponent {
     return result;
   }
 
-  private buildColorMap(): ColorMapUI {
+  private buildColorMap(serialNumber: number): ColorMapUI {
 
     let cNumGenerator = new ColorNumbers();
 
     let ranges: ColorMapUIEntry[] = new Array<ColorMapUIEntry>(7);
-    ranges[0] = ColorMapUIEntry.fromOffsetAndColorNum(3, 0, cNumGenerator.white);
-    ranges[1] = ColorMapUIEntry.fromOffsetAndColorNum(5, 0, cNumGenerator.red);
-    ranges[2] = ColorMapUIEntry.fromOffsetAndColorNum(8, 0, cNumGenerator.green);
-    ranges[3] = ColorMapUIEntry.fromOffsetAndColorNum(13, 0, cNumGenerator.blue);
+    ranges[0] = ColorMapUIEntry.fromOffsetAndColorNum(3, cNumGenerator.white);
+    ranges[1] = ColorMapUIEntry.fromOffsetAndColorNum(5, cNumGenerator.red);
+    ranges[2] = ColorMapUIEntry.fromOffsetAndColorNum(8, cNumGenerator.green);
+    ranges[3] = ColorMapUIEntry.fromOffsetAndColorNum(13, cNumGenerator.blue);
 
-    ranges[4] = ColorMapUIEntry.fromOffsetAndColorNum(21, 0, cNumGenerator.red);
-    ranges[5] = ColorMapUIEntry.fromOffsetAndColorNum(34, 0, cNumGenerator.green);
-    ranges[6] = ColorMapUIEntry.fromOffsetAndColorNum(55, 0, cNumGenerator.blue);
+    ranges[4] = ColorMapUIEntry.fromOffsetAndColorNum(21, cNumGenerator.red);
+    ranges[5] = ColorMapUIEntry.fromOffsetAndColorNum(34, cNumGenerator.green);
+    ranges[6] = ColorMapUIEntry.fromOffsetAndColorNum(55, cNumGenerator.blue);
 
     let n = ColorNumbers.getColorComponents(cNumGenerator.red);
     let h = ColorNumbers.getColorComponentsFromRgba('rgba(255,0,0,1)');
@@ -204,7 +278,7 @@ export class AppComponent {
     //ranges[11] = new ColorMapUIEntry(800, [50, 240, 10]);
     //ranges[12] = new ColorMapUIEntry(1200, [245, 0, 80]);
 
-    let result: ColorMapUI = new ColorMapUI(ranges, cNumGenerator.black);
+    let result: ColorMapUI = new ColorMapUI(ranges, '#000000', serialNumber);
     return result;
   }
 

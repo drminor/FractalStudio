@@ -7,7 +7,7 @@ import {
   WebWorkerImageDataResponse, WebWorkerMessage, WebWorkerStartRequest, WebWorkerImageDataRequest,
   WebWorkerIterateRequest, WebWorkerUpdateColorMapRequest,
   ColorMap, ColorMapUI, ColorMapEntry, ColorMapUIEntry, ColorNumbers,
-  Histogram, WebWorkerHistogramRequest, WebWorkerHistorgramResponse, HistArrayPair
+  Histogram, WebWorkerHistogramRequest, WebWorkerHistorgramResponse, HistArrayPair, MapInfoWithColorMap
 } from '../m-map-common';
 
 @Component({
@@ -18,7 +18,7 @@ import {
 export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
   private _mapInfo: IMapInfo;
-  private _colorMap: ColorMapUI;
+  //private _colorMap: ColorMapUI;
   private _histogram: Histogram;
 
   public alive: boolean;
@@ -45,7 +45,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
   private _exportWorkers: Worker[];
 
 
-  @Input('mapCoords')
+  //@Input('mapCoords')
   set mapCoords(mapCoords: IBox) {
 
     //if (this._mapInfo.coords !== null && this._mapInfo.coords.isEqual(mapCoords)) {
@@ -60,7 +60,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     }
   }
 
-  @Input('maxIterations')
+  //@Input('maxIterations')
   set maxIterations(maxIters: number) {
 
     if (this.viewInitialized) {
@@ -86,7 +86,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     }
   }
 
-  @Input('iterationsPerStep')
+  //@Input('iterationsPerStep')
   set iterationsPerStep(itersPerStep: number) {
     if (this._mapInfo.iterationsPerStep != itersPerStep) {
       this._mapInfo.iterationsPerStep = itersPerStep;
@@ -94,14 +94,116 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     }
   }
 
-  @Input('colorMap')
-  set colorMap(cMap: ColorMapUI) {
-    this._colorMap = cMap;
+  //private _miwcm: MapInfoWithColorMap;
+  @Input('mapInfoWithColorMap')
+  set mapInfoWithColorMap(value: MapInfoWithColorMap) {
 
-    if (this.viewInitialized) {
-      console.log('m-map.display.component is receiving a updated color map.');
-      this.updateWorkersColorMap();
+    console.log('Map Display is getting a new MapInfoWithColorMap.');
+    //this.colorMap = value.colorMapUi;
+    //this.iterationsPerStep = value.mapInfo.iterationsPerStep;
+    //this.maxIterations = value.mapInfo.maxIterations;
+    //this.mapCoords = value.mapInfo.coords;
+
+    let mi: IMapInfo;
+    let cm: ColorMapUI;
+
+    if (value === null) {
+      mi = null;
+      cm = null;
     }
+    else {
+      mi = value.mapInfo;
+      cm = value.colorMapUi;
+    }
+    
+    if (mi === null) {
+      if (this._mapInfo !== null) {
+        // Set our mapInfo to null, if its not already null
+        this._mapInfo = null;
+      }
+      // Set our color map to the new value, unconditionally.
+      this.colorMap = cm;
+    }
+    else {
+      // The new mapInfo has a value.
+      if (this._mapInfo === null) {
+        // We have no working map, initialize our values and build one.
+        this.colorMap = cm;
+        this._mapInfo = mi;
+        if (this.viewInitialized) {
+          this.buildWorkingData();
+        }
+      }
+      else {
+        // The new mapInfo has a value, and we have a working map.
+        if ((this._mapInfo.coords.isEqual(mi.coords))) {
+          // The coordinates have not changed.
+          this.iterationsPerStep = mi.iterationsPerStep;
+          this.maxIterations = mi.maxIterations;
+
+          // Request a color map update, only if the new colorMap is actually new.
+          if (this._colorMap.serialNumber !== cm.serialNumber) {
+            this.colorMap = cm;
+          }
+        }
+        else {
+          // We have a new set of coordinates, rebuild the map.
+          this.colorMap = cm;
+          this._mapInfo = mi;
+          if (this.viewInitialized) {
+            this.buildWorkingData();
+          }
+        }
+      }
+
+    }
+
+  }
+
+  //get mapInfoWithColorMap(): MapInfoWithColorMap {
+  //  return this._miwcm;
+  //}
+
+  //@Input('colorMap')
+  //set colorMap(cMap: ColorMapUI) {
+  //  this._colorMap = cMap;
+
+  //  if (this.viewInitialized) {
+  //    console.log('m-map.display.component is receiving a updated color map.');
+  //    this.updateWorkersColorMap();
+  //  }
+  //}
+
+  _colorMap: ColorMapUI = null;
+  //@Input('colorMap')
+  set colorMap(value: ColorMapUI) {
+
+    if (value === null) {
+      this._colorMap = null;
+    }
+    else {
+      let shouldUpdate = false;
+
+      if (this._colorMap === null) {
+        shouldUpdate = true;
+      }
+      else {
+        if (this._colorMap.serialNumber !== value.serialNumber) {
+          shouldUpdate = true;
+        }
+      }
+      if (shouldUpdate) {
+        this._colorMap = value;
+        if (this.viewInitialized && this._mapInfo !== null) {
+          console.log('m-map.display.component is receiving a updated color map.');
+          this.updateWorkersColorMap();
+        }
+      }
+    }
+  }
+
+  get colorMap(): ColorMapUI {
+    return this._colorMap;
   }
 
   @ViewChild('myCanvas') canvasRef: ElementRef;
@@ -118,9 +220,10 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     this.componentInitialized = false;
     this.viewInitialized = false;
 
-    this._mapInfo = new MapInfo(null, 0, 0, false);
+    this._mapInfo = null; //new MapInfo(null, 0, 0, false);
+    this.colorMap = null;
 
-    this._colorMap = null;
+
     this.workers = [];
     this.sections = [];
 
@@ -153,7 +256,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     canvas.width = this._canvasSizeForExport.width;
     canvas.height = this._canvasSizeForExport.height;
 
-    let regularColorMap = this._colorMap.getRegularColorMap();
+    let regularColorMap = this.colorMap.getRegularColorMap();
 
     //let cs = new CanvasSize(14400, 9600);
 
@@ -187,10 +290,12 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     this._sectionCompleteFlags[sectionNumber] = true;
 
     if (this.haveAllSectionsCompleted()) {
-      this._buildingNewMap = false;
-      console.log('The histogram has been assembled.');
-      console.log('The historgram is ' + this._histogram + '.');
 
+      console.log('Setting the BuildingNewMap flag to false.');
+      this._buildingNewMap = false;
+
+      console.log('The histogram has been assembled.');
+      //console.log('The historgram is ' + this._histogram + '.');
       this.haveHistogram.emit(this._histogram);
     }
   }
@@ -348,7 +453,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     this._histogram = null;
     this.resetSectionCompleteFlags();
 
-    let regularColorMap = this._colorMap.getRegularColorMap();
+    let regularColorMap = this.colorMap.getRegularColorMap();
 
     if (this.useWorkers) {
       // Clear existing workers, if any
@@ -558,7 +663,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     if (this._buildingNewMap) {
       throw new RangeError('The buildingNewMap flag is true on call to updateWorkersColorMap.');
     }
-    let regularColorMap = this._colorMap.getRegularColorMap();
+    let regularColorMap = this.colorMap.getRegularColorMap();
     let upColorMapMsg = WebWorkerUpdateColorMapRequest.CreateRequest(regularColorMap);
 
     let ptr: number = 0;
@@ -689,12 +794,12 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     //console.log('new map sy: ' + msy + ' new map ey: ' + mey + '.');
 
     let coords: IBox = new Box(new Point(msx, msy), new Point(mex, mey));
-    let newMapInfo: IMapInfo = new MapInfo(coords, this._mapInfo.maxIterations, this._mapInfo.iterationsPerStep, this._mapInfo.upsideDown);
+    //let newMapInfo: IMapInfo = new MapInfo(coords, this._mapInfo.maxIterations, this._mapInfo.iterationsPerStep, this._mapInfo.upsideDown);
 
     //console.log('New MapInfo = ' + newMapInfo.toString());
 
-    unitExtentX = (newMapInfo.topRight.x - newMapInfo.bottomLeft.x) / this.canvasSize.width;
-    unitExtentY = (newMapInfo.topRight.y - newMapInfo.bottomLeft.y) / this.canvasSize.height;
+    //unitExtentX = (newMapInfo.topRight.x - newMapInfo.bottomLeft.x) / this.canvasSize.width;
+    //unitExtentY = (newMapInfo.topRight.y - newMapInfo.bottomLeft.y) / this.canvasSize.height;
     //console.log('unit x: ' + unitExtentX + ' unit y' + unitExtentY);
     
     let ptr: number = 0;
@@ -702,8 +807,9 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
       this.workers[ptr].terminate();
     }
 
-    this._mapInfo = newMapInfo;
-    this.zoomed.emit(this._mapInfo.coords);
+    //this._mapInfo = newMapInfo;
+    //this.zoomed.emit(this._mapInfo.coords);
+    this.zoomed.emit(coords);
   }
 
   private round(x: number): number {

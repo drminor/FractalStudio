@@ -86,6 +86,7 @@ export class Point implements IPoint {
   }
 
   public isEqual(p: IPoint): boolean {
+    if (p === null) return false;
     if (p.x !== this.x) return false;
     if (p.y !== this.y) return false;
 
@@ -169,11 +170,25 @@ export class Box implements IBox {
   }
 
   public isEqual(box: IBox): boolean {
-    if (!this.botLeft.isEqual(box.botLeft))
-      return false;
 
-    if (!this.topRight.isEqual(box.topRight))
+    if (box === null) {
+      console.log('Comparing this box to null, returning NOT-EQUAL.');
       return false;
+    }
+    else
+    {
+      if (!this.botLeft.isEqual(box.botLeft)) {
+        console.log('Comparing two boxes and found that they are NOT-EQUAL.');
+        return false;
+      }
+
+      if (!this.topRight.isEqual(box.topRight)) {
+        console.log('Comparing two boxes and found that they are NOT-EQUAL.');
+        return false;
+      }
+    }
+
+    console.log('Comparing two boxes and found that they are equal.');
 
     return true;
   }
@@ -256,6 +271,9 @@ export class CanvasSize implements ICanvasSize {
 
 export class MapInfo implements IMapInfo {
   constructor(public coords: IBox, public maxIterations: number, public iterationsPerStep: number, public upsideDown: boolean) {
+    if (coords === null) {
+      throw new Error('When creating a MapInfo, the coords argument cannot be null.');
+    }
   }
 
   public static fromPoints(bottomLeft: IPoint, topRight: IPoint, maxIterations: number, iterationsPerStep: number): IMapInfo {
@@ -265,8 +283,13 @@ export class MapInfo implements IMapInfo {
   }
 
   public static fromIMapInfo(mi: IMapInfo) {
-    let result: IMapInfo = new MapInfo(mi.coords, mi.maxIterations, mi.iterationsPerStep, mi.upsideDown);
+    let bl = new Point(mi.coords.botLeft.x, mi.coords.botLeft.y);
+    let tr = new Point(mi.coords.topRight.x, mi.coords.topRight.y);
+
+    let coords: IBox = new Box(bl, tr);
+    let result: IMapInfo = new MapInfo(coords, mi.maxIterations, mi.iterationsPerStep, mi.upsideDown);
     return result;
+
   }
 
   public get bottomLeft(): IPoint {
@@ -1030,13 +1053,13 @@ export class Histogram {
 export class MapInfoWithColorMap {
   constructor(public mapInfo: IMapInfo, public colorMapUi: ColorMapUI) { }
 
-  public static fromForExport(miwcm: MapInfoWithColorMapForExport): MapInfoWithColorMap {
+  public static fromForExport(miwcm: MapInfoWithColorMapForExport, serialNumber: number): MapInfoWithColorMap {
 
     // Create a new MapInfo from the loaded data.
     let mapInfo = MapInfo.fromIMapInfo(miwcm.mapInfo);
 
     // Create a new ColorMapUI from the loaded data.
-    let colorMap = ColorMapUI.fromColorMapForExport(miwcm.colorMap);
+    let colorMap = ColorMapUI.fromColorMapForExport(miwcm.colorMap, serialNumber);
 
     let result = new MapInfoWithColorMap(mapInfo, colorMap);
     return result;
@@ -1409,8 +1432,8 @@ export class ColorMapEntry {
 }
 
 export class ColorMapEntryForExport {
-  constructor(public cutOff: number, public targetPercentage: number, public cssColor: string) {
-    if (this.targetPercentage === undefined) this.targetPercentage = 0;
+  constructor(public cutOff: number, public cssColor: string) {
+    //if (this.targetPercentage === undefined) this.targetPercentage = 0;
   }
 }
 
@@ -1422,7 +1445,7 @@ export class ColorMapUIEntry {
   public b: number;
   public alpha: number;
 
-  constructor(public cutOff: number, public targetPercentage: number, colorVals: number[]) {
+  constructor(public cutOff: number, colorVals: number[]) {
 
     if (colorVals.length === 3) {
       this.r = colorVals[0];
@@ -1458,32 +1481,34 @@ export class ColorMapUIEntry {
   }
 
   public static fromColorMapEntry(cme: ColorMapEntry): ColorMapUIEntry {
-    let result = ColorMapUIEntry.fromOffsetAndColorNum(cme.cutOff, 0, cme.colorNum);
+    let result = ColorMapUIEntry.fromOffsetAndColorNum(cme.cutOff, cme.colorNum);
     return result;
   }
 
-  public static fromOffsetAndColorNum(cutOff: number, tPercentage: number, cNum: number): ColorMapUIEntry {
+  public static fromOffsetAndColorNum(cutOff: number/*, tPercentage: number*/, cNum: number): ColorMapUIEntry {
     let colorComps: number[] = ColorNumbers.getColorComponents(cNum);
-    let result = new ColorMapUIEntry(cutOff, tPercentage, colorComps);
+    let result = new ColorMapUIEntry(cutOff, colorComps);
     return result;
   }
 
-  public static fromOffsetAndCssColor(cutOff: number, tPercentage: number, cssColor: string): ColorMapUIEntry {
+  public static fromOffsetAndCssColor(cutOff: number/*, tPercentage: number*/, cssColor: string): ColorMapUIEntry {
     let colorComps: number[] = ColorNumbers.getColorComponentsFromCssColor(cssColor);
-    let result = new ColorMapUIEntry(cutOff, tPercentage, colorComps);
+    let result = new ColorMapUIEntry(cutOff, colorComps);
     return result;
   }
 
-  public static fromOffsetAndRgba(cutOff: number, tPercentage: number, rgbaColor: string): ColorMapUIEntry {
+  public static fromOffsetAndRgba(cutOff: number/*, tPercentage: number*/, rgbaColor: string): ColorMapUIEntry {
     let colorComps: number[] = ColorNumbers.getColorComponentsFromRgba(rgbaColor);
-    let result = new ColorMapUIEntry(cutOff, tPercentage, colorComps);
+    let result = new ColorMapUIEntry(cutOff, colorComps);
     return result;
   }
 }
 
 export class ColorMap {
 
-  constructor(public ranges: ColorMapEntry[], public highColor: number) { }
+  constructor(public ranges: ColorMapEntry[], public highColor: number)
+  {
+  }
 
   public static FromTypedArrays(cutOffs: Uint16Array, colorNums: Uint32Array, highColor: number): ColorMap {
     let workRanges: ColorMapEntry[] = new Array<ColorMapEntry>(cutOffs.length);
@@ -1584,9 +1609,15 @@ export class ColorMap {
 }
 
 export class ColorMapUI {
-  constructor(public ranges: ColorMapUIEntry[], public highColor: number) { }
 
-  public mergeCutoffs(cutOffs: number[]): ColorMapUI {
+  public highColorEntry: ColorMapUIEntry;
+
+  constructor(public ranges: ColorMapUIEntry[], public highColorCss: string, public serialNumber: number)
+  {
+    this.highColorEntry = new ColorMapUIEntry(-1, ColorNumbers.getColorComponentsFromCssColor(highColorCss));
+  }
+
+  public mergeCutoffs(cutOffs: number[], serialNumber: number): ColorMapUI {
 
     let ranges: ColorMapUIEntry[] = [];
     let ptrToExistingCmes = 0;
@@ -1595,36 +1626,36 @@ export class ColorMapUI {
     for (ptr = 0; ptr < cutOffs.length; ptr++) {
       let existingColorNum = this.ranges[ptrToExistingCmes++].colorNum;
 
-      ranges.push(ColorMapUIEntry.fromOffsetAndColorNum(cutOffs[ptr], 0, existingColorNum));
+      ranges.push(ColorMapUIEntry.fromOffsetAndColorNum(cutOffs[ptr], existingColorNum));
 
       if (ptrToExistingCmes > this.ranges.length - 1) {
         ptrToExistingCmes = 0;
       }
     }
 
-    let result: ColorMapUI = new ColorMapUI(ranges, this.highColor);
+    let result: ColorMapUI = new ColorMapUI(ranges, this.highColorCss, serialNumber);
     return result;
   }
 
-  public mergeTpsAndCos(tps: number[], cutOffs: number[]): ColorMapUI {
+  //public mergeTpsAndCos(tps: number[], cutOffs: number[]): ColorMapUI {
 
-    let ranges: ColorMapUIEntry[] = [];
-    let ptrToExistingCmes = 0;
+  //  let ranges: ColorMapUIEntry[] = [];
+  //  let ptrToExistingCmes = 0;
 
-    let ptr: number;
-    for (ptr = 0; ptr < tps.length; ptr++) {
-      let existingColorNum = this.ranges[ptrToExistingCmes++].colorNum;
+  //  let ptr: number;
+  //  for (ptr = 0; ptr < tps.length; ptr++) {
+  //    let existingColorNum = this.ranges[ptrToExistingCmes++].colorNum;
 
-      ranges.push(ColorMapUIEntry.fromOffsetAndColorNum(cutOffs[ptr], tps[ptr], existingColorNum));
+  //    ranges.push(ColorMapUIEntry.fromOffsetAndColorNum(cutOffs[ptr], tps[ptr], existingColorNum));
 
-      if (ptrToExistingCmes > this.ranges.length - 1) {
-        ptrToExistingCmes = 0;
-      }
-    }
+  //    if (ptrToExistingCmes > this.ranges.length - 1) {
+  //      ptrToExistingCmes = 0;
+  //    }
+  //  }
 
-    let result: ColorMapUI = new ColorMapUI(ranges, this.highColor);
-    return result;
-  }
+  //  let result: ColorMapUI = new ColorMapUI(ranges, this.highColor);
+  //  return result;
+  //}
 
   public getOffsets(): number[] {
     let result = new Array<number>(this.ranges.length);
@@ -1637,16 +1668,16 @@ export class ColorMapUI {
     return result;
   }
 
-  public getTargetPercentages(): number[] {
-    let result = new Array<number>(this.ranges.length);
+  //public getTargetPercentages(): number[] {
+  //  let result = new Array<number>(this.ranges.length);
 
-    let ptr: number;
-    for (ptr = 0; ptr < this.ranges.length; ptr++) {
-      result[ptr] = this.ranges[ptr].targetPercentage;
-    }
+  //  let ptr: number;
+  //  for (ptr = 0; ptr < this.ranges.length; ptr++) {
+  //    result[ptr] = this.ranges[ptr].targetPercentage;
+  //  }
 
-    return result;
-  }
+  //  return result;
+  //}
 
   public getRegularColorMap(): ColorMap {
     let regularRanges: ColorMapEntry[] = [];
@@ -1658,28 +1689,28 @@ export class ColorMapUI {
       regularRanges.push(cme);
     }
 
-    let result = new ColorMap(regularRanges, this.highColor);
+    let result = new ColorMap(regularRanges, this.highColorEntry.colorNum);
     return result;
   }
 
-  public static fromColorMapForExport(cmfe: ColorMapForExport): ColorMapUI {
+  public static fromColorMapForExport(cmfe: ColorMapForExport, serialNumber: number): ColorMapUI {
     let ranges: ColorMapUIEntry[] = [];
 
     let ptr: number;
     for (ptr = 0; ptr < cmfe.ranges.length; ptr++) {
       let cmeForExport = cmfe.ranges[ptr];
-      let pv = cmeForExport.targetPercentage / 100;
-      let cme: ColorMapUIEntry = ColorMapUIEntry.fromOffsetAndCssColor(cmeForExport.cutOff, pv, cmeForExport.cssColor);
+      //let pv = cmeForExport.targetPercentage / 100;
+      let cme: ColorMapUIEntry = ColorMapUIEntry.fromOffsetAndCssColor(cmeForExport.cutOff, cmeForExport.cssColor);
       ranges.push(cme);
     }
 
-    let result = new ColorMapUI(ranges, cmfe.highColor);
+    let result = new ColorMapUI(ranges, cmfe.highColorCss, serialNumber);
     return result;
   }
 }
 
 export class ColorMapForExport {
-  constructor(public ranges: ColorMapEntryForExport[], public highColor: number) { }
+  constructor(public ranges: ColorMapEntryForExport[], public highColorCss: string) { }
 
   public static FromColorMap(colorMap: ColorMapUI): ColorMapForExport {
     let ranges: ColorMapEntryForExport[] = [];
@@ -1688,12 +1719,12 @@ export class ColorMapForExport {
     for (ptr = 0; ptr < colorMap.ranges.length; ptr++) {
       let cme: ColorMapUIEntry = colorMap.ranges[ptr];
       let cssColor: string = cme.rgbHex;
-      let pv100x = cme.targetPercentage * 100;
-      let cmeForExport = new ColorMapEntryForExport(cme.cutOff, pv100x, cssColor);
+      //let pv100x = cme.targetPercentage * 100;
+      let cmeForExport = new ColorMapEntryForExport(cme.cutOff, cssColor);
       ranges.push(cmeForExport);
     }
 
-    const result = new ColorMapForExport(ranges, colorMap.highColor);
+    const result = new ColorMapForExport(ranges, colorMap.highColorCss);
     return result;
   }
 }

@@ -1,5 +1,5 @@
 import { Component, OnInit, Input, Output, EventEmitter, ViewChild, ElementRef } from '@angular/core';
-import { ColorMapUI, ColorMapUIEntry, ColorMapForExport, Histogram, Divisions } from '../m-map-common';
+import { ColorMapUI, ColorMapUIEntry, ColorMapForExport, Histogram, Divisions, ColorNumbers } from '../m-map-common';
 import { FormGroup, FormControl, FormArray } from '@angular/forms';
 import { ColorItem } from '../../color-picker/color-picker.component';
 
@@ -48,8 +48,8 @@ export class ColorMapEditorComponent {
       //// Update the live form values using it's target percentages to calculate new offsets.
       //this.updateOffsets();
 
-      //// Update the live form's actual percentage values base on the new offsets.
-      //this.updatePercentages();
+      // Update the live form's actual percentage values base on the new offsets.
+      this.updatePercentages();
 
       //let curColorMap = this.colorMapProp;
       //if (curColorMap !== null && this._histogram != null) {
@@ -82,7 +82,8 @@ export class ColorMapEditorComponent {
       useCutoffs: new FormControl(false),
 
       cEntries: new FormArray([]),
-      highColor: new FormControl('')
+      highColor: new FormControl(''),
+      highColorCutoff: new FormControl('')
     });
 
     this.colorMapForm.controls.sectionCnt.setValue(10);
@@ -160,7 +161,7 @@ export class ColorMapEditorComponent {
   }
 
   onSubmit() {
-    let colorMap = this.getColorMap();
+    let colorMap = this.getColorMap(-1);
     console.log('The color map editor is handling form submit.'); 
     this.colorMapUpdated.emit(colorMap);
   }
@@ -171,18 +172,17 @@ export class ColorMapEditorComponent {
     console.log('Removing first ' + cntToRemove + ' entries.');
     // For testing we are going to remove first secCount entries
 
-    let colorMap = this.getColorMap();
+    let colorMap = this.getColorMap(-1);
 
     let newRanges: ColorMapUIEntry[] = [];
     let ptr: number;
     for (ptr = cntToRemove; ptr < colorMap.ranges.length; ptr++) {
       let cme = colorMap.ranges[ptr];
-      let newCme = ColorMapUIEntry.fromOffsetAndColorNum(cme.cutOff, cme.targetPercentage, cme.colorNum);
+      let newCme = ColorMapUIEntry.fromOffsetAndColorNum(cme.cutOff, cme.colorNum);
       newRanges.push(newCme);
     }
 
-    let newColorMap = new ColorMapUI(newRanges, colorMap.highColor);
-
+    let newColorMap = new ColorMapUI(newRanges, colorMap.highColorCss, -1);
     this.colorMapUpdated.emit(newColorMap);
   }
 
@@ -195,7 +195,7 @@ export class ColorMapEditorComponent {
   }
 
   onSaveColorMap() {
-    let colorMap = this.getColorMap();
+    let colorMap = this.getColorMap(-1);
 
     let colorMapForExport: ColorMapForExport = ColorMapForExport.FromColorMap(colorMap);
     let dump: string = JSON.stringify(colorMapForExport, null, 2);
@@ -225,7 +225,7 @@ export class ColorMapEditorComponent {
     fr.onload = (ev => {
       let rawResult: string = fr.result as string;
       let cmfe: ColorMapForExport = JSON.parse(rawResult) as ColorMapForExport;
-      let loadedColorMap: ColorMapUI = ColorMapUI.fromColorMapForExport(cmfe);
+      let loadedColorMap: ColorMapUI = ColorMapUI.fromColorMapForExport(cmfe, -1);
 
       if (this.colorMapForm.controls.useCutoffs.value === false) {
         //console.log('Loading ColorMap without cutoffs.');
@@ -235,7 +235,7 @@ export class ColorMapEditorComponent {
         //let cutOffs = this.colorMapProp.getOffsets();
         let cutOffs = ColorMapEntryForms.getCutoffs(this.colorEntryForms);
 
-        let colorMapUsingExRanges = loadedColorMap.mergeCutoffs(cutOffs);
+        let colorMapUsingExRanges = loadedColorMap.mergeCutoffs(cutOffs, -1);
         this.colorMapUpdated.emit(colorMapUsingExRanges);
       }
       else {
@@ -255,13 +255,13 @@ export class ColorMapEditorComponent {
     }
 
     let secCnt = this.colorMapForm.controls.sectionCnt.value;
-    let newColorMap = this.buildColorMapByDivision(this.colorMapProp, this._histogram, secCnt);
+    let newColorMap = this.buildColorMapByDivision(this.colorMapProp, this._histogram, secCnt, -1);
     this.colorMapUpdated.emit(newColorMap);
   }
 
-  onUpdateOffsets(): void {
-    this.updateOffsets();
-  }
+  //onUpdateOffsets(): void {
+  //  this.updateOffsets();
+  //}
 
   private updateOffsets(): void {
     console.log('Using Target Percentages and Histogram data to set offsets.');
@@ -287,32 +287,32 @@ export class ColorMapEditorComponent {
     //this.colorMapUpdated.emit(newColorMap);
   }
 
-  onCopyActualPercents(): void {
-    // get a local copy of our array of color entry forms
-    let cEntryForms = this.colorEntryForms;
+  //onCopyActualPercents(): void {
+  //  // get a local copy of our array of color entry forms
+  //  let cEntryForms = this.colorEntryForms;
 
-    // Update the color entry form's target percentage text fields from the form's actual percentages.
-    let ptr: number;
-    for (ptr = 0; ptr < cEntryForms.length; ptr++) {
-      let cEntryForm = cEntryForms[ptr];
-      let pv: number = this.getPercentageVal(cEntryForm.controls.actualPercentage.value);
-      cEntryForm.controls.targetPercentage.setValue(pv);
-    }
-  }
+  //  // Update the color entry form's target percentage text fields from the form's actual percentages.
+  //  let ptr: number;
+  //  for (ptr = 0; ptr < cEntryForms.length; ptr++) {
+  //    let cEntryForm = cEntryForms[ptr];
+  //    let pv: number = this.getPercentageVal(cEntryForm.controls.actualPercentage.value);
+  //    cEntryForm.controls.targetPercentage.setValue(pv);
+  //  }
+  //}
 
-  // Use our predefined target percentages and.
-  // 1. Calculate new cutOff values for those percentages.
-  // 2. Build a new ColorMap using the color values from the live form.
-  // 3. Raise the colorMapUpdated event to load this new color map.
-  onLoadTestPercents() {
-    // Get the current, perhaps unsubmitted, form values into a colorMap object.
-    let colorMap = this.getColorMap();
-    let targetPercents = this._divs.getVals();
-    let cutOffs = this._histogram.getCutoffs(targetPercents);
+  //// Use our predefined target percentages and.
+  //// 1. Calculate new cutOff values for those percentages.
+  //// 2. Build a new ColorMap using the color values from the live form.
+  //// 3. Raise the colorMapUpdated event to load this new color map.
+  //onLoadTestPercents() {
+  //  // Get the current, perhaps unsubmitted, form values into a colorMap object.
+  //  let colorMap = this.getColorMap();
+  //  let targetPercents = this._divs.getVals();
+  //  let cutOffs = this._histogram.getCutoffs(targetPercents);
 
-    let newColorMap = colorMap.mergeTpsAndCos(targetPercents, cutOffs);
-    this.colorMapUpdated.emit(newColorMap);
-  }
+  //  let newColorMap = colorMap.mergeTpsAndCos(targetPercents, cutOffs);
+  //  this.colorMapUpdated.emit(newColorMap);
+  //}
 
   private getPercentageVal(s: string): number {
     let t: string = s.slice(0, s.length - 1);
@@ -361,18 +361,18 @@ export class ColorMapEditorComponent {
     ColorMapEntryForms.loadColorMapUiEntries(colorMap.ranges, fArray);
 
     // Set the form's highColor value.
-    this.colorMapForm.controls.highColor.setValue(colorMap.highColor);
+    this.colorMapForm.controls.highColor.setValue(colorMap.highColorCss);
     this.colorMapForm.controls.sectionEnd.setValue(colorMap.ranges.length - 1);
   }
 
-  private getColorMap(): ColorMapUI{
+  private getColorMap(serialNumber: number): ColorMapUI{
     let ranges: ColorMapUIEntry[] = ColorMapEntryForms.getColorMapUiEntries(this.colorEntryForms);
-    let highColor: number = this.colorMapForm.controls.highColor.value;
-    let result: ColorMapUI = new ColorMapUI(ranges, highColor);
+    let highColorCss: string = this.colorMapForm.controls.highColor.value;
+    let result: ColorMapUI = new ColorMapUI(ranges, highColorCss, serialNumber);
     return result;
   }
 
-  private buildColorMapByDivision(curColorMap: ColorMapUI, histogram: Histogram, sectionCnt: number) : ColorMapUI {
+  private buildColorMapByDivision(curColorMap: ColorMapUI, histogram: Histogram, sectionCnt: number, serialNumber: number) : ColorMapUI {
     //alert('We now have a histogram. It has ' + histogram.entriesMap.size + ' entries.');
 
     let breakPoints = histogram.getEqualGroupsForAll(sectionCnt);
@@ -380,7 +380,7 @@ export class ColorMapEditorComponent {
     let bpDisplay = Histogram.getBreakPointsDisplay(breakPoints);
     console.log('Divide into ' + sectionCnt + ' equal groups gives: ' + bpDisplay);
 
-    let result = curColorMap.mergeCutoffs(breakPoints);
+    let result = curColorMap.mergeCutoffs(breakPoints, serialNumber);
     return result;
 
     //console.log('The color map has ' + this.colorMap.ranges.length + ' entries.');
@@ -420,7 +420,7 @@ class ColorMapEntryForms {
 
       let cme: ColorMapUIEntry = ColorMapUIEntry.fromOffsetAndRgba(
         cEntryForm.controls.cutOff.value,
-        ColorMapEntryForm.getPercentageVal(cEntryForm.controls.targetPercentage.value),
+        //ColorMapEntryForm.getPercentageVal(cEntryForm.controls.targetPercentage.value),
         cEntryForm.controls.rgbaColor.value
       );
 
@@ -455,15 +455,15 @@ class ColorMapEntryForms {
     return result;
   }
 
-  public static setTargetPercentages(fArray: FormGroup[], tps: number[]): void {
+  //public static setTargetPercentages(fArray: FormGroup[], tps: number[]): void {
 
-    let ptr: number;
-    for (ptr = 0; ptr < fArray.length; ptr++) {
-      let cEntryForm = fArray[ptr];
+  //  let ptr: number;
+  //  for (ptr = 0; ptr < fArray.length; ptr++) {
+  //    let cEntryForm = fArray[ptr];
 
-      cEntryForm.controls.targetPercentage.setValue(Divisions.X100With3DecPlaces(tps[ptr]));
-    }
-  }
+  //    cEntryForm.controls.targetPercentage.setValue(Divisions.X100With3DecPlaces(tps[ptr]));
+  //  }
+  //}
 
   public static setActualPercentages(fArray: FormGroup[], aps: number[]): void {
 
@@ -521,7 +521,7 @@ class ColorMapEntryForm {
 
     let result = new FormGroup({
       cutOff: new FormControl(''),
-      targetPercentage: new FormControl(''),
+      //targetPercentage: new FormControl(''),
       cNum: new FormControl(''),
 
       showEditor: new FormControl(''),
@@ -533,7 +533,7 @@ class ColorMapEntryForm {
     result.controls.rgbaColor
 
     if (cme != null) {
-      result.controls.targetPercentage.setValue(Divisions.X100With3DecPlaces(cme.targetPercentage));
+      //result.controls.targetPercentage.setValue(Divisions.X100With3DecPlaces(cme.targetPercentage));
       result.controls.cNum.setValue(cme.colorNum);
 
       result.controls.rgbaColor.setValue(cme.rgbaString);
@@ -547,7 +547,7 @@ class ColorMapEntryForm {
   public static getColorMapUIEntry(form: FormGroup): ColorMapUIEntry {
     const result = ColorMapUIEntry.fromOffsetAndColorNum(
       form.controls.cutOff.value,
-      this.getPercentageVal(form.controls.targetPercentage.value),
+      //this.getPercentageVal(form.controls.targetPercentage.value),
       form.controls.cNum.value
     );
     return result;

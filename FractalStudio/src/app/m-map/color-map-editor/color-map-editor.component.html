@@ -12,31 +12,30 @@
 
     <!-- Divide -->
     <div class="btnGroup" style="border: 1px solid black; margin:2px 2px 2px 2px; padding: 8px 3px 8px 3px">
-      <button type="button" (click)="onUseHistogram()" style="width:100px; margin: 2px 5px 3px 8px">Divide</button>
-      <br/>
+      <button type="button" (click)="onUseHistogram()" style="width:100px; height:21px; margin: 2px 5px 3px 8px">Divide</button>
+      <br />
       <label style="margin-left:10px">Sections: <input type="text" formControlName="sectionStart" size="1"></label>
       <label style="margin-left:10px">to: <input type="text" formControlName="sectionEnd" size="1"></label>
       <label style="margin: 5px 0px 5px 10px">into: <input type="text" formControlName="sectionCnt" size="1"></label>
       <!--<label style="margin: 5px 0px 5px 8px">sections</label>-->
     </div>
 
-    <!-- Use Target Percentages -->
-    <div class="btnGroup" style="border: 1px solid black; margin:2px 2px 2px 2px; padding: 8px 3px 8px 3px">
-      <button type="button" (click)="onUpdateOffsets()" style="width:180px; margin: 2px 5px 3px 8px">Use Target Percentages</button>
-      <button type="button" (click)="onCopyActualPercents()" style="width:100px; margin: 2px 5px 3px 5px">Copy Actuals</button>
-      <button type="button" (click)="onLoadTestPercents()" style="width:50px; margin: 2px 5px 3px 5px">L T</button>
-    </div>
-
+    <!-- Use Target Percentages
+  <div class="btnGroup" style="border: 1px solid black; margin:2px 2px 2px 2px; padding: 8px 3px 8px 3px">
+    <button type="button" (click)="onUpdateOffsets()" style="width:180px; margin: 2px 5px 3px 8px">Use Target Percentages</button>
+    <button type="button" (click)="onCopyActualPercents()" style="width:100px; margin: 2px 5px 3px 5px">Copy Actuals</button>
+    <button type="button" (click)="onLoadTestPercents()" style="width:50px; margin: 2px 5px 3px 5px">L T</button>
+  </div> -->
     <!-- Load -->
-    <div class="btnGroup">
-      <input type="file" #fileSelector value="Import" style="margin-top:8px" />
-      <button type="button" (click)="onLoadColorMap()">Load</button><br/>
-      <label>Use Cutoffs: <input type="checkbox" formControlName="useCutoffs"></label>
+    <div class="btnGroup" style="border: 1px solid black; margin:2px 2px 2px 2px; padding: 8px 3px 8px 3px">
+      <input type="file" #fileSelector value="Import" style="margin: 3px 0px 0px 10px" />
+      <button type="button" (click)="onLoadColorMap()" style="margin: 3px 0px 0px 5px">Load</button><br />
+      <label style="margin: 12px 0px 0px 10px">Use Cutoffs: <input type="checkbox" formControlName="useCutoffs"></label>
+
+      <a #download href="#" hidden="hidden">Download</a>
     </div>
 
-    <a #download href="#" hidden="hidden">Download</a>
-
-    <div formArrayName="cEntries" style="margin-left:10px; height:525px; overflow-y:auto">
+    <div formArrayName="cEntries" style="margin:10px 0px 0px 10px; height:525px; overflow-y:auto">
       <div *ngFor="let colEntry of colorEntryForms; let i=index">
 
         <div [formGroupName]="i" style="width:320px; border: 1px solid lightgray; padding: 3px 1px 3px 18px; margin-bottom:2px;">
@@ -59,20 +58,50 @@
 
             </div>
           </div>
-          <label>Target percentage: <input type="text" formControlName="targetPercentage" (blur)="onTargetPercentageBlur(i)" size="2" /></label>
-          <label style="margin-left:2px">(Actual: {{colEntry.controls.actualPercentage.value || '0'}})</label>
 
-          <!--<div *ngIf="colorMapForm.controls.cEntries.controls[i].controls.showEditor.enabled">
-    <app-color-picker [item]="i" [rgbaColor]="colorMapForm.controls.cEntries.controls[i].controls.rgbaColor.value" (colorUpdated)="setRgbaColor($event)"></app-color-picker>
-  </div>-->
+          <!--<label>Target percentage: <input type="text" formControlName="targetPercentage" (blur)="onTargetPercentageBlur(i)" size="2" /></label>-->
+          <label style="margin-left:2px">Percentage: {{colEntry.controls.actualPercentage.value || '0'}}</label>
+
+          <!--
+            <div *ngIf="colorMapForm.controls.cEntries.controls[i].controls.showEditor.enabled">
+              <app-color-picker [item]="i" [rgbaColor]="colorMapForm.controls.cEntries.controls[i].controls.rgbaColor.value" (colorUpdated)="setRgbaColor($event)"></app-color-picker>
+            </div>
+        -->
 
           <div *ngIf="colEntry.controls.showEditor.enabled">
             <app-color-picker [item]="i" [rgbaColor]="colEntry.controls.rgbaColor.value" (colorUpdated)="setRgbaColor($event)"></app-color-picker>
             <!--<span class="text">{{colorMapForm.controls.cEntries.controls[i].controls.rgbaColor.value}}</span>-->
           </div>
-        </div>
+
+        </div> <!-- End Color Map Entry Form Group -->
+
       </div>
     </div>
+
+    <div style="width:320px; border: 1px solid black; padding: 3px 1px 3px 18px; margin-bottom:2px;">
+      <label>CutOff: <input type="text" formControlName="highColorCutoff" size="5" /></label>
+
+
+      <!-- Clickable Color Block -->
+      <div style="position:relative; width:55px; height:25px; margin:5px;">
+        <div [ngStyle]="{'position': 'absolute',
+                                        'width': '100%',
+                                        'height': '100%',
+                                        'background-color': 'white',
+                                        'border': '1px solid black'
+                 }"
+             (click)="onEditColor(-1)">
+
+        </div>
+      </div>
+
+      <label style="margin-left:2px">Percentage: {{colEntry.controls.actualPercentage.value || '0'}}</label>
+
+
+    </div>
+
+
+
   </form>
 
 </div>
