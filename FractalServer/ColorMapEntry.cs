@@ -3,17 +3,14 @@
     public class ColorMapEntry
     {
         public readonly int CutOff;
-        //public readonly double TargetPercentage;
         public readonly int ColorNum;
         public readonly int[] ColorComps;
 
         public ColorMapEntry(int cutOff, string cssColor)
         {
             CutOff = cutOff;
-            //TargetPercentage = 0;
             ColorComps = GetColorComps(cssColor);
             ColorNum = GetColorNum(ColorComps);
-            //ColorNum = GetColorNumFromCss(cssColor);
         }
 
         private int[] GetColorComps(string cssColor)
@@ -37,20 +34,20 @@
             return result;
         }
 
-        public static int GetColorNumFromCss(string cssColor)
-        {
-            int r = int.Parse(cssColor.Substring(1, 2), System.Globalization.NumberStyles.HexNumber);
-            int g = int.Parse(cssColor.Substring(3, 2), System.Globalization.NumberStyles.HexNumber);
-            int b = int.Parse(cssColor.Substring(5, 2), System.Globalization.NumberStyles.HexNumber);
-            int a = 255;
+        //public static int GetColorNumFromCss(string cssColor)
+        //{
+        //    int r = int.Parse(cssColor.Substring(1, 2), System.Globalization.NumberStyles.HexNumber);
+        //    int g = int.Parse(cssColor.Substring(3, 2), System.Globalization.NumberStyles.HexNumber);
+        //    int b = int.Parse(cssColor.Substring(5, 2), System.Globalization.NumberStyles.HexNumber);
+        //    int a = 255;
 
-            int result = a << 24;
-            result |= b << 16;
-            result |= g << 8;
-            result |= r;
+        //    int result = a << 24;
+        //    result |= b << 16;
+        //    result |= g << 8;
+        //    result |= r;
 
-            return result;
-        }
+        //    return result;
+        //}
 
     }
 }

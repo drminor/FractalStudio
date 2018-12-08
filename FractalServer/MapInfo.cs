@@ -23,7 +23,6 @@ namespace FractalServer
             {
                 double w = RightTop.X - LeftBot.X;
                 double h = RightTop.Y - LeftBot.Y;
-
                 double result = w / h;
 
                 return result;

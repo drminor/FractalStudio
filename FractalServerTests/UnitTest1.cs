@@ -29,19 +29,6 @@ namespace FractalServerTests
             MapWorkingData mapWorkingData = new MapWorkingData(canvasSize, mapInfo, colorMap);
 
             string path = @"C:\MBY1.png";
-            //using (PngImage pngImage = new PngImage(path, canvasSize.Width, canvasSize.Height))
-            //{
-            //    for (int linePtr = 0; linePtr < canvasSize.Height; linePtr++)
-            //    {
-            //        //int[] cnts = mapWorkingData.IterateLine(linePtr, mapInfo.MaxIterations);
-            //        int[] pixelData = mapWorkingData.GetPixelDataForLine(linePtr, mapInfo.MaxIterations);
-            //        pngImage.WriteLine(pixelData);
-            //        //if(linePtr % 10 == 0)
-            //        //{
-            //        //    System.Diagnostics.Debug.WriteLine($"Just sent line #{linePtr}.");
-            //        //}
-            //    }
-            //}
 
             using (PngImage pngImage = new PngImage(path, canvasSize.Width, canvasSize.Height))
             {
@@ -53,6 +40,7 @@ namespace FractalServerTests
                     pngImage.WriteLine(iLine);
                 }
             }
+
         }
 
         [TestMethod]
