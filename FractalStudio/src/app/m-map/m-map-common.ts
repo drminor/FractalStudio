@@ -286,12 +286,27 @@ export class Divisions {
 
   public children: Divisions[];
 
-  constructor(total: number, startVal: number, startIdx: number, numberOfDivs: number) {
+  //constructor(total: number, startVal: number, startIdx: number, numberOfDivs: number) {
+  //  this._numberOfDivs = 1;
+  //  this.total = total;
+  //  this.startVal = startVal;
+  //  this.startIdx = startIdx;
+  //  this.numberOfDivs = numberOfDivs;
+  //}
+
+  constructor(numberOfDivs: number) {
     this._numberOfDivs = 1;
-    this.total = total;
-    this.startVal = startVal;
-    this.startIdx = startIdx;
+    this.total = 1;
+    this.startVal = 0;
+    this.startIdx = 0;
     this.numberOfDivs = numberOfDivs;
+  }
+
+  protected static createWithStartVal(total: number, startVal: number, startIdx: number, numberOfDivs: number): Divisions {
+    let result = new Divisions(numberOfDivs);
+    result.setTotalAndStart(total, startVal, startIdx);
+
+    return result;
   }
 
   private _total: number;
@@ -483,7 +498,9 @@ export class Divisions {
 
     let ptr: number;
     for (ptr = 0; ptr < divs; ptr++) {
-      result[ptr] = new Divisions(unit, curStartVal, firstChildStartIdx++, 1);
+      //result[ptr] = new Divisions(unit, curStartVal, firstChildStartIdx++, 1);
+      result[ptr] = new Divisions(1);
+      result[ptr].setTotalAndStart(unit, curStartVal, firstChildStartIdx++);
       curStartVal += unit;
     }
 
@@ -496,11 +513,12 @@ export class Divisions {
 
     let ptr: number;
     for (ptr = 0; ptr < startingVals.length; ptr++) {
-      result.push(this.formatAsPercentage(startingVals[ptr]));
+      result.push(Divisions.formatAsPercentage(startingVals[ptr]));
     }
     return result;
   }
 
+  // Running percentages
   // Returns a list of numeric values, each value is between 0 and 1.
   public getStartingVals(): number[] {
     let curResult: number[] = [];
@@ -516,6 +534,27 @@ export class Divisions {
       let ptr: number;
       for (ptr = 0; ptr < this.children.length; ptr++) {
         curResult = this.children[ptr].getStartingValsInternal(curResult);
+      }
+    }
+    return curResult;
+  }
+
+  // Individual percentage values
+  // Returns a list of numeric values, each value is between 0 and 1.
+  public getVals(): number[] {
+    let curResult: number[] = [];
+    let result = this.getValsInternal(curResult);
+    return result;
+  }
+
+  private getValsInternal(curResult: number[]): number[] {
+    if (this._numberOfDivs === 1) {
+      curResult.push(this.total);
+    }
+    else {
+      let ptr: number;
+      for (ptr = 0; ptr < this.children.length; ptr++) {
+        curResult = this.children[ptr].getValsInternal(curResult);
       }
     }
     return curResult;
@@ -549,17 +588,42 @@ export class Divisions {
     return result;
   }
 
-  private formatAsPercentage(val: number): string {
+  public static X100With3DecPlaces (val: number): number {
+    if (val === 0) {
+      return 0;
+    }
+    else {
+      let percentX1000: number = parseInt((100000 * val + 0.5).toString(), 10);
+      let p = percentX1000 / 1000;
+
+      //let s = percentX1000.toString();
+      //let res = s.slice(0, s.length - 3) + '.' + s.slice(s.length - 3);
+      //if (percentX1000 < 100) {
+      //  res = '0' + res;
+      //}
+      //return parseFloat(res);
+      return p;
+    }
+  }
+
+  public staticFormatX100AsPercentage(val: number): string {
+    let result = val.toString() + '%';
+    return result;
+  }
+
+  public static formatAsPercentage(val: number): string {
     if (val === 0) {
       return '0.0%';
     }
     else {
-      let percentX100: number = parseInt((10000 * val + 0.5).toString(), 10);
-      let s = percentX100.toString();
-      let res = s.slice(0, s.length - 2) + '.' + s.slice(s.length - 2) + '%';
-      if (percentX100 < 100) {
-        res = '0' + res;
-      }
+      let percentX1000: number = parseInt((100000 * val + 0.5).toString(), 10);
+      let p = percentX1000 / 1000;
+      //let s = percentX1000.toString();
+      //let res = s.slice(0, s.length - 3) + '.' + s.slice(s.length - 3) + '%';
+      //if (percentX1000 < 1000) {
+      //  res = '0' + res;
+      //}
+      let res = p.toString() + '%';
       return res;
     }
   }
@@ -606,17 +670,30 @@ export class Histogram {
 
     let hes = this.getHistEntries();
 
-    let total = this.getSumHits(hes, 0, hes.length);
+    // Get Total hits excluding the hits from those points that reached the maxium iteration count.
+    let maxIterIndex = this.getIndexOfMaxIter(hes);
+    let totalChk = this.getSumHits(hes, 0, hes.length);
+    let total = this.getSumHits(hes, 0, maxIterIndex);
+
+
     let runningPercent = 0;
 
     let idxAndSum = new IndexAndRunningSum(0, 0);
 
     let ptr: number;
     for (ptr = 0; ptr < percentages.length; ptr++) {
-      runningPercent += percentages[ptr] / 100;
+      runningPercent += percentages[ptr]; // / 100;
       let target = runningPercent * total;
       idxAndSum = this.getCutOff(target, hes, idxAndSum);
-      result[ptr] = hes[idxAndSum.idx].val;
+      if (idxAndSum.idx < hes.length) {
+        result[ptr] = hes[idxAndSum.idx].val;
+      }
+      else {
+        // Use the value of the last entry
+        // and exit.
+        result[ptr] = hes[hes.length - 1].val;
+        break;
+      }
     }
 
     return result;
@@ -632,14 +709,22 @@ export class Histogram {
     //  throw new RangeError('targetVal > running sum on call to getCutOff.');
     //}
 
+    let haveAdvanced = false;
     while (ptr < hes.length) {
       let newRs = rs + hes[ptr].occurances;
 
       if (newRs > targetVal) {
-        let diffPrev = targetVal - rs;
-        let diffNext = newRs - targetVal;
+        if (haveAdvanced) {
+          let diffPrev = targetVal - rs;
+          let diffNext = newRs - targetVal;
 
-        if (diffNext <= diffPrev) {
+          if (diffNext <= diffPrev) {
+            rs = newRs;
+            ptr++;
+          }
+        }
+        else {
+          // Must use the next value because we have not yet advanced any -- which means the current value has already been used.
           rs = newRs;
           ptr++;
         }
@@ -648,6 +733,7 @@ export class Histogram {
       else {
         rs = newRs;
         ptr++;
+        haveAdvanced = true;
       }
     }
 
@@ -751,6 +837,26 @@ export class Histogram {
     }
     return ptr;
   }
+
+  private getIndexOfMaxIter(hes: HistEntry[]): number {
+
+    let result = hes.length - 1;
+    let max = 0;
+
+    let ptr = hes.length - 1;
+    let cntr: number;
+    for (cntr = 0; cntr < 10; cntr++) {
+      let occs = hes[ptr].occurances;
+      if (occs > max) {
+        max = occs;
+        result = ptr;
+      }
+      ptr--;
+    }
+
+    return result;
+  }
+
 
   /// --- End By Division ---
 
@@ -873,8 +979,14 @@ export class Histogram {
     let result = new Array<number>(groupCounts.length);
 
     let hes = this.getHistEntries();
-    let total = this.getSumHits(hes, 0, hes.length);
-    total = total / 100;
+
+
+    //let total = this.getSumHits(hes, 0, hes.length);
+
+    let maxIterIndex = this.getIndexOfMaxIter(hes);
+    let totalChk = this.getSumHits(hes, 0, hes.length);
+    let total = this.getSumHits(hes, 0, maxIterIndex);
+
 
     let ptr: number;
     for (ptr = 0; ptr < groupCounts.length; ptr++) {
@@ -924,7 +1036,7 @@ export class MapInfoWithColorMap {
     let mapInfo = MapInfo.fromIMapInfo(miwcm.mapInfo);
 
     // Create a new ColorMapUI from the loaded data.
-    let colorMap = ColorMapUI.FromColorMapForExport(miwcm.colorMap);
+    let colorMap = ColorMapUI.fromColorMapForExport(miwcm.colorMap);
 
     let result = new MapInfoWithColorMap(mapInfo, colorMap);
     return result;
@@ -1304,7 +1416,6 @@ export class ColorMapEntryForExport {
 
 export class ColorMapUIEntry {
 
-  //public targetPercentage: number;
   public colorNum: number;
   public r: number;
   public g: number;
@@ -1495,6 +1606,26 @@ export class ColorMapUI {
     return result;
   }
 
+  public mergeTpsAndCos(tps: number[], cutOffs: number[]): ColorMapUI {
+
+    let ranges: ColorMapUIEntry[] = [];
+    let ptrToExistingCmes = 0;
+
+    let ptr: number;
+    for (ptr = 0; ptr < tps.length; ptr++) {
+      let existingColorNum = this.ranges[ptrToExistingCmes++].colorNum;
+
+      ranges.push(ColorMapUIEntry.fromOffsetAndColorNum(cutOffs[ptr], tps[ptr], existingColorNum));
+
+      if (ptrToExistingCmes > this.ranges.length - 1) {
+        ptrToExistingCmes = 0;
+      }
+    }
+
+    let result: ColorMapUI = new ColorMapUI(ranges, this.highColor);
+    return result;
+  }
+
   public getOffsets(): number[] {
     let result = new Array<number>(this.ranges.length);
 
@@ -1531,13 +1662,14 @@ export class ColorMapUI {
     return result;
   }
 
-  public static FromColorMapForExport(cmfe: ColorMapForExport): ColorMapUI {
+  public static fromColorMapForExport(cmfe: ColorMapForExport): ColorMapUI {
     let ranges: ColorMapUIEntry[] = [];
 
     let ptr: number;
     for (ptr = 0; ptr < cmfe.ranges.length; ptr++) {
       let cmeForExport = cmfe.ranges[ptr];
-      let cme: ColorMapUIEntry = ColorMapUIEntry.fromOffsetAndCssColor(cmeForExport.cutOff, cmeForExport.targetPercentage, cmeForExport.cssColor);
+      let pv = cmeForExport.targetPercentage / 100;
+      let cme: ColorMapUIEntry = ColorMapUIEntry.fromOffsetAndCssColor(cmeForExport.cutOff, pv, cmeForExport.cssColor);
       ranges.push(cme);
     }
 
@@ -1556,7 +1688,8 @@ export class ColorMapForExport {
     for (ptr = 0; ptr < colorMap.ranges.length; ptr++) {
       let cme: ColorMapUIEntry = colorMap.ranges[ptr];
       let cssColor: string = cme.rgbHex;
-      let cmeForExport = new ColorMapEntryForExport(cme.cutOff, cme.targetPercentage, cssColor);
+      let pv100x = cme.targetPercentage * 100;
+      let cmeForExport = new ColorMapEntryForExport(cme.cutOff, pv100x, cssColor);
       ranges.push(cmeForExport);
     }
 

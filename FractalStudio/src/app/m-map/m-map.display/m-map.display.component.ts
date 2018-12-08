@@ -68,7 +68,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
       if (this._mapInfo.maxIterations < maxIters) {
         this._mapInfo.maxIterations = maxIters;
         console.log('The Maximum Iterations is being increased. Will perform the additional iterations. The new MapInfo is:' + this._mapInfo.toString());
-        this.doMoreIterations();
+        this.doMoreIterations(maxIters);
       }
       else if (this._mapInfo.maxIterations > maxIters) {
         this._mapInfo.maxIterations = maxIters;
@@ -532,7 +532,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     return result;
   }
 
-  private doMoreIterations() {
+  private doMoreIterations(newMaxIters: number) {
     console.log('Doing more iterations.');
     this._buildingNewMap = true;
     this._histogram = null;
@@ -542,6 +542,8 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     for (ptr = 0; ptr < this.numberOfSections; ptr++) {
       let webWorker = this.workers[ptr];
       let mapWorkingData = this.sections[ptr];
+
+      mapWorkingData.mapInfo.maxIterations = newMaxIters;
 
       let numberOfIterations = mapWorkingData.iterationCountForNextStep();
       if (numberOfIterations > 0) {

@@ -162,7 +162,7 @@ export class AppComponent {
 
   private buildMapInfo(): IMapInfo {
     const bottomLeft: IPoint = new Point(-2.4, -1.2);
-    const topRight: IPoint = new Point(1, 1.2);
+    const topRight: IPoint = new Point(1.2, 1.2);
 
     let mapCoords = new Box(bottomLeft, topRight);
 
@@ -209,14 +209,14 @@ export class AppComponent {
   }
 
   private doDivisionsTest() {
-    let div: Divisions = new Divisions(1, 0, 0, 5);
+    let div: Divisions = new Divisions(5);
     div.children[0].numberOfDivs = 3;
     div.children[4].numberOfDivs = 3;
 
-    div.children[4].insertChild(new Divisions(1, 0, 0, 1), 1);
+    div.children[4].insertChild(new Divisions(1), 1);
     div.children[0].deleteChild(1);
 
-    let div2: Divisions = new Divisions(1, 0, 0, 2);
+    let div2: Divisions = new Divisions(2);
     div2.children[1].numberOfDivs = 2;
 
     div.insertChild(div2, 5);
