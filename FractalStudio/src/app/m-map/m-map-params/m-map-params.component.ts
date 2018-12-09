@@ -29,21 +29,18 @@ export class MMapParamsComponent {
     return this._miwcm;
   }
 
-  //private _mapInfo: IMapInfo;
+  @Input('isBuilding')
+  set isBuilding(value: boolean) {
+    let appButton = this.applyButton.nativeElement as HTMLButtonElement;
+    if (value) {
+      appButton.disabled = true;
+    }
+    else {
+      appButton.disabled = false;
+    }
+  }
 
-  //@Input('mapInfo')
-  //set mapInfo(value: IMapInfo) {
-  //  this._mapInfo = value;
-  //  this.updateForm(this._mapInfo);
-  //}
-
-  //get mapInfo(): IMapInfo {
-  //  return this._mapInfo;
-  //}
-
-
-  //@Input('colorMap') colorMap: ColorMapUI;
-
+  @ViewChild('applyButton') applyButton: ElementRef;
   @ViewChild('download') downloadRef: ElementRef;
   @ViewChild('fileSelector') fileSelectorRef: ElementRef;
 
@@ -96,7 +93,7 @@ export class MMapParamsComponent {
     let mapInfo: IMapInfo = this.getMapInfo(this.mapCoordsForm);
     console.log('Params is handling form submit.'); // The stack now has ' + this.history.length + ' items.');
 
-    this.mapInfoUpdated.emit(mapInfo);
+    this.raiseMapInfoUpdated(mapInfo);
   }
 
   onMoveL(evt: KeyboardEvent) {
@@ -137,7 +134,11 @@ export class MMapParamsComponent {
     }
 
     let newMapInfo = new MapInfo(newCoords, mi.maxIterations, mi.iterationsPerStep, mi.upsideDown);
-    this.mapInfoUpdated.emit(newMapInfo);
+    this.raiseMapInfoUpdated(newMapInfo);
+  }
+
+  private raiseMapInfoUpdated(mapInfo: IMapInfo): void {
+    this.mapInfoUpdated.emit(mapInfo);
   }
 
   onGoBack() {

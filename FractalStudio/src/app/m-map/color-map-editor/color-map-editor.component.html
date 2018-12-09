@@ -35,7 +35,7 @@
       <a #download href="#" hidden="hidden">Download</a>
     </div>
 
-    <div formArrayName="cEntries" style="margin:10px 0px 0px 10px; height:525px; overflow-y:auto">
+    <div formArrayName="cEntries" style="margin:10px 0px 0px 10px; height:505px; overflow-y:auto">
       <div *ngFor="let colEntry of colorEntryForms; let i=index">
 
         <div [formGroupName]="i" style="width:320px; border: 1px solid lightgray; padding: 3px 1px 3px 18px; margin-bottom:2px;">
@@ -59,14 +59,7 @@
             </div>
           </div>
 
-          <!--<label>Target percentage: <input type="text" formControlName="targetPercentage" (blur)="onTargetPercentageBlur(i)" size="2" /></label>-->
           <label style="margin-left:2px">Percentage: {{colEntry.controls.actualPercentage.value || '0'}}</label>
-
-          <!--
-            <div *ngIf="colorMapForm.controls.cEntries.controls[i].controls.showEditor.enabled">
-              <app-color-picker [item]="i" [rgbaColor]="colorMapForm.controls.cEntries.controls[i].controls.rgbaColor.value" (colorUpdated)="setRgbaColor($event)"></app-color-picker>
-            </div>
-        -->
 
           <div *ngIf="colEntry.controls.showEditor.enabled">
             <app-color-picker [item]="i" [rgbaColor]="colEntry.controls.rgbaColor.value" (colorUpdated)="setRgbaColor($event)"></app-color-picker>
@@ -78,16 +71,16 @@
       </div>
     </div>
 
-    <div style="width:320px; border: 1px solid black; padding: 3px 1px 3px 18px; margin-bottom:2px;">
-      <label>CutOff: <input type="text" formControlName="highColorCutoff" size="5" /></label>
+    <div style="width:320px; border: 1px solid black; padding: 3px 1px 3px 18px; margin: 10px 0px 0px 10px;">
 
+      <label>CutOff: {{colorMapForm.controls.hcCutOff.value}}</label>
 
       <!-- Clickable Color Block -->
       <div style="position:relative; width:55px; height:25px; margin:5px;">
         <div [ngStyle]="{'position': 'absolute',
                                         'width': '100%',
                                         'height': '100%',
-                                        'background-color': 'white',
+                                        'background-color': colorMapForm.controls.highColor.value || 'white',
                                         'border': '1px solid black'
                  }"
              (click)="onEditColor(-1)">
@@ -95,10 +88,9 @@
         </div>
       </div>
 
-      <label style="margin-left:2px">Percentage: {{colEntry.controls.actualPercentage.value || '0'}}</label>
+      <label style="margin-left:2px">Percentage: {{colorMapForm.controls.hcCutOffPercentage.value || '0'}}</label>
 
-
-    </div>
+    </div> <!-- End Color Map Entry Form Group -->
 
 
 

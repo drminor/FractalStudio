@@ -677,17 +677,20 @@ export class Histogram {
 
   public entriesMap: Map<number, number>;
 
+  private _maxVal: number = -1;
+
+  public get maxVal(): number {
+    if (this._maxVal === -1) {
+      // The getHistEntries method also sets the value of _maxVal.
+      this.getHistEntries();
+    }
+
+    return this._maxVal;
+  }
+
   constructor() {
     this.entriesMap = new Map<number, number>();
   }
-
-  /// --- By Target Percentage ---
-  //public getCutoffs(percentages: number[]): CutoffAndPercentage[] {
-  //  let result = new Array<CutoffAndPercentage>(percentages.length);
-
-  //  return result;
-  //}
-
   public getCutoffs(percentages: number[]): number[] {
     let result = new Array<number>(percentages.length);
 
@@ -695,7 +698,7 @@ export class Histogram {
 
     // Get Total hits excluding the hits from those points that reached the maxium iteration count.
     let maxIterIndex = this.getIndexOfMaxIter(hes);
-    let totalChk = this.getSumHits(hes, 0, hes.length);
+    //let totalChk = this.getSumHits(hes, 0, hes.length);
     let total = this.getSumHits(hes, 0, maxIterIndex);
 
 
@@ -895,6 +898,9 @@ export class Histogram {
     }
 
     result.sort((a, b) => a.val - b.val);
+
+    // Set our maxVal, while since we have gone to the trouble of getting sorting our map.
+    this._maxVal = result[result.length - 1].val;
     return result;
   }
 
@@ -983,7 +989,7 @@ export class Histogram {
       let thisBp = breakPoints[ptr];
       let p2: number;
       for (p2 = lastIdx; p2 < hes.length; p2++) {
-        if (hes[p2].val < thisBp) {
+        if (hes[p2].val <= thisBp) {
           accum += hes[p2].occurances;
         }
         else {
@@ -994,6 +1000,15 @@ export class Histogram {
       result[ptr] = accum;
       lastIdx = p2;
     }
+
+    // Add up all occurances after the last break point.
+    let accum2 = 0;
+    let p3: number;
+    for (p3 = lastIdx; p3 < hes.length; p3++) {
+      accum2 += hes[p3].occurances;
+    }
+
+    result.push(accum2);
 
     return result;
   }
@@ -1346,59 +1361,6 @@ export class MapWorkingData implements IMapWorkingData {
     }
   }
   
-  //public getImageDataForLine(y: number): ImageData {
-  //  const imageData = new ImageData(this.canvasSize.width, 1);
-  //  this.updateImageDataForLine(imageData, y);
-  //  return imageData;
-  //}
-
-  //private updateImageDataForLine(imageData: ImageData, y: number): void {
-  //  let data: Uint8ClampedArray = imageData.data;
-  //  if (data.length !== 4 * this.canvasSize.width) {
-  //    console.log("The imagedata data does not have the correct number of elements.");
-  //    return;
-  //  }
-
-  //  let start: number = this.getLinearIndex(new Point(0, y));
-  //  let end: number = start + this.canvasSize.width;
-
-  //  let i: number;
-
-  //  for (i = start; i < end; i++) {
-  //    const inTheSet: boolean = this.flags[i] === 0;
-  //    this.setPixelValueBinary(inTheSet, i * 4, data);
-  //  }
-  //}
-
-  //private setPixelValueBinary(on: boolean, ptr: number, imageData: Uint8ClampedArray) {
-  //  if (on) {
-  //    // Points within the set are drawn in black.
-  //    imageData[ptr] = 0;
-  //    imageData[ptr + 1] = 0;
-  //    imageData[ptr + 2] = 0;
-  //    imageData[ptr + 3] = 255;
-  //  } else {
-  //    // Points outside the set are drawn in white.
-  //    imageData[ptr] = 255;
-  //    imageData[ptr + 1] = 255;
-  //    imageData[ptr + 2] = 255;
-  //    imageData[ptr + 3] = 255;
-  //  }
-  //}
-                                                                                           
-  //// Returns a 'regular' linear array of booleans from the flags TypedArray.
-  //private getFlagData(mapWorkingData: IMapWorkingData): boolean[] {
-
-  //  var result: boolean[] = new Array<boolean>(mapWorkingData.elementCount);
-
-  //  var i: number;
-  //  for (i = 0; i < result.length; i++) {
-  //    result[i] = mapWorkingData.flags[i] !== 0;
-  //  }
-
-  //  return result;
-  //}
-
   public iterationCountForNextStep(): number {
     let result: number;
     let gap = this.mapInfo.maxIterations - this.curIterations;
@@ -1421,20 +1383,13 @@ export class MapWorkingData implements IMapWorkingData {
 
 } // End Class MapWorkingData
 
-//export interface IColorMapEntry {
-//  cutOff: number;
-//  colorNum: number;
-//}
-
 export class ColorMapEntry {
   constructor(public cutOff: number, public colorNum: number) {
   }
 }
 
 export class ColorMapEntryForExport {
-  constructor(public cutOff: number, public cssColor: string) {
-    //if (this.targetPercentage === undefined) this.targetPercentage = 0;
-  }
+  constructor(public cutOff: number, public cssColor: string) { }
 }
 
 export class ColorMapUIEntry {
@@ -1506,9 +1461,7 @@ export class ColorMapUIEntry {
 
 export class ColorMap {
 
-  constructor(public ranges: ColorMapEntry[], public highColor: number)
-  {
-  }
+  constructor(public ranges: ColorMapEntry[], public highColor: number) { }
 
   public static FromTypedArrays(cutOffs: Uint16Array, colorNums: Uint32Array, highColor: number): ColorMap {
     let workRanges: ColorMapEntry[] = new Array<ColorMapEntry>(cutOffs.length);
@@ -1521,18 +1474,6 @@ export class ColorMap {
     let result: ColorMap = new ColorMap(workRanges, highColor);
 
     return result;
-  }
-
-  public insertColorMapEntry(entry: ColorMapEntry, index: number) {
-    if (index <= 0) {
-      this.ranges.unshift(entry);
-    }
-    else if (index > this.ranges.length - 1) {
-      this.ranges.push(entry);
-    }
-    else {
-      this.ranges.splice(index, 0, entry);
-    }
   }
 
   public getColor(countValue: number): number {
@@ -1610,11 +1551,27 @@ export class ColorMap {
 
 export class ColorMapUI {
 
-  public highColorEntry: ColorMapUIEntry;
+  constructor(public ranges: ColorMapUIEntry[], public highColorCss: string, public serialNumber: number) { }
 
-  constructor(public ranges: ColorMapUIEntry[], public highColorCss: string, public serialNumber: number)
-  {
-    this.highColorEntry = new ColorMapUIEntry(-1, ColorNumbers.getColorComponentsFromCssColor(highColorCss));
+  public insertColorMapEntry(index: number, entry: ColorMapUIEntry) {
+    //if (index <= 0) {
+    //  this.ranges.unshift(entry);
+    //}
+    //else if (index > this.ranges.length - 1) {
+    //  this.ranges.push(entry);
+    //}
+    //else {
+    //  this.ranges.splice(index, 0, entry);
+    //}
+    this.ranges.splice(index, 0, entry);
+  }
+
+  public removeColorMapEntry(index: number): ColorMapUIEntry {
+    let result = this.ranges[index];
+
+    this.ranges.splice(index, 1);
+
+    return result;
   }
 
   public mergeCutoffs(cutOffs: number[], serialNumber: number): ColorMapUI {
@@ -1637,26 +1594,6 @@ export class ColorMapUI {
     return result;
   }
 
-  //public mergeTpsAndCos(tps: number[], cutOffs: number[]): ColorMapUI {
-
-  //  let ranges: ColorMapUIEntry[] = [];
-  //  let ptrToExistingCmes = 0;
-
-  //  let ptr: number;
-  //  for (ptr = 0; ptr < tps.length; ptr++) {
-  //    let existingColorNum = this.ranges[ptrToExistingCmes++].colorNum;
-
-  //    ranges.push(ColorMapUIEntry.fromOffsetAndColorNum(cutOffs[ptr], tps[ptr], existingColorNum));
-
-  //    if (ptrToExistingCmes > this.ranges.length - 1) {
-  //      ptrToExistingCmes = 0;
-  //    }
-  //  }
-
-  //  let result: ColorMapUI = new ColorMapUI(ranges, this.highColor);
-  //  return result;
-  //}
-
   public getOffsets(): number[] {
     let result = new Array<number>(this.ranges.length);
 
@@ -1668,17 +1605,6 @@ export class ColorMapUI {
     return result;
   }
 
-  //public getTargetPercentages(): number[] {
-  //  let result = new Array<number>(this.ranges.length);
-
-  //  let ptr: number;
-  //  for (ptr = 0; ptr < this.ranges.length; ptr++) {
-  //    result[ptr] = this.ranges[ptr].targetPercentage;
-  //  }
-
-  //  return result;
-  //}
-
   public getRegularColorMap(): ColorMap {
     let regularRanges: ColorMapEntry[] = [];
 
@@ -1689,7 +1615,7 @@ export class ColorMapUI {
       regularRanges.push(cme);
     }
 
-    let result = new ColorMap(regularRanges, this.highColorEntry.colorNum);
+    let result = new ColorMap(regularRanges, new ColorNumbers().black);
     return result;
   }
 
@@ -1699,7 +1625,6 @@ export class ColorMapUI {
     let ptr: number;
     for (ptr = 0; ptr < cmfe.ranges.length; ptr++) {
       let cmeForExport = cmfe.ranges[ptr];
-      //let pv = cmeForExport.targetPercentage / 100;
       let cme: ColorMapUIEntry = ColorMapUIEntry.fromOffsetAndCssColor(cmeForExport.cutOff, cmeForExport.cssColor);
       ranges.push(cme);
     }
@@ -1719,7 +1644,6 @@ export class ColorMapForExport {
     for (ptr = 0; ptr < colorMap.ranges.length; ptr++) {
       let cme: ColorMapUIEntry = colorMap.ranges[ptr];
       let cssColor: string = cme.rgbHex;
-      //let pv100x = cme.targetPercentage * 100;
       let cmeForExport = new ColorMapEntryForExport(cme.cutOff, cssColor);
       ranges.push(cmeForExport);
     }

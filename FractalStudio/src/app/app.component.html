@@ -10,6 +10,7 @@
   </app-m-map-params>-->
 
   <app-m-map-params [mapInfoWithColorMap]="mapInfoWithColorMap"
+                    [isBuilding]="isBuilding"
                     (mapInfoUpdated)="onMapInfoUpdated($event)"
                     (mapInfoLoaded)="onMapInfoLoaded($event)"
                     (goBack)="onGoBack($event)">

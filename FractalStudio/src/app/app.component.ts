@@ -5,9 +5,8 @@ import {
   ColorMapUI, ColorMapUIEntry, ColorNumbers, MapInfoWithColorMap,
   Histogram, Divisions
 } from './m-map/m-map-common';
+
 import { MMapDisplayComponent } from './m-map/m-map.display/m-map.display.component';
-
-
 
 @Component({
   selector: 'app-root',
@@ -30,6 +29,7 @@ export class AppComponent {
   //iterationsPerStep: number;
 
   mapInfo: IMapInfo;
+  isBuilding: boolean = false;
 
   _colorMap: ColorMapUI = null;
   set colorMap(value: ColorMapUI) {
@@ -47,20 +47,6 @@ export class AppComponent {
   get colorMap(): ColorMapUI {
     return this._colorMap;
   }
-  
-
-  //private _mapInfo: IMapInfo;
-
-  //get mapInfo(): IMapInfo {
-  //  return this._mapInfo;
-  //}
-
-  //set mapInfo(mapInfo: IMapInfo) {
-  //  this._mapInfo = mapInfo;
-  //  //this.mapCoords = mapInfo.coords;
-  //  //this.maxIterations = mapInfo.maxIterations;
-  //  //this.iterationsPerStep = mapInfo.iterationsPerStep;
-  //}
 
   private _miwcm: MapInfoWithColorMap;
 
@@ -68,6 +54,7 @@ export class AppComponent {
     this._miwcm = value;
     this.colorMap = value.colorMapUi;
     this.mapInfo = value.mapInfo;
+    this.isBuilding = true;
   }
 
   get mapInfoWithColorMap(): MapInfoWithColorMap {
@@ -82,7 +69,6 @@ export class AppComponent {
   sectionCnt: number;
 
   public ColorMapSerialNumber: number;
-
 
   constructor() {
 
@@ -123,6 +109,7 @@ export class AppComponent {
   onHaveHistogram(h: Histogram) {
     console.log('We now have a histogram. It has ' + h.entriesMap.size + ' entries.');
     this.histogram = h;
+    this.isBuilding = false;
   }
 
   onHaveImageData(imageBlob: Blob) {
@@ -168,7 +155,6 @@ export class AppComponent {
     if (miwcm.colorMapUi.serialNumber === -1) {
       miwcm.colorMapUi.serialNumber = this.ColorMapSerialNumber++;
     }
-
 
     this.mapInfoWithColorMap = miwcm;
 
