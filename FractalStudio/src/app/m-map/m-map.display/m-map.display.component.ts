@@ -17,8 +17,15 @@ import {
 })
 export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
-  private _mapInfo: IMapInfo;
-  //private _colorMap: ColorMapUI;
+  @ViewChild('myCanvas') canvasRef: ElementRef;
+  @ViewChild('myControlCanvas') canvasControlRef: ElementRef;
+  @ViewChild('myHiddenCanvas') canvasHiddenRef: ElementRef;
+
+  @Output() zoomed = new EventEmitter<IBox>();
+  @Output() haveImageData = new EventEmitter<Blob>();
+  @Output() haveHistogram = new EventEmitter<Histogram>();
+  @Output() buildingComplete = new EventEmitter();
+
   private _histogram: Histogram;
 
   public alive: boolean;
@@ -44,23 +51,8 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
   private _buildingNewMap: boolean;
   private _exportWorkers: Worker[];
 
+  private _mapInfo: IMapInfo;
 
-  //@Input('mapCoords')
-  set mapCoords(mapCoords: IBox) {
-
-    //if (this._mapInfo.coords !== null && this._mapInfo.coords.isEqual(mapCoords)) {
-    //  return;
-    //}
-
-    this._mapInfo.coords = mapCoords;
-    console.log('The Map Coordinatees are being updated. The new MapInfo is:' + this._mapInfo.toString());
-
-    if (this.viewInitialized) {
-      this.buildWorkingData();
-    }
-  }
-
-  //@Input('maxIterations')
   set maxIterations(maxIters: number) {
 
     if (this.viewInitialized) {
@@ -86,7 +78,6 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     }
   }
 
-  //@Input('iterationsPerStep')
   set iterationsPerStep(itersPerStep: number) {
     if (this._mapInfo.iterationsPerStep != itersPerStep) {
       this._mapInfo.iterationsPerStep = itersPerStep;
@@ -99,10 +90,6 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
   set mapInfoWithColorMap(value: MapInfoWithColorMap) {
 
     console.log('Map Display is getting a new MapInfoWithColorMap.');
-    //this.colorMap = value.colorMapUi;
-    //this.iterationsPerStep = value.mapInfo.iterationsPerStep;
-    //this.maxIterations = value.mapInfo.maxIterations;
-    //this.mapCoords = value.mapInfo.coords;
 
     let mi: IMapInfo;
     let cm: ColorMapUI;
@@ -117,18 +104,24 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     }
     
     if (mi === null) {
+      // Set our color map to the new value, unconditionally.
+      this._colorMap = cm;
+
       if (this._mapInfo !== null) {
         // Set our mapInfo to null, if its not already null
         this._mapInfo = null;
+        // TODO: clear the canvas
       }
-      // Set our color map to the new value, unconditionally.
-      this.colorMap = cm;
+      else {
+        // Do nothing.
+        //this.buildingComplete.emit();
+      }
     }
     else {
       // The new mapInfo has a value.
       if (this._mapInfo === null) {
         // We have no working map, initialize our values and build one.
-        this.colorMap = cm;
+        this._colorMap = cm;
         this._mapInfo = mi;
         if (this.viewInitialized) {
           this.buildWorkingData();
@@ -143,76 +136,39 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
           // Request a color map update, only if the new colorMap is actually new.
           if (this._colorMap.serialNumber !== cm.serialNumber) {
-            this.colorMap = cm;
+            this._colorMap = cm;
+
+            if (this.viewInitialized) {
+              console.log('m-map.display.component is receiving an updated color map.');
+              this.updateWorkersColorMap();
+            }
+          }
+          else {
+            // Do nothing.
+            //this.buildingComplete.emit();
           }
         }
         else {
           // We have a new set of coordinates, rebuild the map.
-          this.colorMap = cm;
+          this._colorMap = cm;
           this._mapInfo = mi;
           if (this.viewInitialized) {
             this.buildWorkingData();
           }
         }
       }
-
     }
-
   }
 
   //get mapInfoWithColorMap(): MapInfoWithColorMap {
   //  return this._miwcm;
   //}
 
-  //@Input('colorMap')
-  //set colorMap(cMap: ColorMapUI) {
-  //  this._colorMap = cMap;
-
-  //  if (this.viewInitialized) {
-  //    console.log('m-map.display.component is receiving a updated color map.');
-  //    this.updateWorkersColorMap();
-  //  }
-  //}
-
-  _colorMap: ColorMapUI = null;
-  //@Input('colorMap')
-  set colorMap(value: ColorMapUI) {
-
-    if (value === null) {
-      this._colorMap = null;
-    }
-    else {
-      let shouldUpdate = false;
-
-      if (this._colorMap === null) {
-        shouldUpdate = true;
-      }
-      else {
-        if (this._colorMap.serialNumber !== value.serialNumber) {
-          shouldUpdate = true;
-        }
-      }
-      if (shouldUpdate) {
-        this._colorMap = value;
-        if (this.viewInitialized && this._mapInfo !== null) {
-          console.log('m-map.display.component is receiving a updated color map.');
-          this.updateWorkersColorMap();
-        }
-      }
-    }
-  }
+  private _colorMap: ColorMapUI = null;
 
   get colorMap(): ColorMapUI {
     return this._colorMap;
   }
-
-  @ViewChild('myCanvas') canvasRef: ElementRef;
-  @ViewChild('myControlCanvas') canvasControlRef: ElementRef;
-  @ViewChild('myHiddenCanvas') canvasHiddenRef: ElementRef;
-
-  @Output() zoomed = new EventEmitter<IBox>();
-  @Output() haveImageData = new EventEmitter<Blob>();
-  @Output() haveHistogram = new EventEmitter<Histogram>();
 
   constructor() {
     console.log('m-map.display is being constructed.');
@@ -220,9 +176,8 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     this.componentInitialized = false;
     this.viewInitialized = false;
 
-    this._mapInfo = null; //new MapInfo(null, 0, 0, false);
-    this.colorMap = null;
-
+    this._mapInfo = null;
+    this._colorMap = null;
 
     this.workers = [];
     this.sections = [];
@@ -305,6 +260,8 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
     //ctx.fillStyle = '#DD0031';
     //ctx.clearRect(0, 0, this.canvasSize.width, 20);
+
+    this.buildingComplete.emit();
   }
 
   draw(imageData: ImageData, sectionNumber: number): void {

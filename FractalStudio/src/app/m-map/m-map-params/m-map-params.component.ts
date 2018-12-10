@@ -78,22 +78,20 @@ export class MMapParamsComponent {
 
     // TODO: consider creating a field on our form to store the upsideDownValue.
     // for rigth now, we know that the MapInfo we use in the UI is always right side up.
-    result = new MapInfo(coords, maxIterations, iterationsPerStep, false);
+    result = new MapInfo(coords, maxIterations, iterationsPerStep);
 
     return result;
   }
 
-  //ngOnChanges() {
-  //  console.log('Params is handling ngOnChanges.'); // and is pushing the new MapInfo on the stack. The stack now has ' + this.history.length + ' items.');
-  //  this.updateForm(this.mapInfo);
-  //}
-
   onSubmit() {
-    //console.warn(this.mapCoordsForm.value);
     let mapInfo: IMapInfo = this.getMapInfo(this.mapCoordsForm);
-    console.log('Params is handling form submit.'); // The stack now has ' + this.history.length + ' items.');
-
-    this.raiseMapInfoUpdated(mapInfo);
+    if (mapInfo.isEqual(this.mapInfoWithColorMap.mapInfo)) {
+      console.log('Params is handling form submit. No changes -- ignoring.');
+    }
+    else {
+      console.log('Params is handling form submit with changes.');
+      this.raiseMapInfoUpdated(mapInfo);
+    }
   }
 
   onMoveL(evt: KeyboardEvent) {
@@ -133,7 +131,7 @@ export class MMapParamsComponent {
       newCoords = mi.coords.getShiftedBox(dir, percent);
     }
 
-    let newMapInfo = new MapInfo(newCoords, mi.maxIterations, mi.iterationsPerStep, mi.upsideDown);
+    let newMapInfo = new MapInfo(newCoords, mi.maxIterations, mi.iterationsPerStep);
     this.raiseMapInfoUpdated(newMapInfo);
   }
 
@@ -150,7 +148,7 @@ export class MMapParamsComponent {
   }
 
   onSaveMapInfo() {
-    let colorMapForExport: ColorMapForExport = ColorMapForExport.FromColorMap(this.mapInfoWithColorMap.colorMapUi);
+    let colorMapForExport = ColorMapForExport.FromColorMap(this.mapInfoWithColorMap.colorMapUi);
     let mapInfo = this.getMapInfo(this.mapCoordsForm);
     let miwcmfe = new MapInfoWithColorMapForExport(mapInfo, colorMapForExport);
 

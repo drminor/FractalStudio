@@ -12,6 +12,7 @@ export interface IBox {
   topRight: IPoint;
   width: number;
   height: number;
+  upsideDown: boolean;
 
   getNormalizedBox(): IBox;
   getShiftedBox(dir: string, percent: number): IBox;
@@ -30,6 +31,7 @@ export interface IMapInfo {
   maxIterations: number;
   iterationsPerStep: number;
   upsideDown: boolean;
+  isEqual(other: IMapInfo): boolean;
 
   toString(): string
 }
@@ -102,12 +104,18 @@ export class Box implements IBox {
 
     return result;
   }
+
   public get width(): number {
     return this.topRight.x - this.botLeft.x;
   }
 
   public get height(): number {
     return this.topRight.y - this.botLeft.y;
+  }
+
+  public get upsideDown(): boolean {
+    let result = this.topRight.y < this.botLeft.y;
+    return result;
   }
 
   public getShiftedBox(dir: string, percent: number): IBox {
@@ -270,7 +278,7 @@ export class CanvasSize implements ICanvasSize {
 }
 
 export class MapInfo implements IMapInfo {
-  constructor(public coords: IBox, public maxIterations: number, public iterationsPerStep: number, public upsideDown: boolean) {
+  constructor(public coords: IBox, public maxIterations: number, public iterationsPerStep: number) {
     if (coords === null) {
       throw new Error('When creating a MapInfo, the coords argument cannot be null.');
     }
@@ -278,7 +286,7 @@ export class MapInfo implements IMapInfo {
 
   public static fromPoints(bottomLeft: IPoint, topRight: IPoint, maxIterations: number, iterationsPerStep: number): IMapInfo {
     let coords: IBox = new Box(bottomLeft, topRight);
-    let result: IMapInfo = new MapInfo(coords, maxIterations, iterationsPerStep, false);
+    let result: IMapInfo = new MapInfo(coords, maxIterations, iterationsPerStep);
     return result;
   }
 
@@ -287,7 +295,7 @@ export class MapInfo implements IMapInfo {
     let tr = new Point(mi.coords.topRight.x, mi.coords.topRight.y);
 
     let coords: IBox = new Box(bl, tr);
-    let result: IMapInfo = new MapInfo(coords, mi.maxIterations, mi.iterationsPerStep, mi.upsideDown);
+    let result: IMapInfo = new MapInfo(coords, mi.maxIterations, mi.iterationsPerStep);
     return result;
 
   }
@@ -299,6 +307,20 @@ export class MapInfo implements IMapInfo {
   public get topRight(): IPoint {
     return this.coords.topRight;
   }
+
+  public get upsideDown(): boolean {
+    return this.coords.upsideDown;
+  }
+
+  public isEqual(other: IMapInfo): boolean {
+    if (other === null) return false;
+    if (!(this.coords.isEqual(other.coords))) return false;
+    if (this.maxIterations !== other.maxIterations) return false;
+    if (this.iterationsPerStep != other.iterationsPerStep) return false;
+
+    return true;
+  }
+
 
   public toString(): string {
     return 'sx:' + this.coords.botLeft.x + ' ex:' + this.coords.topRight.x + ' sy:' + this.coords.botLeft.y + ' ey:' + this.coords.topRight.y + ' mi:' + this.maxIterations + ' ips:' + this.iterationsPerStep + '.';
@@ -1305,7 +1327,7 @@ export class MapWorkingData implements IMapWorkingData {
       let secTopRight = new Point(right, secTop);
 
       let coords: IBox = new Box(secBotLeft, secTopRight);
-      let secMapInfo = new MapInfo(coords, mapInfo.maxIterations, mapInfo.iterationsPerStep, true);
+      let secMapInfo = new MapInfo(coords, mapInfo.maxIterations, mapInfo.iterationsPerStep);
 
       let yOffset = ptr * sectionHeightWN;
       let secAnchor: IPoint = new Point(0, yOffset);
@@ -1327,7 +1349,7 @@ export class MapWorkingData implements IMapWorkingData {
     let secTopRight = new Point(right, secTop);
 
     let coords: IBox = new Box(secBotLeft, secTopRight);
-    let secMapInfo = new MapInfo(coords, mapInfo.maxIterations, mapInfo.iterationsPerStep, true);
+    let secMapInfo = new MapInfo(coords, mapInfo.maxIterations, mapInfo.iterationsPerStep);
 
     let yOffset = ptr * sectionHeightWN;
     let secAnchor: IPoint = new Point(0, yOffset);
@@ -1390,6 +1412,11 @@ export class ColorMapEntry {
 
 export class ColorMapEntryForExport {
   constructor(public cutOff: number, public cssColor: string) { }
+
+  public static fromColorMapUIEntry(cme: ColorMapUIEntry): ColorMapEntryForExport {
+    let result = new ColorMapEntryForExport(cme.cutOff, cme.rgbHex);
+    return result;
+  }
 }
 
 export class ColorMapUIEntry {
@@ -1440,19 +1467,19 @@ export class ColorMapUIEntry {
     return result;
   }
 
-  public static fromOffsetAndColorNum(cutOff: number/*, tPercentage: number*/, cNum: number): ColorMapUIEntry {
+  public static fromOffsetAndColorNum(cutOff: number, cNum: number): ColorMapUIEntry {
     let colorComps: number[] = ColorNumbers.getColorComponents(cNum);
     let result = new ColorMapUIEntry(cutOff, colorComps);
     return result;
   }
 
-  public static fromOffsetAndCssColor(cutOff: number/*, tPercentage: number*/, cssColor: string): ColorMapUIEntry {
+  public static fromOffsetAndCssColor(cutOff: number, cssColor: string): ColorMapUIEntry {
     let colorComps: number[] = ColorNumbers.getColorComponentsFromCssColor(cssColor);
     let result = new ColorMapUIEntry(cutOff, colorComps);
     return result;
   }
 
-  public static fromOffsetAndRgba(cutOff: number/*, tPercentage: number*/, rgbaColor: string): ColorMapUIEntry {
+  public static fromOffsetAndRgba(cutOff: number, rgbaColor: string): ColorMapUIEntry {
     let colorComps: number[] = ColorNumbers.getColorComponentsFromRgba(rgbaColor);
     let result = new ColorMapUIEntry(cutOff, colorComps);
     return result;
@@ -1547,6 +1574,11 @@ export class ColorMap {
 
     return result;
   }
+
+  public toString(): string {
+    let result = 'ColorMap with ' + this.ranges.length + ' entries.';
+    return result;
+  }
 }
 
 export class ColorMapUI {
@@ -1635,6 +1667,8 @@ export class ColorMapUI {
 }
 
 export class ColorMapForExport {
+  public version: number = 1.0;
+
   constructor(public ranges: ColorMapEntryForExport[], public highColorCss: string) { }
 
   public static FromColorMap(colorMap: ColorMapUI): ColorMapForExport {
@@ -1643,8 +1677,7 @@ export class ColorMapForExport {
     let ptr: number;
     for (ptr = 0; ptr < colorMap.ranges.length; ptr++) {
       let cme: ColorMapUIEntry = colorMap.ranges[ptr];
-      let cssColor: string = cme.rgbHex;
-      let cmeForExport = new ColorMapEntryForExport(cme.cutOff, cssColor);
+      let cmeForExport = ColorMapEntryForExport.fromColorMapUIEntry(cme);
       ranges.push(cmeForExport);
     }
 

@@ -24,12 +24,7 @@ export class AppComponent {
   @ViewChild('download') downloadRef: ElementRef;
   @ViewChild('mapDisplay') mapDisplayComponent: MMapDisplayComponent
 
-  //mapCoords: IBox;
-  //maxIterations: number;
-  //iterationsPerStep: number;
-
   mapInfo: IMapInfo;
-  isBuilding: boolean = false;
 
   _colorMap: ColorMapUI = null;
   set colorMap(value: ColorMapUI) {
@@ -64,6 +59,7 @@ export class AppComponent {
   histogram: Histogram;
 
   history: IMapInfo[] = [];
+  isBuilding: boolean = false;
   atHome: boolean;
 
   sectionCnt: number;
@@ -106,6 +102,10 @@ export class AppComponent {
     //this.colorMap = colorMap;
   }
 
+  onBuildingComplete() {
+    this.isBuilding = false;
+  }
+
   onHaveHistogram(h: Histogram) {
     console.log('We now have a histogram. It has ' + h.entriesMap.size + ' entries.');
     this.histogram = h;
@@ -135,7 +135,6 @@ export class AppComponent {
     // Update the MapInfo, but keep the exiting colorMap.
     this.mapInfoWithColorMap = new MapInfoWithColorMap(mapInfo, this.colorMap);
 
-    //this.mapInfo = mapInfo;
     this.atHome = false;
   }
 
@@ -169,7 +168,7 @@ export class AppComponent {
     //this.mapInfo = new MapInfo(mapCoords, this.mapInfo.maxIterations, this.mapInfo.iterationsPerStep, this.mapInfo.upsideDown);
 
     // Build a new MapInfo using the existing Max Iterations and IterationsPerStep
-    let mi = new MapInfo(mapCoords, this.mapInfo.maxIterations, this.mapInfo.iterationsPerStep, this.mapInfo.upsideDown);
+    let mi = new MapInfo(mapCoords, this.mapInfo.maxIterations, this.mapInfo.iterationsPerStep);
 
     // Update the MapInfo, keeping the existing Color Map.
     this.mapInfoWithColorMap = new MapInfoWithColorMap(mi, this.colorMap);
@@ -196,10 +195,6 @@ export class AppComponent {
         this.mapInfoWithColorMap = new MapInfoWithColorMap(mi, this.colorMap);
       }
     }
-    //else if (steps === 2) {
-    //  // Just for testing
-    //  this.doTest();
-    //}
     else {
       throw new RangeError('Steps must be 1 or -1.');
     }
@@ -212,14 +207,6 @@ export class AppComponent {
     anchorTag.hidden = !show;
   }
 
-  //private doTest(): void {
-  //  let cMap = this.buildColorMap();
-  //  let cMapEntry = new ColorMapEntry(15, ColorNumbers.getColor(30, 40, 60));
-
-  //  cMap.insertColorMapEntry(cMapEntry, 1);
-  //  this.colorMap = cMap;
-  //}
-
   private buildMapInfo(): IMapInfo {
     const bottomLeft: IPoint = new Point(-2.4, -1.2);
     const topRight: IPoint = new Point(1.2, 1.2);
@@ -228,7 +215,7 @@ export class AppComponent {
 
     let maxIterations = 100;
     let iterationsPerStep = 10;
-    let result = new MapInfo(mapCoords, maxIterations, iterationsPerStep, false);
+    let result = new MapInfo(mapCoords, maxIterations, iterationsPerStep);
 
     return result;
   }
