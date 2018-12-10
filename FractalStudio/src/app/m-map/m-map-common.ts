@@ -321,7 +321,6 @@ export class MapInfo implements IMapInfo {
     return true;
   }
 
-
   public toString(): string {
     return 'sx:' + this.coords.botLeft.x + ' ex:' + this.coords.topRight.x + ' sy:' + this.coords.botLeft.y + ' ey:' + this.coords.topRight.y + ' mi:' + this.maxIterations + ' ips:' + this.iterationsPerStep + '.';
   }
@@ -1090,13 +1089,18 @@ export class Histogram {
 export class MapInfoWithColorMap {
   constructor(public mapInfo: IMapInfo, public colorMapUi: ColorMapUI) { }
 
-  public static fromForExport(miwcm: MapInfoWithColorMapForExport, serialNumber: number): MapInfoWithColorMap {
+  public static fromForExport(miwcmfe: MapInfoWithColorMapForExport, serialNumber: number): MapInfoWithColorMap {
+
+    if (typeof (miwcmfe.version) === 'undefined') {
+      miwcmfe.version = 1.0;
+    }
+    //console.log('Loaded the MapInfoWithColorMapForExport and it has version = ' + miwcmfe.version + '.');
 
     // Create a new MapInfo from the loaded data.
-    let mapInfo = MapInfo.fromIMapInfo(miwcm.mapInfo);
+    let mapInfo = MapInfo.fromIMapInfo(miwcmfe.mapInfo);
 
     // Create a new ColorMapUI from the loaded data.
-    let colorMap = ColorMapUI.fromColorMapForExport(miwcm.colorMap, serialNumber);
+    let colorMap = ColorMapUI.fromColorMapForExport(miwcmfe.colorMap, serialNumber);
 
     let result = new MapInfoWithColorMap(mapInfo, colorMap);
     return result;
@@ -1104,6 +1108,8 @@ export class MapInfoWithColorMap {
 }
 
 export class MapInfoWithColorMapForExport {
+  public version: number = 1.0;
+
   constructor(public mapInfo: IMapInfo, public colorMap: ColorMapForExport) { }
 }
 
@@ -1652,6 +1658,12 @@ export class ColorMapUI {
   }
 
   public static fromColorMapForExport(cmfe: ColorMapForExport, serialNumber: number): ColorMapUI {
+
+    if (typeof (cmfe.version) === 'undefined') {
+      cmfe.version = 1.0;
+    }
+    //console.log('Got a ColorMapForExport and it has version = ' + cmfe.version + '.');
+
     let ranges: ColorMapUIEntry[] = [];
 
     let ptr: number;

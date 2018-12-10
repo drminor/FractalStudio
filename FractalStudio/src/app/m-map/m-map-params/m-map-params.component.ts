@@ -179,6 +179,8 @@ export class MMapParamsComponent {
     fr.onload = (ev => {
       let rawResult: string = fr.result as string;
       let miwcmfe: MapInfoWithColorMapForExport = JSON.parse(rawResult) as MapInfoWithColorMapForExport;
+
+
       let miwcm = MapInfoWithColorMap.fromForExport(miwcmfe, -1);
 
       this.mapInfoLoaded.emit(miwcm);
