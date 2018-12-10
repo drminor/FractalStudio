@@ -1,30 +1,36 @@
-﻿using System.Drawing;
+﻿using Newtonsoft.Json;
 
 namespace FractalServer
 {
     public class MapInfo
     {
-        public readonly DPoint LeftBot;
-        public readonly DPoint RightTop;
-        //public readonly RectangleF Coords;
+        [JsonProperty("coords")]
+        public readonly Coords Coords;
+
+        [JsonProperty("maxIterations")]
         public readonly int MaxIterations;
 
-        public MapInfo(DPoint leftBot, DPoint rightTop, int maxIterations)
+        public MapInfo(Coords coords, int maxIterations)
         {
-            LeftBot = leftBot;
-            RightTop = rightTop;
-            //Coords = coords;
+            Coords = coords;
             MaxIterations = maxIterations;
         }
 
+        public MapInfo(DPoint leftBot, DPoint rightTop, int maxIterations)
+            : this(new Coords(leftBot, rightTop), maxIterations) { }
+
+        [JsonIgnore]
+        public DPoint LeftBot => Coords.LeftBot;
+
+        [JsonIgnore]
+        public DPoint RightTop => Coords.RightTop;
+
+        [JsonIgnore]
         public double AspectRatio
         {
             get
             {
-                double w = RightTop.X - LeftBot.X;
-                double h = RightTop.Y - LeftBot.Y;
-                double result = w / h;
-
+                double result = Coords.Width / Coords.Height;
                 return result;
             }
         }

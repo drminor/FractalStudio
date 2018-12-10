@@ -1297,8 +1297,8 @@
              </summary>
              <remarks>It can be (usually it is) reused while iterating over the image lines
              See <c>scanline</c> field doc, to understand the format.
-            </remarks>
-             <remarks>
+            
+            
              All of the code in this project is licensed by Hernán J. González using the Apache 2.0 License.
              See the LICENSE.txt file in the DocsAndLicenseInfo folder for more information.
              See <c>DocsAndLicenseInfo.LICENSE.txt</c>/>
@@ -1781,9 +1781,15 @@
             @see PngReader#setUnpackedMode(boolean)
         </member>
         <member name="T:Hjg.Pngcs.PngWriter">
-            <summary>
-             Writes a PNG image, line by line.
-            </summary>
+             <summary>
+              Writes a PNG image, line by line.
+             </summary>
+            
+             <remarks>>
+             All of the code in this project is licensed by Hernán J. González using the Apache 2.0 License.
+             See the LICENSE.txt file in the DocsAndLicenseInfo folder for more information.
+             See <c>DocsAndLicenseInfo.LICENSE.txt</c>/>
+             </remarks>
         </member>
         <member name="F:Hjg.Pngcs.PngWriter.ImgInfo">
             <summary>

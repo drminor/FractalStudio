@@ -32,6 +32,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Newtonsoft.Json, Version=12.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.12.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
@@ -45,8 +48,10 @@
   <ItemGroup>
     <Compile Include="ColorMap.cs" />
     <Compile Include="ColorMapEntry.cs" />
+    <Compile Include="Coords.cs" />
     <Compile Include="DPoint.cs" />
     <Compile Include="MapInfo.cs" />
+    <Compile Include="MapInfoWithColorMap.cs" />
     <Compile Include="MapWorkingData.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -55,6 +60,9 @@
       <Project>{fd3b0d50-46b3-4a83-9a6d-c641569142cf}</Project>
       <Name>Hjg.Pngcs</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

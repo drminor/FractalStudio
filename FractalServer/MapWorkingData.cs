@@ -19,7 +19,18 @@ namespace FractalServer
             ColorMap = colorMap;
 
             _xVals = BuildVals(CanvasSize.Width, MapInfo.LeftBot.X, MapInfo.RightTop.X);
-            _yVals = BuildVals(CanvasSize.Height, MapInfo.RightTop.Y, MapInfo.LeftBot.Y);
+
+            // Build the y values from top to bottom
+            if(MapInfo.Coords.IsUpsideDown)
+            {
+                // The values are already reversed go from bot to top.
+                _yVals = BuildVals(CanvasSize.Height, MapInfo.LeftBot.Y, MapInfo.RightTop.Y);
+            }
+            else
+            {
+                // Go from top to bot.
+                _yVals = BuildVals(CanvasSize.Height, MapInfo.RightTop.Y, MapInfo.LeftBot.Y);
+            }
 
             System.Diagnostics.Debug.WriteLine($"The aspect ratio (w/h) is {MapInfo.AspectRatio}.");
         }
