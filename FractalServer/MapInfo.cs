@@ -1,18 +1,25 @@
-﻿using Newtonsoft.Json;
+﻿using System;
+using Newtonsoft.Json;
 
 namespace FractalServer
 {
     public class MapInfo
     {
         [JsonProperty("coords")]
-        public readonly Coords Coords;
+        public Coords Coords;
 
         [JsonProperty("maxIterations")]
-        public readonly int MaxIterations;
+        public int MaxIterations;
+
+        private MapInfo()
+        {
+            Coords = null;
+            MaxIterations = 0;
+        }
 
         public MapInfo(Coords coords, int maxIterations)
         {
-            Coords = coords;
+            Coords = coords ?? throw new ArgumentNullException(nameof(coords));
             MaxIterations = maxIterations;
         }
 

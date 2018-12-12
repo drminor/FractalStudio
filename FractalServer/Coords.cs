@@ -6,10 +6,16 @@ namespace FractalServer
     public class Coords
     {
         [JsonProperty("botLeft")]
-        public readonly DPoint LeftBot;
+        public DPoint LeftBot;
 
         [JsonProperty("topRight")]
-        public readonly DPoint RightTop;
+        public DPoint RightTop;
+
+        private Coords()
+        {
+            LeftBot = new DPoint(0, 0);
+            RightTop = new DPoint(0, 0);
+        }
 
         public Coords(DPoint leftBot, DPoint rightTop)
         {

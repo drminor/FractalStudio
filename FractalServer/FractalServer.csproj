@@ -48,10 +48,14 @@
   <ItemGroup>
     <Compile Include="ColorMap.cs" />
     <Compile Include="ColorMapEntry.cs" />
+    <Compile Include="ColorMapEntryForExport.cs" />
+    <Compile Include="ColorMapForExport.cs" />
     <Compile Include="Coords.cs" />
     <Compile Include="DPoint.cs" />
+    <Compile Include="JsonReader.cs" />
     <Compile Include="MapInfo.cs" />
     <Compile Include="MapInfoWithColorMap.cs" />
+    <Compile Include="MapInfoWithColorMapForExport.cs" />
     <Compile Include="MapWorkingData.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

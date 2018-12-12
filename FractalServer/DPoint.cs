@@ -10,6 +10,12 @@ namespace FractalServer
         [JsonProperty("y")]
         public double Y;
 
+        private DPoint()
+        {
+            X = 0;
+            Y = 0;
+        }
+
         public DPoint(double x, double y)
         {
             X = x;

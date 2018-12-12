@@ -40,5 +40,19 @@
 
             return result;
         }
+
+        public static ColorMap GetFromColorMapForExport(ColorMapForExport cmfe)
+        {
+            ColorMapEntry[] newRanges = new ColorMapEntry[cmfe.Ranges.Length];
+
+            for(int ptr = 0; ptr < cmfe.Ranges.Length; ptr++)
+            {
+                newRanges[ptr] = new ColorMapEntry(cmfe.Ranges[ptr].CutOff, cmfe.Ranges[ptr].CssColor);
+            }
+
+            ColorMap result = new ColorMap(newRanges, cmfe.HighColorCss);
+
+            return result;
+        }
     }
 }

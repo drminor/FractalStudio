@@ -685,33 +685,35 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     // Get a box where the start point is always in the lower, left.
     let nBox = box.getNormalizedBox();
 
+    let rnBox = this.getIntegerBox(nBox);
+
     // Determine if the height or the width of the zoom box will be used to calculate the new coordinates.
-    if (nBox.width * 1.5 > nBox.height) {
+    if (rnBox.width * 1.5 > rnBox.height) {
       // Using the width will result in the smallest change to the resulting dimensions, use it.
       //console.log('Using Width, adjusting height.');
-      nw = nBox.width;
-      nh = this.round(nBox.width / 1.5);
-      nx = nBox.botLeft.x;
+      nw = rnBox.width;
+      nh = this.round(rnBox.width / 1.5);
+      nx = rnBox.botLeft.x;
 
       // Since we are changing the height, move the starting position 1/2 the distance of the change
       // this will center the new height around the old box's vertical extent.
-      let vAdj = this.round((nh - nBox.height) / 2);
+      let vAdj = this.round((nh - rnBox.height) / 2);
       //console.log('Moving start y back by ' + vAdj + '.');
-      ny = nBox.botLeft.y - vAdj;
+      ny = rnBox.botLeft.y - vAdj;
       //ny = nBox.start.y;
     }
     else {
       // Using the height will result in the smallest change to the resulting dimensions, use it.
       //console.log('Using height, adjusting width.');
-      nw = this.round(nBox.height * 1.5);
-      nh = nBox.height;
-      ny = nBox.botLeft.y;
+      nw = this.round(rnBox.height * 1.5);
+      nh = rnBox.height;
+      ny = rnBox.botLeft.y;
 
       // Since we are changing the width, move the starting position 1/2 the distance of the change
       // this will center the new width around the old box's horizontal extent.
-      let hAdj = this.round((nw - nBox.width) / 2);
+      let hAdj = this.round((nw - rnBox.width) / 2);
       //console.log('Moving start x back by ' + hAdj + '.');
-      nx = nBox.botLeft.x - hAdj;
+      nx = rnBox.botLeft.x - hAdj;
       //nx = nBox.start.x;
     }
 
@@ -767,6 +769,11 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     //this._mapInfo = newMapInfo;
     //this.zoomed.emit(this._mapInfo.coords);
     this.zoomed.emit(coords);
+  }
+
+  private getIntegerBox(box: IBox): IBox {
+    let result = new Box(new Point(this.round(box.botLeft.x), this.round(box.botLeft.y)), new Point(this.round(box.topRight.x), this.round(box.topRight.y)));
+    return result;
   }
 
   private round(x: number): number {
@@ -833,7 +840,13 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
       let mousePos = MMapDisplayComponent.getMousePos(cce, e);
       that.zoomBox.topRight = mousePos;
 
+      //let nBox = that.zoomBox.getNormalizedBox();
+      //let nrBox = that.getIntegerBox(nBox);
+      //that.zoomBox = nrBox;
+
       ctx.strokeRect(that.zoomBox.botLeft.x, that.zoomBox.botLeft.y, that.zoomBox.width, that.zoomBox.height);
+      //ctx.strokeRect(nrBox.botLeft.x, nrBox.botLeft.y, nrBox.width, nrBox.height);
+
     }
   }
 

@@ -245,16 +245,15 @@ export class Box implements IBox {
       }
     }
 
-    let result = new Box(new Point(this.round(sx), this.round(sy)), new Point(this.round(ex), this.round(ey)));
-
+    let result = new Box(new Point(sx, sy), new Point(ex, ey));
     return result;
   }
 
-  private round(x: number): number {
-    const result: number = parseInt((x + 0.5).toString(), 10);
+  //private round(x: number): number {
+  //  const result: number = parseInt((x + 0.5).toString(), 10);
 
-    return result;
-  }
+  //  return result;
+  //}
 
   public toString(): string {
     return 'sx:' + this.botLeft.x + ' ex:' + this.topRight.x + ' sy:' + this.botLeft.y + ' ey:' + this.topRight.y + '.';

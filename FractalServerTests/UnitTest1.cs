@@ -12,6 +12,8 @@ namespace FractalServerTests
         [TestMethod]
         public void BuildTestMap()
         {
+            string imagePath = @"C:\MBY1.png";
+
             //Size canvasSize = new Size(1440, 960);
             //Size canvasSize = new Size(7200, 4800);
             //Size canvasSize = new Size(10800, 7200);
@@ -26,9 +28,33 @@ namespace FractalServerTests
 
             ColorMap colorMap = BuildColorMap();
 
-            MapWorkingData mapWorkingData = new MapWorkingData(canvasSize, mapInfo, colorMap);
+            MapInfoWithColorMap miwcm = new MapInfoWithColorMap(mapInfo, colorMap);
 
-            string path = @"C:\MBY1.png";
+            BuildMap(imagePath, canvasSize, miwcm);
+        }
+
+        [TestMethod]
+        public void BuildMapFromJason()
+        {
+            string path = @"C:\MandlebrodtMapInfo.json";
+
+            JsonReader jr = new JsonReader();
+            MapInfoWithColorMap miwcm = jr.Read(path);
+
+            //Size canvasSize = new Size(1440, 960);
+            //Size canvasSize = new Size(7200, 4800);
+            //Size canvasSize = new Size(10800, 7200);
+            Size canvasSize = new Size(14400, 9600);
+            //Size canvasSize = new Size(21600, 14400);
+
+            string imagePath = @"C:\MBZ1.png";
+
+            BuildMap(imagePath, canvasSize, miwcm);
+        }
+
+        private void BuildMap(string path, Size canvasSize, MapInfoWithColorMap miwcm)
+        {
+            MapWorkingData mapWorkingData = new MapWorkingData(canvasSize, miwcm.MapInfo, miwcm.ColorMap);
 
             using (PngImage pngImage = new PngImage(path, canvasSize.Width, canvasSize.Height))
             {
@@ -36,11 +62,10 @@ namespace FractalServerTests
 
                 for (int linePtr = 0; linePtr < canvasSize.Height; linePtr++)
                 {
-                    mapWorkingData.BuildPngImageLine(linePtr, mapInfo.MaxIterations, iLine);
+                    mapWorkingData.BuildPngImageLine(linePtr, miwcm.MapInfo.MaxIterations, iLine);
                     pngImage.WriteLine(iLine);
                 }
             }
-
         }
 
         [TestMethod]
