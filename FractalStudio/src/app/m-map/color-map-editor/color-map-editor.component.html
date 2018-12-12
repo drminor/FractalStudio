@@ -12,9 +12,10 @@
 
     <!-- Divide -->
     <div class="btnGroup" style="border: 1px solid black; margin:2px 2px 2px 2px; padding: 8px 3px 8px 3px">
-      <button type="button" (click)="onUseHistogram()" style="width:100px; height:21px; margin: 2px 5px 3px 8px">Divide</button>
+      <button type="button" (click)="onDivide()" style="width:100px; height:21px; margin: 2px 5px 3px 8px">Divide</button>
+      <input type="checkbox" formControlName="applyColorsAfterDivide" style="margin-left: 100px"><label style="margin: 2px 0px 8px 1px">Re-apply colors</label>
       <br />
-      <label style="margin-left:10px">Sections: <input type="text" formControlName="sectionStart" size="1"></label>
+      <label style="margin-left:10px" title="Sections:"></label> <input type="text" formControlName="sectionStart" size="1">
       <label style="margin-left:10px">to: <input type="text" formControlName="sectionEnd" size="1"></label>
       <label style="margin: 5px 0px 5px 10px">into: <input type="text" formControlName="sectionCnt" size="1"></label>
       <!--<label style="margin: 5px 0px 5px 8px">sections</label>-->

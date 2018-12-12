@@ -12,7 +12,7 @@ export class ColorMapEditorComponent {
 
   _colorMap: ColorMapUI;
   _histogram: Histogram;
-  _divs: Divisions;
+  //_divs: Divisions;
 
   @ViewChild('download') downloadRef: ElementRef;
   @ViewChild('fileSelector') fileSelectorRef: ElementRef;
@@ -67,7 +67,7 @@ export class ColorMapEditorComponent {
       sectionStart: new FormControl(''),
       sectionEnd: new FormControl(''),
       sectionCnt: new FormControl(''),
-
+      applyColorsAfterDivide: new FormControl(''),
       useCutoffs: new FormControl(false),
 
       cEntries: new FormArray([]),
@@ -82,40 +82,10 @@ export class ColorMapEditorComponent {
 
     this.colorMap = null;
     this._histogram = null;
-    this._divs = this.createDivisions();
 
-    let ps = this._divs.getStartingVals();
-    ColorMapEntryForms.setActualPercentages(this.colorEntryForms, ps);
-  }
-
-  private createDivisions(): Divisions {
-    // 5 Pieces
-    // Piece 0 - 1 section
-    // Piece 1 - 4 section
-    // Piece 2 - 1 section
-    // Piece 3 - 1 section
-    // Piece 4 - 3 sections
-
-    let topDiv: Divisions = new Divisions(5);
-
-    topDiv.children[1].numberOfDivs = 4;
-    topDiv.children[4].numberOfDivs = 3;
-
-    //let divPlace1 = new Divisions(1);
-    //topDiv.children[4].insertChild(divPlace1, 1);
-
-    //let divEnd: Divisions = new Divisions(2);
-    //divEnd.children[1].numberOfDivs = 2;
-
-    //topDiv.insertChild(divEnd, 5);
-
-    let startingVals = topDiv.getStartingValsAsPercentages();
-    console.log('The starting vals are ' + startingVals + '.');
-
-    let divDisplay = topDiv.toString();
-    console.log('The divisions are: ' + divDisplay);
-
-    return topDiv;
+    //this._divs = this.createDivisions();
+    //let ps = this._divs.getStartingVals();
+    //ColorMapEntryForms.setActualPercentages(this.colorEntryForms, ps);
   }
 
   getRgbaColor(idx: number): string {
@@ -158,7 +128,7 @@ export class ColorMapEditorComponent {
     let ptr: number;
     for (ptr = cntToRemove; ptr < colorMap.ranges.length; ptr++) {
       let cme = colorMap.ranges[ptr];
-      let newCme = ColorMapUIEntry.fromOffsetAndColorNum(cme.cutOff, cme.colorNum);
+      let newCme = new ColorMapUIEntry(cme.cutOff, cme.colorComponents); // ColorMapUIEntry.fromOffsetAndColorNum(cme.cutOff, cme.colorNum);
       newRanges.push(newCme);
     }
 
@@ -222,8 +192,6 @@ export class ColorMapEditorComponent {
         //console.log('Loading ColorMap without cutoffs.');
 
         // Get the cut off values from the live form values,
-        // instead of what was last submitted.
-        //let cutOffs = this.colorMapProp.getOffsets();
         let cutOffs = ColorMapEntryForms.getCutoffs(this.colorEntryForms);
 
         let colorMapUsingExRanges = loadedColorMap.mergeCutoffs(cutOffs, -1);
@@ -237,7 +205,7 @@ export class ColorMapEditorComponent {
     fr.readAsText(files.item(0));
   }
 
-  onUseHistogram() : void {
+  onDivide() : void {
     console.log('Dividing Histogram data to set offsets.');
 
     if (this._histogram === null) {
@@ -247,6 +215,11 @@ export class ColorMapEditorComponent {
 
     let secCnt = this.colorMapForm.controls.sectionCnt.value;
     let newColorMap = this.buildColorMapByDivision(this.colorMap, this._histogram, secCnt, -1);
+
+    if (this.colorMapForm.controls.applyColorsAfterDivide.value) {
+
+    }
+
     this.colorMapUpdated.emit(newColorMap);
   }
 
@@ -330,6 +303,36 @@ export class ColorMapEditorComponent {
     return result;
 
     //console.log('The color map has ' + this.colorMap.ranges.length + ' entries.');
+  }
+
+  private createDivisions(): Divisions {
+    // 5 Pieces
+    // Piece 0 - 1 section
+    // Piece 1 - 4 section
+    // Piece 2 - 1 section
+    // Piece 3 - 1 section
+    // Piece 4 - 3 sections
+
+    let topDiv: Divisions = new Divisions(5);
+
+    topDiv.children[1].numberOfDivs = 4;
+    topDiv.children[4].numberOfDivs = 3;
+
+    //let divPlace1 = new Divisions(1);
+    //topDiv.children[4].insertChild(divPlace1, 1);
+
+    //let divEnd: Divisions = new Divisions(2);
+    //divEnd.children[1].numberOfDivs = 2;
+
+    //topDiv.insertChild(divEnd, 5);
+
+    let startingVals = topDiv.getStartingValsAsPercentages();
+    console.log('The starting vals are ' + startingVals + '.');
+
+    let divDisplay = topDiv.toString();
+    console.log('The divisions are: ' + divDisplay);
+
+    return topDiv;
   }
 
 }
@@ -421,18 +424,18 @@ class ColorMapEntryForm {
 
     let result = new FormGroup({
       cutOff: new FormControl(''),
-      cNum: new FormControl(''),
-
-      showEditor: new FormControl(''),
+      //cNum: new FormControl(''),
       rgbaColor: new FormControl(''),
-      actualPercentage: new FormControl('')
+
+      actualPercentage: new FormControl(''),
+      showEditor: new FormControl('')
     });
 
     result.controls.showEditor.disable();
     result.controls.rgbaColor
 
     if (cme != null) {
-      result.controls.cNum.setValue(cme.colorNum);
+      //result.controls.cNum.setValue(cme.colorNum);
 
       result.controls.rgbaColor.setValue(cme.rgbaString);
       result.controls.cutOff.setValue(cme.cutOff);
@@ -443,10 +446,16 @@ class ColorMapEntryForm {
   }
 
   public static getColorMapUIEntry(form: FormGroup): ColorMapUIEntry {
-    const result = ColorMapUIEntry.fromOffsetAndColorNum(
+    //const result = ColorMapUIEntry.fromOffsetAndColorNum(
+    //  form.controls.cutOff.value,
+    //  form.controls.cNum.value
+    //);
+
+    const result = ColorMapUIEntry.fromOffsetAndRgba(
       form.controls.cutOff.value,
-      form.controls.cNum.value
+      form.controls.rgbaColor.value
     );
+
     return result;
   }
 

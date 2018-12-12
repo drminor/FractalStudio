@@ -1427,42 +1427,69 @@ export class ColorMapEntryForExport {
 export class ColorMapUIEntry {
 
   public colorNum: number;
-  public r: number;
-  public g: number;
-  public b: number;
-  public alpha: number;
+  public colorComponents: number[];
+  //public r: number;
+  //public g: number;
+  //public b: number;
+  //public alpha: number;
 
   constructor(public cutOff: number, colorVals: number[]) {
 
+    this.colorComponents = new Array<number>(4);
+    let alpha: number;
+
     if (colorVals.length === 3) {
-      this.r = colorVals[0];
-      this.g = colorVals[1];
-      this.b = colorVals[2];
-      this.alpha = 255;
+      //this.r = colorVals[0];
+      //this.g = colorVals[1];
+      //this.b = colorVals[2];
+      alpha = 255;
     }
     else if (colorVals.length === 4) {
-      this.r = colorVals[0];
-      this.g = colorVals[1];
-      this.b = colorVals[2];
-      this.alpha = colorVals[3];
+      //this.r = colorVals[0];
+      //this.g = colorVals[1];
+      //this.b = colorVals[2];
+      alpha = colorVals[3];
     }
     else {
       throw new RangeError('colorVals must have exactly 3 or 4 elements.');
     }
 
-    this.colorNum = ColorNumbers.getColor(this.r, this.g, this.b, this.alpha);
+    this.colorComponents[0] = colorVals[0];
+    this.colorComponents[1] = colorVals[1];
+    this.colorComponents[2] = colorVals[2];
+    this.colorComponents[3] = alpha;
+
+
+    //this.colorNum = ColorNumbers.getColor(this.r, this.g, this.b, this.alpha);
+    this.colorNum = ColorNumbers.getColor
+      (
+      this.colorComponents[0],
+      this.colorComponents[1],
+      this.colorComponents[2],
+      this.colorComponents[3]
+      );
   }
 
   public get rgbHex(): string {
 
-    let result: string = '#' + ('0' + this.r.toString(16)).slice(-2) + ('0' + this.g.toString(16)).slice(-2) + ('0' + this.b.toString(16)).slice(-2);
+    let result: string = '#'
+      + ('0' + this.colorComponents[0].toString(16)).slice(-2)
+      + ('0' + this.colorComponents[1].toString(16)).slice(-2)
+      + ('0' + this.colorComponents[2].toString(16)).slice(-2);
+
     //return "#FFFF00";
     return result;
   }
 
 
   public get rgbaString(): string {
-    let result: string = 'rgba(' + this.r.toString(10) + ',' + this.g.toString(10) + ',' + this.b.toString(10) + ',1)';
+    let result: string = 'rgba('
+      + this.colorComponents[0].toString(10) + ','
+      + this.colorComponents[1].toString(10) + ','
+      + this.colorComponents[2].toString(10) + ','
+      + '1'
+      + ')';
+
     //return 'rgba(200,20,40,1)';
     return result;
   }
@@ -1611,6 +1638,27 @@ export class ColorMapUI {
     return result;
   }
 
+  public applyColors(colorMapUiEntries: ColorMapUIEntry[], serialNumber: number): ColorMapUI {
+
+    let ranges: ColorMapUIEntry[] = [];
+    let ptrToNewColorEntry = 0;
+
+    let ptr: number;
+    for (ptr = 0; ptr < this.ranges.length; ptr++) {
+      let existingCutOff = this.ranges[ptr].cutOff;
+      let newColorComps = colorMapUiEntries[ptrToNewColorEntry++].colorComponents;
+
+      ranges.push(new ColorMapUIEntry(existingCutOff, newColorComps));
+
+      if (ptrToNewColorEntry > colorMapUiEntries.length - 1) {
+        ptrToNewColorEntry = 0;
+      }
+    }
+
+    let result: ColorMapUI = new ColorMapUI(ranges, this.highColorCss, serialNumber);
+    return result;
+  }
+
   public mergeCutoffs(cutOffs: number[], serialNumber: number): ColorMapUI {
 
     let ranges: ColorMapUIEntry[] = [];
@@ -1618,9 +1666,9 @@ export class ColorMapUI {
 
     let ptr: number;
     for (ptr = 0; ptr < cutOffs.length; ptr++) {
-      let existingColorNum = this.ranges[ptrToExistingCmes++].colorNum;
+      let existingColorComps = this.ranges[ptrToExistingCmes++].colorComponents;
 
-      ranges.push(ColorMapUIEntry.fromOffsetAndColorNum(cutOffs[ptr], existingColorNum));
+      ranges.push(new ColorMapUIEntry(cutOffs[ptr], existingColorComps));
 
       if (ptrToExistingCmes > this.ranges.length - 1) {
         ptrToExistingCmes = 0;
