@@ -10,7 +10,8 @@ import { ColorItem } from '../../color-picker/color-picker.component';
 })
 export class ColorMapEditorComponent {
 
-  //_colorMap: ColorMapUI;
+  _colorMap: ColorMapUI;
+  _lastLoadedColorMap: ColorMapUI;
   _histogram: Histogram;
   //_divs: Divisions;
 
@@ -21,17 +22,19 @@ export class ColorMapEditorComponent {
   set colorMap(value: ColorMapUI) {
     console.log("The color map editor's color map is being set.");
 
-    //this._colorMap = value;
-
-    if (value !== null) {
-      this.updateForm(value);
-      this.updatePercentages();
+    if (value === null) {
+      value = this.buildDefaultColorMap();
     }
+
+    this._colorMap = value;
+
+    this.updateForm(value);
+    this.updatePercentages();
   }
 
-  //get colorMap(): ColorMapUI {
-  //  return this._colorMap;
-  //}
+  get colorMap(): ColorMapUI {
+    return this._colorMap;
+  }
 
   @Input('histogram')
   set histogram(h: Histogram) {
@@ -80,12 +83,25 @@ export class ColorMapEditorComponent {
     this.colorMapForm.controls.sectionStart.setValue(0);
     this.colorMapForm.controls.sectionEnd.setValue(9);
 
-    this.colorMap = null;
     this._histogram = null;
+    this.colorMap = null;
+    this._lastLoadedColorMap = null;
 
     //this._divs = this.createDivisions();
     //let ps = this._divs.getStartingVals();
     //ColorMapEntryForms.setActualPercentages(this.colorEntryForms, ps);
+  }
+
+  private buildDefaultColorMap(): ColorMapUI {
+    let ranges: ColorMapUIEntry[] = [];
+
+    // Add one breakpoint at 50 with color = red.
+    ranges.push(new ColorMapUIEntry(50, ColorNumbers.getColorComponentsFromCssColor("#ff0000")));
+
+    let highColorCss = "#000000";
+
+    let result = new ColorMapUI(ranges, highColorCss, -1);
+    return result;
   }
 
   getRgbaColor(idx: number): string {
@@ -194,12 +210,14 @@ export class ColorMapEditorComponent {
         // Get the cut off values from the live form values,
         let cutOffs = ColorMapEntryForms.getCutoffs(this.colorEntryForms);
 
-        let colorMapUsingExRanges = loadedColorMap.mergeCutoffs(cutOffs, -1);
-        this.colorMapUpdated.emit(colorMapUsingExRanges);
+        this._lastLoadedColorMap = loadedColorMap.mergeCutoffs(cutOffs, -1);
+        //this.colorMapUpdated.emit(colorMapUsingExRanges);
       }
       else {
-        this.colorMapUpdated.emit(loadedColorMap);
+        this._lastLoadedColorMap = loadedColorMap;
+        //this.colorMapUpdated.emit(loadedColorMap);
       }
+      this.colorMapUpdated.emit(this._lastLoadedColorMap);
     });
 
     fr.readAsText(files.item(0));
@@ -220,7 +238,9 @@ export class ColorMapEditorComponent {
     let newColorMap = this.buildColorMapByDivision(cm, this._histogram, secCnt, -1);
 
     if (this.colorMapForm.controls.applyColorsAfterDivide.value) {
-
+      if (this._lastLoadedColorMap !== null) {
+        newColorMap.applyColors(this._lastLoadedColorMap.ranges, -1);
+      }
     }
 
     this.colorMapUpdated.emit(newColorMap);
@@ -238,8 +258,6 @@ export class ColorMapEditorComponent {
 
     // get live, unsubmitted cutOff values from our form.
     let cutOffs = ColorMapEntryForms.getCutoffs(cEntryForms);
-
-    //cutOffs.push(this._histogram.entriesMap[
 
     // Use the cutOff values to get the actual percentages.
     let bucketCnts = this._histogram.getGroupCnts(cutOffs);
