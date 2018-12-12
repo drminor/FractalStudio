@@ -234,23 +234,6 @@ export class AppComponent {
     ranges[5] = ColorMapUIEntry.fromOffsetAndColorNum(34, cNumGenerator.green);
     ranges[6] = ColorMapUIEntry.fromOffsetAndColorNum(55, cNumGenerator.blue);
 
-    let n = ColorNumbers.getColorComponents(cNumGenerator.red);
-    let h = ColorNumbers.getColorComponentsFromRgba('rgba(255,0,0,1)');
-    let c = ColorNumbers.getColorComponentsFromCssColor("#FF0000");
-
-    let t = ranges[1].colorNum;
-    let n2 = ColorNumbers.getColorComponents(t);
-
-    console.log('The color numbers are n:' + n + ' rgba:' + h + ' css:' + c + ' t: ' + t + ' n2: ' + n2);
-
-    //ranges[7] = ColorMapUIEntry.fromOffsetAndColorNum(79, cNumGenerator.red);
-    //ranges[8] = ColorMapUIEntry.fromOffsetAndColorNum(100, cNumGenerator.green);
-    //ranges[9] = ColorMapUIEntry.fromOffsetAndColorNum(200, cNumGenerator.blue);
-
-    //ranges[10] = new ColorMapUIEntry(500, [100, 200, 50]);
-    //ranges[11] = new ColorMapUIEntry(800, [50, 240, 10]);
-    //ranges[12] = new ColorMapUIEntry(1200, [245, 0, 80]);
-
     let result: ColorMapUI = new ColorMapUI(ranges, '#000000', serialNumber);
     return result;
   }

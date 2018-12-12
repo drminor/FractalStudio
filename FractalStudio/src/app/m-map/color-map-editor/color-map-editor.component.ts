@@ -10,7 +10,7 @@ import { ColorItem } from '../../color-picker/color-picker.component';
 })
 export class ColorMapEditorComponent {
 
-  _colorMap: ColorMapUI;
+  //_colorMap: ColorMapUI;
   _histogram: Histogram;
   //_divs: Divisions;
 
@@ -21,7 +21,7 @@ export class ColorMapEditorComponent {
   set colorMap(value: ColorMapUI) {
     console.log("The color map editor's color map is being set.");
 
-    this._colorMap = value;
+    //this._colorMap = value;
 
     if (value !== null) {
       this.updateForm(value);
@@ -29,9 +29,9 @@ export class ColorMapEditorComponent {
     }
   }
 
-  get colorMap(): ColorMapUI {
-    return this._colorMap;
-  }
+  //get colorMap(): ColorMapUI {
+  //  return this._colorMap;
+  //}
 
   @Input('histogram')
   set histogram(h: Histogram) {
@@ -111,7 +111,7 @@ export class ColorMapEditorComponent {
   //}
 
   onSubmit() {
-    let colorMap = this.getColorMap(-1);
+    let colorMap = this.getColorMap();
     console.log('The color map editor is handling form submit.'); 
     this.colorMapUpdated.emit(colorMap);
   }
@@ -122,7 +122,7 @@ export class ColorMapEditorComponent {
     console.log('Removing first ' + cntToRemove + ' entries.');
     // For testing we are going to remove first secCount entries
 
-    let colorMap = this.getColorMap(-1);
+    let colorMap = this.getColorMap();
 
     let newRanges: ColorMapUIEntry[] = [];
     let ptr: number;
@@ -139,7 +139,7 @@ export class ColorMapEditorComponent {
   onInsertEntry(idx: number) {
     console.log('Got Insert Entry ' + 'for item ' + idx + '.');
 
-    let newMap = this.getColorMap(this.colorMap.serialNumber);
+    let newMap = this.getColorMap();
     let existingEntry = newMap.ranges[idx];
     let newEntry = new ColorMapUIEntry(existingEntry.cutOff - 1, ColorNumbers.getColorComponents(new ColorNumbers().white));
 
@@ -150,13 +150,13 @@ export class ColorMapEditorComponent {
   onDeleteEntry(idx: number) {
     console.log('Got Delete Entry ' + 'for item ' + idx + '.');
 
-    let newMap = this.getColorMap(this.colorMap.serialNumber);
+    let newMap = this.getColorMap();
     newMap.removeColorMapEntry(idx);
     this.updateForm(newMap);
   }
 
   onSaveColorMap() {
-    let colorMap = this.getColorMap(-1);
+    let colorMap = this.getColorMap();
 
     let colorMapForExport: ColorMapForExport = ColorMapForExport.FromColorMap(colorMap);
     let dump: string = JSON.stringify(colorMapForExport, null, 2);
@@ -213,8 +213,11 @@ export class ColorMapEditorComponent {
       return;
     }
 
+    // Use the values from the, perhaps unsubmitted, form.
+    let cm = this.getColorMap();
+
     let secCnt = this.colorMapForm.controls.sectionCnt.value;
-    let newColorMap = this.buildColorMapByDivision(this.colorMap, this._histogram, secCnt, -1);
+    let newColorMap = this.buildColorMapByDivision(cm, this._histogram, secCnt, -1);
 
     if (this.colorMapForm.controls.applyColorsAfterDivide.value) {
 
@@ -284,9 +287,10 @@ export class ColorMapEditorComponent {
     this.colorMapForm.controls.sectionEnd.setValue(colorMap.ranges.length - 1);
   }
 
-  private getColorMap(serialNumber: number): ColorMapUI{
+  private getColorMap(): ColorMapUI{
     let ranges: ColorMapUIEntry[] = ColorMapEntryForms.getColorMapUiEntries(this.colorEntryForms);
     let highColorCss: string = this.colorMapForm.controls.highColor.value;
+    let serialNumber = -1; // This will be updated upon submit.
     let result: ColorMapUI = new ColorMapUI(ranges, highColorCss, serialNumber);
     return result;
   }
