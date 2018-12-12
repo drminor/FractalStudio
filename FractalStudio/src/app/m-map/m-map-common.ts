@@ -466,37 +466,13 @@ export class Divisions {
     }
     else {
       this.children.splice(index, 0, newChild);
-      //let ptr: number;
-      //let newChildren: Divisions[];
-
-      //if (index === 0) {
-      //  newChildren.push(newChild);
-      //  for (ptr = 0; ptr < this.children.length; ptr++) {
-      //    newChildren.push(this.children[ptr]);
-      //  }
-      //  this.children = newChildren;
-      //}
-      //else if (index === this.children.length) {
-      //  this.children.push(newChild);
-      //}
-      //else {
-      //  newChildren = this.children.slice(0, index);
-      //  newChildren.push(newChild);
-
-      //  for (ptr = index; ptr < this.children.length; ptr++) {
-      //    newChildren.push(this.children[ptr]);
-      //  }
-      //  this.children = newChildren;
-      //}
 
       let curStartIdx = this._startIdx + 1;
       let ptr: number;
       for (ptr = 0; ptr < this.children.length; ptr++) {
         curStartIdx = this.children[ptr].setTotalAndStart(workDivs[ptr].total, workDivs[ptr].startVal, curStartIdx);
       }
-
     }
-
   }
 
   public deleteChild(index: number): void {
@@ -506,22 +482,6 @@ export class Divisions {
 
     this._numberOfDivs--;
     let workDivs = this.buildDivisions(this._total, this._startVal, this._startIdx, this._numberOfDivs);
-
-    //let ptr: number;
-
-    //if (index === 0) {
-    //  this.children = this.children.slice(1, this._numberOfDivs);
-    //}
-    //else if (index === this.children.length) {
-    //  this.children = this.children.slice(0, this._numberOfDivs);
-    //}
-    //else {
-    //  let newChildren = this.children.slice(0, index);
-    //  for (ptr = index + 1; ptr < this.children.length; ptr++) {
-    //    newChildren.push(this.children[ptr]);
-    //  }
-    //  this.children = newChildren;
-    //}
 
     this.children.splice(index, 1);
 
@@ -541,7 +501,6 @@ export class Divisions {
 
     let ptr: number;
     for (ptr = 0; ptr < divs; ptr++) {
-      //result[ptr] = new Divisions(unit, curStartVal, firstChildStartIdx++, 1);
       result[ptr] = new Divisions(1);
       result[ptr].setTotalAndStart(unit, curStartVal, firstChildStartIdx++);
       curStartVal += unit;
@@ -673,9 +632,6 @@ export class Divisions {
 
 }
 
-//export class CutoffAndPercentage {
-//  constructor(public cutOff: number, public percentage: number) { }
-//}
 
 class IndexAndRunningSum {
   constructor(public idx: number, public runningSum: number) { }
@@ -711,6 +667,141 @@ export class Histogram {
   constructor() {
     this.entriesMap = new Map<number, number>();
   }
+
+  /// ---  By Division ----
+  public getEqualGroupsForAll(numberOfGroups: number): number[] {
+    let hes = this.getHistEntries();
+
+    let startIdx = this.getFirstLargerThan(hes, 3);
+    let cnt = hes.length - startIdx;
+    //cnt--; // don't include the last value.
+
+    let result = this.getEqualGroupsForSubset_Int(hes, numberOfGroups, startIdx, cnt);
+
+    if (result[result.length - 1] === hes[hes.length - 1].val) {
+      // If the last entry is the maximum value, reduce it by one, so that those
+      // values will be painted using the HighColor.
+      // TODO: consider using the last color num instead of the High Color.
+      result[result.length - 1] = result[result.length - 1] - 1;
+    }
+
+    return result;
+  }
+
+  public getEqualGroupsForSubset(numberOfGroups: number, startCutOff: number, endCutOff: number): number[] {
+    let hes = this.getHistEntries();
+
+    // Get index of starting cutoff;
+    let startIdx = 0;
+
+    // Get index of ending cutoff;
+    let endIdx = 100;
+
+    let cnt = 1 + endIdx - startIdx;
+    let result = this.getEqualGroupsForSubset_Int(hes, numberOfGroups, startIdx, cnt);
+    return result;
+  }
+
+
+  public getEqualGroupsForSubset_Int(hes: HistEntry[], numberOfGroups: number, startIdx: number, cnt: number): number[] {
+
+    let numOfResultsRemaining = numberOfGroups - 2;
+    let result = Array<number>(numOfResultsRemaining);
+
+    let resultPtr = 0;
+    let resultEndPtr = numberOfGroups - 3;
+
+    while (cnt > 0 && numOfResultsRemaining > 0) {
+      let sum = this.getSumHits(hes, startIdx, cnt);
+      let target = parseInt((0.5 + sum / numberOfGroups).toString(), 10);
+
+      if (hes[startIdx].occurances >= target) {
+        result[resultPtr++] = hes[startIdx].val;
+        startIdx++;
+        cnt--;
+      }
+      else if (hes[startIdx + cnt - 1].occurances >= target) {
+        result[resultEndPtr--] = hes[startIdx + cnt - 1].val;
+        cnt--;
+      }
+      else {
+        let bp = this.getForwardBreakPoint(hes, startIdx, cnt, target);
+        result[resultPtr++] = hes[bp].val;
+        let newStart = bp + 1;
+        let ac = newStart - startIdx;
+        startIdx = newStart;
+        cnt -= ac;
+      }
+
+      numOfResultsRemaining--;
+      numberOfGroups--;
+    }
+
+    return result;
+  }
+
+  // Returns the index into hes where the runnng sum is >= target.
+  getForwardBreakPoint(hes: HistEntry[], startIdx: number, cnt: number, target: number): number {
+    let runSum: number = 0;
+
+    let ptr: number;
+    for (ptr = startIdx; ptr < startIdx + cnt; ptr++) {
+      runSum += hes[ptr].occurances;
+      if (runSum >= target) {
+        // We have found the breakpoint at ptr.
+        return ptr;
+      }
+    }
+
+    // The breakpoint is the last index into hes.
+    let result = startIdx + cnt - 1;
+    return result;
+  }
+
+  getSumHits(hes: HistEntry[], startIdx: number, cnt: number): number {
+    let result: number = 0;
+
+    let ptr: number;
+    for (ptr = startIdx; ptr < startIdx + cnt; ptr++) {
+      result += hes[ptr].occurances;
+    }
+
+    return result;
+  }
+
+  private getFirstLargerThan(hes: HistEntry[], cutOff: number): number {
+    let ptr: number;
+    for (ptr = 0; ptr < hes.length; ptr++) {
+      if (hes[ptr].val > cutOff) {
+        break;
+      }
+    }
+    return ptr;
+  }
+
+  private getIndexOfMaxIter(hes: HistEntry[]): number {
+
+    let result = hes.length - 1;
+    let max = 0;
+
+    let ptr = hes.length - 1;
+    let cntr: number;
+    for (cntr = 0; cntr < 10; cntr++) {
+      let occs = hes[ptr].occurances;
+      if (occs > max) {
+        max = occs;
+        result = ptr;
+      }
+      ptr--;
+    }
+
+    return result;
+  }
+
+  /// --- End By Division ---
+
+  /// --- By Percentages ---
+
   public getCutoffs(percentages: number[]): number[] {
     let result = new Array<number>(percentages.length);
 
@@ -718,9 +809,7 @@ export class Histogram {
 
     // Get Total hits excluding the hits from those points that reached the maxium iteration count.
     let maxIterIndex = this.getIndexOfMaxIter(hes);
-    //let totalChk = this.getSumHits(hes, 0, hes.length);
     let total = this.getSumHits(hes, 0, maxIterIndex);
-
 
     let runningPercent = 0;
 
@@ -735,8 +824,7 @@ export class Histogram {
         result[ptr] = hes[idxAndSum.idx].val;
       }
       else {
-        // Use the value of the last entry
-        // and exit.
+        // Use the value of the last entry and exit.
         result[ptr] = hes[hes.length - 1].val;
         break;
       }
@@ -744,7 +832,6 @@ export class Histogram {
 
     return result;
   }
-
 
   public getCutOff(targetVal: number, hes: HistEntry[], startIdxAndSum: IndexAndRunningSum): IndexAndRunningSum {
 
@@ -786,125 +873,8 @@ export class Histogram {
     let result = new IndexAndRunningSum(ptr, rs);
     return result;
   }
+
   /// --- End Target Percentage ---
-
-  /// ---  By Division ----
-  public getEqualGroupsForAll(numberOfGroups: number): number[] {
-    let hes = this.getHistEntries();
-
-    let start = this.getFirstLargerThan(hes, 3);
-    let cnt = hes.length - start;
-    //cnt--; // don't include the last value.
-
-    let result = this.getEqualGroups(numberOfGroups, hes, start, cnt);
-
-    if (result[result.length - 1] === hes[hes.length - 1].val) {
-      // If the last entry is the maximum value, reduce it by one, so that those
-      // values will be painted using the HighColor.
-      // TODO: consider using the last color num instead of the High Color.
-      result[result.length - 1] = result[result.length - 1] - 1;
-    }
-
-    return result;
-  }
-
-  public getEqualGroups(numberOfGroups: number, hes: HistEntry[], start: number, cnt: number): number[] {
-
-    let numOfResultsRemaining = numberOfGroups - 2;
-    let result = Array<number>(numOfResultsRemaining);
-
-    let resultPtr = 0;
-    let resultEndPtr = numberOfGroups - 3;
-
-    while (cnt > 0 && numOfResultsRemaining > 0) {
-      let sum = this.getSumHits(hes, start, cnt);
-      let target = parseInt((0.5 + sum / numberOfGroups).toString(), 10);
-
-      if (hes[start].occurances >= target) {
-        result[resultPtr++] = hes[start].val;
-        start++;
-        cnt--;
-      }
-      else if (hes[start + cnt - 1].occurances >= target) {
-        result[resultEndPtr--] = hes[start + cnt - 1].val;
-        cnt--;
-      }
-      else {
-        let bp = this.getForwardBreakPoint(hes, start, cnt, target);
-        result[resultPtr++] = hes[bp].val;
-        let newStart = bp + 1;
-        let ac = newStart - start;
-        start = newStart;
-        cnt -= ac;
-      }
-
-      numOfResultsRemaining--;
-      numberOfGroups--;
-    }
-
-    return result;
-  }
-
-  // Returns the index into hes where the runnng sum is >= target.
-  getForwardBreakPoint(hes: HistEntry[], start: number, cnt: number, target: number): number {
-    let runSum: number = 0;
-
-    let ptr: number;
-    for (ptr = start; ptr < start + cnt; ptr++) {
-      runSum += hes[ptr].occurances;
-      if (runSum >= target) {
-        // We have found the breakpoint at ptr.
-        return ptr;
-      }
-    }
-
-    // The breakpoint is the last index into hes.
-    let result = start + cnt - 1;
-    return result;
-  }
-
-  getSumHits(hes: HistEntry[], start: number, cnt: number): number {
-    let result: number = 0;
-
-    let ptr: number;
-    for (ptr = start; ptr < start + cnt; ptr++) {
-      result += hes[ptr].occurances;
-    }
-
-    return result;
-  }
-
-  private getFirstLargerThan(hes: HistEntry[], cutOff: number): number {
-    let ptr: number;
-    for (ptr = 0; ptr < hes.length; ptr++) {
-      if (hes[ptr].val > cutOff) {
-        break;
-      }
-    }
-    return ptr;
-  }
-
-  private getIndexOfMaxIter(hes: HistEntry[]): number {
-
-    let result = hes.length - 1;
-    let max = 0;
-
-    let ptr = hes.length - 1;
-    let cntr: number;
-    for (cntr = 0; cntr < 10; cntr++) {
-      let occs = hes[ptr].occurances;
-      if (occs > max) {
-        max = occs;
-        result = ptr;
-      }
-      ptr--;
-    }
-
-    return result;
-  }
-
-
-  /// --- End By Division ---
 
   public getHistEntries(): HistEntry[] {
     let result: HistEntry[] = new Array<HistEntry>(this.entriesMap.size);
@@ -1037,14 +1007,8 @@ export class Histogram {
     let result = new Array<number>(groupCounts.length);
 
     let hes = this.getHistEntries();
-
-
-    //let total = this.getSumHits(hes, 0, hes.length);
-
     let maxIterIndex = this.getIndexOfMaxIter(hes);
-    let totalChk = this.getSumHits(hes, 0, hes.length);
     let total = this.getSumHits(hes, 0, maxIterIndex);
-
 
     let ptr: number;
     for (ptr = 0; ptr < groupCounts.length; ptr++) {

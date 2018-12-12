@@ -207,15 +207,15 @@ export class ColorMapEditorComponent {
       if (this.colorMapForm.controls.useCutoffs.value === false) {
         //console.log('Loading ColorMap without cutoffs.');
 
-        // Get the cut off values from the live form values,
-        let cutOffs = ColorMapEntryForms.getCutoffs(this.colorEntryForms);
+        //// Get the cut off values from the live form values,
+        //let cutOffs = ColorMapEntryForms.getCutoffs(this.colorEntryForms);
+        //this._lastLoadedColorMap = loadedColorMap.mergeCutoffs(cutOffs, -1);
 
-        this._lastLoadedColorMap = loadedColorMap.mergeCutoffs(cutOffs, -1);
-        //this.colorMapUpdated.emit(colorMapUsingExRanges);
+        let cm = this.getColorMap();
+        this._lastLoadedColorMap = cm.applyColors(loadedColorMap.ranges, -1);
       }
       else {
         this._lastLoadedColorMap = loadedColorMap;
-        //this.colorMapUpdated.emit(loadedColorMap);
       }
       this.colorMapUpdated.emit(this._lastLoadedColorMap);
     });
@@ -234,8 +234,10 @@ export class ColorMapEditorComponent {
     // Use the values from the, perhaps unsubmitted, form.
     let cm = this.getColorMap();
 
+    let secStart = this.colorMapForm.controls.sectionStart.value;
+    let secEnd = this.colorMapForm.controls.sectionEnd.value;
     let secCnt = this.colorMapForm.controls.sectionCnt.value;
-    let newColorMap = this.buildColorMapByDivision(cm, this._histogram, secCnt, -1);
+    let newColorMap = this.buildColorMapByDivision(cm, this._histogram, secStart, secEnd, secCnt, -1);
 
     if (this.colorMapForm.controls.applyColorsAfterDivide.value) {
       if (this._lastLoadedColorMap !== null) {
@@ -313,13 +315,19 @@ export class ColorMapEditorComponent {
     return result;
   }
 
-  private buildColorMapByDivision(curColorMap: ColorMapUI, histogram: Histogram, sectionCnt: number, serialNumber: number) : ColorMapUI {
-    //alert('We now have a histogram. It has ' + histogram.entriesMap.size + ' entries.');
+  private buildColorMapByDivision(curColorMap: ColorMapUI,
+    histogram: Histogram,
+    secStart: number,
+    secEnd: number,
+    sectionCnt: number,
+    serialNumber: number): ColorMapUI {
 
     let breakPoints = histogram.getEqualGroupsForAll(sectionCnt);
 
-    let bpDisplay = Histogram.getBreakPointsDisplay(breakPoints);
-    console.log('Divide into ' + sectionCnt + ' equal groups gives: ' + bpDisplay);
+    //let bpsTest = histogram.getEqualGroupsForSubset(secStart, secEnd, sectionCnt);
+
+    //let bpDisplay = Histogram.getBreakPointsDisplay(bpsTest);
+    //console.log('Dividing entries starting at ' + secStart + ' and ending with ' + secEnd + ' into ' + sectionCnt + ' equal groups gives: ' + bpDisplay);
 
     let result = curColorMap.mergeCutoffs(breakPoints, serialNumber);
     return result;
