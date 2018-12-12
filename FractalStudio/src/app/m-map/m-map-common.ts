@@ -1426,7 +1426,6 @@ export class ColorMapEntryForExport {
 
 export class ColorMapUIEntry {
 
-  //public colorNum: number;
   public colorComponents: number[];
 
   constructor(public cutOff: number, colorVals: number[]) {
@@ -1448,15 +1447,6 @@ export class ColorMapUIEntry {
     this.colorComponents[1] = colorVals[1];
     this.colorComponents[2] = colorVals[2];
     this.colorComponents[3] = alpha;
-
-    //this.colorNum = ColorNumbers.getColor(this.r, this.g, this.b, this.alpha);
-    //this.colorNum = ColorNumbers.getColor
-    //  (
-    //  this.colorComponents[0],
-    //  this.colorComponents[1],
-    //  this.colorComponents[2],
-    //  this.colorComponents[3]
-    //  );
   }
 
   public get r(): number {
@@ -1719,6 +1709,7 @@ export class ColorMapUI {
 }
 
 export class ColorMapForExport {
+
   public version: number = 1.0;
 
   constructor(public ranges: ColorMapEntryForExport[], public highColorCss: string) { }

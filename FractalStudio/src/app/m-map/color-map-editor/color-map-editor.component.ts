@@ -65,7 +65,7 @@ export class ColorMapEditorComponent {
 
   constructor() {
 
-    // Define our Form. It has a single item which is an array of CEntryForms
+    // Define our Form.
     this.colorMapForm = new FormGroup({
       sectionStart: new FormControl(''),
       sectionEnd: new FormControl(''),
@@ -431,11 +431,13 @@ class ColorMapEntryForms {
     let ptr: number;
     for (ptr = 0; ptr < fArray.length; ptr++) {
       let cEntryForm = fArray[ptr];
+
       if (cEntryForm.controls.cutOff.value !== cutOffs[ptr]) {
         console.log('The old cutoff for ' + ptr + ' was ' + cEntryForm.controls.cutOff.value + ' the new value is ' + cutOffs[ptr] + '.');
         cEntryForm.controls.cutOff.setValue(cutOffs[ptr]);
       }
     }
+
   }
 
 }
@@ -446,7 +448,6 @@ class ColorMapEntryForm {
 
     let result = new FormGroup({
       cutOff: new FormControl(''),
-      //cNum: new FormControl(''),
       rgbaColor: new FormControl(''),
 
       actualPercentage: new FormControl(''),
@@ -457,8 +458,6 @@ class ColorMapEntryForm {
     result.controls.rgbaColor
 
     if (cme != null) {
-      //result.controls.cNum.setValue(cme.colorNum);
-
       result.controls.rgbaColor.setValue(cme.rgbaString);
       result.controls.cutOff.setValue(cme.cutOff);
       result.controls.actualPercentage.setValue('0.0%');
@@ -468,10 +467,6 @@ class ColorMapEntryForm {
   }
 
   public static getColorMapUIEntry(form: FormGroup): ColorMapUIEntry {
-    //const result = ColorMapUIEntry.fromOffsetAndColorNum(
-    //  form.controls.cutOff.value,
-    //  form.controls.cNum.value
-    //);
 
     const result = ColorMapUIEntry.fromOffsetAndRgba(
       form.controls.cutOff.value,
