@@ -322,14 +322,35 @@ export class ColorMapEditorComponent {
     sectionCnt: number,
     serialNumber: number): ColorMapUI {
 
+
+
+    let cosOriginal = curColorMap.getOffsets();
+    console.log('The original offsets are: ' + cosOriginal + '.');
+
     let breakPoints = histogram.getEqualGroupsForAll(sectionCnt);
+    let bpDisplay = Histogram.getBreakPointsDisplay(breakPoints);
+    console.log('Dividing all entries into ' + sectionCnt + ' equal groups gives:');
+    console.log(bpDisplay);
 
-    //let bpsTest = histogram.getEqualGroupsForSubset(secStart, secEnd, sectionCnt);
+    let startVal = curColorMap.ranges[secStart].cutOff;
+    let endVal = curColorMap.ranges[secEnd].cutOff;
 
-    //let bpDisplay = Histogram.getBreakPointsDisplay(bpsTest);
-    //console.log('Dividing entries starting at ' + secStart + ' and ending with ' + secEnd + ' into ' + sectionCnt + ' equal groups gives: ' + bpDisplay);
+    let bpsTest = histogram.getEqualGroupsForSubset(sectionCnt, startVal, endVal);
+
+    let bpDisplay2 = Histogram.getBreakPointsDisplay(bpsTest);
+    console.log('Dividing entries starting at ' + secStart + ' and ending with ' + secEnd + ' into ' + sectionCnt + ' equal groups gives:');
+    console.log(bpDisplay2);
+
+    let numToRemove = secEnd - secStart;
+
+    let splicedColorMap = curColorMap.spliceCutOffs(secStart, numToRemove, bpsTest, -1);
+    let splicedOffSets = splicedColorMap.getOffsets();
+    console.log('The new updated map dividing the given subset of entries has offsets: ' + splicedOffSets + '.');
 
     let result = curColorMap.mergeCutoffs(breakPoints, serialNumber);
+    let cosMergeWhole = result.getOffsets();
+    console.log('The new updated map dividing all entries has offsets: ' + cosMergeWhole + '.');
+
     return result;
 
     //console.log('The color map has ' + this.colorMap.ranges.length + ' entries.');

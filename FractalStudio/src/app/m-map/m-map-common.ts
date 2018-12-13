@@ -669,7 +669,7 @@ export class Histogram {
   }
 
   /// ---  By Division ----
-  public getEqualGroupsForAll(numberOfGroups: number): number[] {
+  public getEqualGroupsForAll_OLD(numberOfGroups: number): number[] {
     let hes = this.getHistEntries();
 
     let startIdx = this.getFirstLargerThan(hes, 3);
@@ -688,28 +688,53 @@ export class Histogram {
     return result;
   }
 
+  public getEqualGroupsForAll(numberOfGroups: number): number[] {
+    let hes = this.getHistEntries();
+
+    let startIdx = 0; //this.getFirstLargerThan(hes, 3);
+    let endIdx = this.getIndexOfMaxIter(hes, 5);
+
+    // Do not include the entry with the large number of occurances near the end of the histogram.
+    endIdx--; // 
+
+    let cnt = 1 + endIdx - startIdx;
+
+    let result = this.getEqualGroupsForSubset_Int(hes, numberOfGroups, startIdx, cnt);
+
+    //if (result[result.length - 1] === hes[hes.length - 1].val) {
+    //  // If the last entry is the maximum value, reduce it by one, so that those
+    //  // values will be painted using the HighColor.
+    //  // TODO: consider using the last color num instead of the High Color.
+    //  result[result.length - 1] = result[result.length - 1] - 1;
+    //}
+
+    return result;
+  }
+
   public getEqualGroupsForSubset(numberOfGroups: number, startCutOff: number, endCutOff: number): number[] {
+    console.log('GetEqualGroupsForSubset is being called with cnt:' + numberOfGroups + ' sc:' + startCutOff + ' ec:' + endCutOff + '.');
+
     let hes = this.getHistEntries();
 
     // Get index of starting cutoff;
-    let startIdx = 0;
+    let startIdx = this.getIndexFromVal(hes, startCutOff, 0);
 
     // Get index of ending cutoff;
-    let endIdx = 100;
+    let endIdx = this.getIndexFromVal(hes, endCutOff, startIdx);
 
     let cnt = 1 + endIdx - startIdx;
     let result = this.getEqualGroupsForSubset_Int(hes, numberOfGroups, startIdx, cnt);
     return result;
   }
 
-
   public getEqualGroupsForSubset_Int(hes: HistEntry[], numberOfGroups: number, startIdx: number, cnt: number): number[] {
+    console.log('GetEqualGroupsForSubset_Int is being called with cnt:' + numberOfGroups + ' si:' + startIdx + ' cnt:' + cnt + '.');
 
-    let numOfResultsRemaining = numberOfGroups - 2;
+    let numOfResultsRemaining = numberOfGroups; // - 2;
     let result = Array<number>(numOfResultsRemaining);
 
     let resultPtr = 0;
-    let resultEndPtr = numberOfGroups - 3;
+    let resultEndPtr = numberOfGroups - 1; // - 3;
 
     while (cnt > 0 && numOfResultsRemaining > 0) {
       let sum = this.getSumHits(hes, startIdx, cnt);
@@ -758,6 +783,33 @@ export class Histogram {
     return result;
   }
 
+  private getIndexFromVal(hes: HistEntry[], val: number, startIdx: number): number {
+
+    let found = false;
+    let result: number;
+
+    let ptr: number;
+    for (ptr = startIdx; ptr < hes.length; ptr++) {
+      if (hes[ptr].val === val) {
+        result = ptr;
+        found = true;
+        break;
+      }
+      if (hes[ptr].val > val) {
+        result = ptr - 1;
+        if (result < 0) result = 0;
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
+      result = hes.length - 1;
+    }
+
+    return result;
+  }
+
   getSumHits(hes: HistEntry[], startIdx: number, cnt: number): number {
     let result: number = 0;
 
@@ -779,20 +831,26 @@ export class Histogram {
     return ptr;
   }
 
-  private getIndexOfMaxIter(hes: HistEntry[]): number {
+  private getIndexOfMaxIter(hes: HistEntry[], numberOfEntriesToCheck: number): number {
 
-    let result = hes.length - 1;
-    let max = 0;
+    let result = 0;
+    let curMaxVal: number = -1;
 
-    let ptr = hes.length - 1;
-    let cntr: number;
-    for (cntr = 0; cntr < 10; cntr++) {
-      let occs = hes[ptr].occurances;
-      if (occs > max) {
-        max = occs;
+    let ptr: number;
+    let start = hes.length - 1;
+    let end = start - numberOfEntriesToCheck;
+    if (end < 0) end = 0;
+
+    for (ptr = start; ptr >= end; ptr--) {
+      if (hes[ptr].occurances > curMaxVal) {
+        curMaxVal = hes[ptr].occurances;
         result = ptr;
       }
-      ptr--;
+    }
+
+    if (result !== start) {
+      let cnt = end - start;
+      console.log('The maximum value of the last ' + cnt + ' histogram entries is not the last entry.');
     }
 
     return result;
@@ -808,7 +866,7 @@ export class Histogram {
     let hes = this.getHistEntries();
 
     // Get Total hits excluding the hits from those points that reached the maxium iteration count.
-    let maxIterIndex = this.getIndexOfMaxIter(hes);
+    let maxIterIndex = this.getIndexOfMaxIter(hes, 5);
     let total = this.getSumHits(hes, 0, maxIterIndex);
 
     let runningPercent = 0;
@@ -1007,7 +1065,7 @@ export class Histogram {
     let result = new Array<number>(groupCounts.length);
 
     let hes = this.getHistEntries();
-    let maxIterIndex = this.getIndexOfMaxIter(hes);
+    let maxIterIndex = this.getIndexOfMaxIter(hes, 5);
     let total = this.getSumHits(hes, 0, maxIterIndex);
 
     let ptr: number;
@@ -1623,6 +1681,33 @@ export class ColorMapUI {
     }
 
     let result: ColorMapUI = new ColorMapUI(ranges, this.highColorCss, serialNumber);
+    return result;
+  }
+
+  public spliceCutOffs(start: number, numToRemove: number, cutOffs: number[], serialNumber: number): ColorMapUI {
+
+    // Create a range of ColorMapUIEntries from the given cutOffs.
+    let white: number = new ColorNumbers().white;
+    let whiteComps = ColorNumbers.getColorComponents(white);
+
+    let rangesToInsert: ColorMapUIEntry[] = [];
+
+    let ptr1: number;
+    for (ptr1 = 0; ptr1 < cutOffs.length; ptr1++) {
+      rangesToInsert.push(new ColorMapUIEntry(cutOffs[ptr1], whiteComps)); 
+    }
+
+    // Create a copy of the existing ranges
+    let rangesResult: ColorMapUIEntry[] = [];
+
+    let ptr2: number;
+    for (ptr2 = 0; ptr2 < this.ranges.length; ptr2++) {
+      rangesResult.push(new ColorMapUIEntry(this.ranges[ptr2].cutOff, this.ranges[ptr2].colorComponents));
+    }
+
+    rangesResult.splice(start, numToRemove, ...rangesToInsert);
+
+    let result: ColorMapUI = new ColorMapUI(rangesResult, this.highColorCss, serialNumber);
     return result;
   }
 

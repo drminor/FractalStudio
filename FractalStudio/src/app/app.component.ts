@@ -108,6 +108,9 @@ export class AppComponent {
 
   onHaveHistogram(h: Histogram) {
     console.log('We now have a histogram. It has ' + h.entriesMap.size + ' entries.');
+
+    console.log(h.toString());
+
     this.histogram = h;
     this.isBuilding = false;
   }

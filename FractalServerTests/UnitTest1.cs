@@ -44,10 +44,10 @@ namespace FractalServerTests
             //Size canvasSize = new Size(1440, 960);
             //Size canvasSize = new Size(7200, 4800);
             //Size canvasSize = new Size(10800, 7200);
-            Size canvasSize = new Size(14400, 9600);
-            //Size canvasSize = new Size(21600, 14400);
+            //Size canvasSize = new Size(14400, 9600);
+            Size canvasSize = new Size(21600, 14400);
 
-            string imagePath = @"C:\MBZ1.png";
+            string imagePath = @"C:\MBZ1_21600.png";
 
             BuildMap(imagePath, canvasSize, miwcm);
         }
