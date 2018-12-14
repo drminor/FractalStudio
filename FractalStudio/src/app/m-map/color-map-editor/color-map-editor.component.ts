@@ -233,19 +233,42 @@ export class ColorMapEditorComponent {
 
     // Use the values from the, perhaps unsubmitted, form.
     let cm = this.getColorMap();
+    let cosOriginal = cm.getOffsets();
+    console.log('The original offsets are: ' + cosOriginal + '.');
 
     let secStart = this.colorMapForm.controls.sectionStart.value;
     let secEnd = this.colorMapForm.controls.sectionEnd.value;
     let secCnt = this.colorMapForm.controls.sectionCnt.value;
-    let newColorMap = this.buildColorMapByDivision(cm, this._histogram, secStart, secEnd, secCnt, -1);
+
+    if (! (this.isInteger(secStart) && secStart >= 0) ) {
+      alert('Section start must be an integer greater or equal to 0.');
+      return;
+    }
+
+    if (!  (this.isInteger(secEnd) && (secEnd <= cm.ranges.length) ) ) {
+      alert('Section end must be an integer less than or equal to ' + cm.ranges.length + '.');
+      return;
+    }
+
+    let oldColorMap = this.buildColorMapByDivision(cm, this._histogram, secStart, secEnd, secCnt, -1);
+
+    let newColorMap = this.buildColorMapByDivision_New(cm, this._histogram, secStart, secEnd, secCnt, -1);
 
     if (this.colorMapForm.controls.applyColorsAfterDivide.value) {
       if (this._lastLoadedColorMap !== null) {
-        newColorMap.applyColors(this._lastLoadedColorMap.ranges, -1);
+        let recoloredMap = newColorMap.applyColors(this._lastLoadedColorMap.ranges, -1);
+        this.colorMapUpdated.emit(recoloredMap);
+      }
+      else {
+        this.colorMapUpdated.emit(newColorMap);
       }
     }
 
-    this.colorMapUpdated.emit(newColorMap);
+  }
+
+  private isInteger(x: string): boolean {
+    let f = parseFloat(x);
+    return Number.isInteger(f);
   }
 
   private updatePercentages(): void {
@@ -302,7 +325,7 @@ export class ColorMapEditorComponent {
     let fArray = this.colorMapForm.controls.cEntries as FormArray;
     ColorMapEntryForms.loadColorMapUiEntries(colorMap.ranges, fArray);
 
-    //// Set the form's highColor value.
+    // Set the form's highColor value.
     this.colorMapForm.controls.highColor.setValue(colorMap.highColorCss);
     this.colorMapForm.controls.sectionEnd.setValue(colorMap.ranges.length - 1);
   }
@@ -322,38 +345,51 @@ export class ColorMapEditorComponent {
     sectionCnt: number,
     serialNumber: number): ColorMapUI {
 
-
-
-    let cosOriginal = curColorMap.getOffsets();
-    console.log('The original offsets are: ' + cosOriginal + '.');
-
     let breakPoints = histogram.getEqualGroupsForAll(sectionCnt);
     let bpDisplay = Histogram.getBreakPointsDisplay(breakPoints);
     console.log('Dividing all entries into ' + sectionCnt + ' equal groups gives:');
     console.log(bpDisplay);
-
-    let startVal = curColorMap.ranges[secStart].cutOff;
-    let endVal = curColorMap.ranges[secEnd].cutOff;
-
-    let bpsTest = histogram.getEqualGroupsForSubset(sectionCnt, startVal, endVal);
-
-    let bpDisplay2 = Histogram.getBreakPointsDisplay(bpsTest);
-    console.log('Dividing entries starting at ' + secStart + ' and ending with ' + secEnd + ' into ' + sectionCnt + ' equal groups gives:');
-    console.log(bpDisplay2);
-
-    let numToRemove = secEnd - secStart;
-
-    let splicedColorMap = curColorMap.spliceCutOffs(secStart, numToRemove, bpsTest, -1);
-    let splicedOffSets = splicedColorMap.getOffsets();
-    console.log('The new updated map dividing the given subset of entries has offsets: ' + splicedOffSets + '.');
 
     let result = curColorMap.mergeCutoffs(breakPoints, serialNumber);
     let cosMergeWhole = result.getOffsets();
     console.log('The new updated map dividing all entries has offsets: ' + cosMergeWhole + '.');
 
     return result;
+  }
 
-    //console.log('The color map has ' + this.colorMap.ranges.length + ' entries.');
+  private buildColorMapByDivision_New(curColorMap: ColorMapUI,
+    histogram: Histogram,
+    secStart: number,
+    secEnd: number,
+    sectionCnt: number,
+    serialNumber: number): ColorMapUI {
+
+    let startVal = curColorMap.ranges[secStart].cutOff;
+
+    let endVal: number;
+    // We need to include the offset just past the one pointed to by secEnd.
+    secEnd++;
+
+    if (secEnd > curColorMap.ranges.length - 1) {
+      endVal = -1 // Indicate that we want to include the last histogram entry (except the max of course.)
+    }
+    else {
+      endVal = curColorMap.ranges[secEnd].cutOff;
+    }
+    //let endVal = curColorMap.ranges[secEnd].cutOff;
+
+    let breakPoints = histogram.getEqualGroupsForSubset(sectionCnt, startVal, endVal);
+
+    let bpDisplay = Histogram.getBreakPointsDisplay(breakPoints);
+    console.log('Dividing entries starting at ' + secStart + ' and ending with ' + secEnd + ' into ' + sectionCnt + ' equal groups gives:');
+    console.log(bpDisplay);
+
+    let numToRemove = 1 + secEnd - secStart;
+    let result = curColorMap.spliceCutOffs(secStart, numToRemove, breakPoints, serialNumber);
+    let splicedOffSets = result.getOffsets();
+    console.log('The new updated map dividing the given subset of entries has offsets: ' + splicedOffSets + '.');
+
+    return result;
   }
 
   private createDivisions(): Divisions {

@@ -720,7 +720,18 @@ export class Histogram {
     let startIdx = this.getIndexFromVal(hes, startCutOff, 0);
 
     // Get index of ending cutoff;
-    let endIdx = this.getIndexFromVal(hes, endCutOff, startIdx);
+    let maxIdx = this.getIndexOfMaxIter(hes, 5);
+    maxIdx-- // Don't include the entry at the end that corresponds to the maxIterations.
+
+    let endIdx: number;
+
+    if (endCutOff === -1) {
+      endIdx = maxIdx;
+    }
+    else {
+      endIdx = this.getIndexFromVal(hes, endCutOff, startIdx);
+      if (endIdx > maxIdx) endIdx = maxIdx;
+    }
 
     let cnt = 1 + endIdx - startIdx;
     let result = this.getEqualGroupsForSubset_Int(hes, numberOfGroups, startIdx, cnt);
@@ -821,6 +832,13 @@ export class Histogram {
     return result;
   }
 
+  getAverageOcc(hes: HistEntry[], startIdx: number, cnt: number): number {
+    let total = this.getSumHits(hes, startIdx, cnt);
+    let avg = total / cnt;
+
+    return avg;
+  }
+
   private getFirstLargerThan(hes: HistEntry[], cutOff: number): number {
     let ptr: number;
     for (ptr = 0; ptr < hes.length; ptr++) {
@@ -849,8 +867,20 @@ export class Histogram {
     }
 
     if (result !== start) {
-      let cnt = end - start;
-      console.log('The maximum value of the last ' + cnt + ' histogram entries is not the last entry.');
+      // Perhaps there is no large entry at the end for the maxInterations
+      // If the maximum value found is less than 5 times the average occurances
+      // then just use the last entry.
+      let avg = this.getAverageOcc(hes, 0, hes.length);
+
+      if (curMaxVal < avg * 5) {
+        result = start;
+      }
+      else {
+        // We did find a large entry near the end, but it was not at the very end.
+        let cnt = end - start;
+        console.log('The maximum value of the last ' + cnt + ' histogram entries is not the last entry.');
+        { debugger }
+      }
     }
 
     return result;
