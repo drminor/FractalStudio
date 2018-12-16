@@ -669,44 +669,9 @@ export class Histogram {
   }
 
   /// ---  By Division ----
-  public getEqualGroupsForAll_OLD(numberOfGroups: number): number[] {
-    let hes = this.getHistEntries();
-
-    let startIdx = this.getFirstLargerThan(hes, 3);
-    let cnt = hes.length - startIdx;
-    //cnt--; // don't include the last value.
-
-    let result = this.getEqualGroupsForSubset_Int(hes, numberOfGroups, startIdx, cnt);
-
-    if (result[result.length - 1] === hes[hes.length - 1].val) {
-      // If the last entry is the maximum value, reduce it by one, so that those
-      // values will be painted using the HighColor.
-      // TODO: consider using the last color num instead of the High Color.
-      result[result.length - 1] = result[result.length - 1] - 1;
-    }
-
-    return result;
-  }
 
   public getEqualGroupsForAll(numberOfGroups: number): number[] {
-    let hes = this.getHistEntries();
-
-    let startIdx = 0; //this.getFirstLargerThan(hes, 3);
-    let endIdx = this.getIndexOfMaxIter(hes, 5);
-
-    // Do not include the entry with the large number of occurances near the end of the histogram.
-    endIdx--; // 
-
-    let cnt = 1 + endIdx - startIdx;
-
-    let result = this.getEqualGroupsForSubset_Int(hes, numberOfGroups, startIdx, cnt);
-
-    //if (result[result.length - 1] === hes[hes.length - 1].val) {
-    //  // If the last entry is the maximum value, reduce it by one, so that those
-    //  // values will be painted using the HighColor.
-    //  // TODO: consider using the last color num instead of the High Color.
-    //  result[result.length - 1] = result[result.length - 1] - 1;
-    //}
+    let result = this.getEqualGroupsForSubset(numberOfGroups, 0, -1);
 
     return result;
   }
@@ -839,15 +804,15 @@ export class Histogram {
     return avg;
   }
 
-  private getFirstLargerThan(hes: HistEntry[], cutOff: number): number {
-    let ptr: number;
-    for (ptr = 0; ptr < hes.length; ptr++) {
-      if (hes[ptr].val > cutOff) {
-        break;
-      }
-    }
-    return ptr;
-  }
+  //private getFirstLargerThan(hes: HistEntry[], cutOff: number): number {
+  //  let ptr: number;
+  //  for (ptr = 0; ptr < hes.length; ptr++) {
+  //    if (hes[ptr].val > cutOff) {
+  //      break;
+  //    }
+  //  }
+  //  return ptr;
+  //}
 
   private getIndexOfMaxIter(hes: HistEntry[], numberOfEntriesToCheck: number): number {
 
@@ -1256,21 +1221,21 @@ export class MapWorkingData implements IMapWorkingData {
     return c.x + c.y * this.canvasSize.width;
   }
 
-  // Calculates z squared + c
-  getNextVal(z: IPoint, c: IPoint): IPoint {
-    const result: IPoint = new Point(
-      z.x * z.x - z.y * z.y + c.x,
-      2 * z.x * z.y + c.y
-    );
+  //// Calculates z squared + c
+  //getNextVal(z: IPoint, c: IPoint): IPoint {
+  //  const result: IPoint = new Point(
+  //    z.x * z.x - z.y * z.y + c.x,
+  //    2 * z.x * z.y + c.y
+  //  );
 
-    return result;
-  }
+  //  return result;
+  //}
 
-  // Returns the square of the magnitude of a complex number where a is the real component and b is the complex component.
-  private getAbsSizeSquared(z: IPoint): number {
-    const result:number = z.x * z.x + z.y * z.y;
-    return result;
-  }
+  //// Returns the square of the magnitude of a complex number where a is the real component and b is the complex component.
+  //private getAbsSizeSquared(z: IPoint): number {
+  //  const result:number = z.x * z.x + z.y * z.y;
+  //  return result;
+  //}
 
   // Takes the current value of z for a given coordinate,
   // calculates the next value
@@ -1292,10 +1257,20 @@ export class MapWorkingData implements IMapWorkingData {
 
     let cntr: number;
 
-    for (cntr = 0; cntr < iterCount; cntr++) {
-      z = this.getNextVal(z, c);
+    let zxSquared = z.x * z.x;
+    let zySquared = z.y * z.y;
 
-      if (this.getAbsSizeSquared(z) > 4) {
+    for (cntr = 0; cntr < iterCount; cntr++) {
+
+      z.y = 2 * z.x * z.y + c.y;
+      z.x = zxSquared - zySquared + c.x;
+
+      //z = this.getNextVal(z, c);
+
+      zxSquared = z.x * z.x;
+      zySquared = z.y * z.y;
+
+      if (zxSquared + zySquared > 4) {
         // This point is done.
         this.flags[ptr] = 1;
         break;
@@ -1695,6 +1670,8 @@ export class ColorMapUI {
   }
 
   public mergeCutoffs(cutOffs: number[], serialNumber: number): ColorMapUI {
+
+    //let test: BigInt(42);
 
     let ranges: ColorMapUIEntry[] = [];
     let ptrToExistingCmes = 0;

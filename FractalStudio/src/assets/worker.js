@@ -372,15 +372,39 @@ var MapWorkingData = /** @class */ (function () {
     }
     var z = new Point(this.wAData[ptr], this.wBData[ptr]);
     var c = new Point(this.xVals[mapCoordinate.x], this.yVals[mapCoordinate.y]);
+
+
     var cntr;
+
+    var zxSquared = z.x * z.x;
+    var zySquared = z.y * z.y;
+
     for (cntr = 0; cntr < iterCount; cntr++) {
-      z = this.getNextVal(z, c);
-      if (this.getAbsSizeSquared(z) > 4) {
+
+      z.y = 2 * z.x * z.y + c.y;
+      z.x = zxSquared - zySquared + c.x;
+
+      //z = this.getNextVal(z, c);
+
+      zxSquared = z.x * z.x;
+      zySquared = z.y * z.y;
+
+      if (zxSquared + zySquared > 4) {
         // This point is done.
         this.flags[ptr] = 1;
         break;
       }
+
+
+      //z = this.getNextVal(z, c);
+      //if (this.getAbsSizeSquared(z) > 4) {
+      //  // This point is done.
+      //  this.flags[ptr] = 1;
+      //  break;
+      //}
     }
+
+
     // Store the new value back to our Working Data.
     this.wAData[ptr] = z.x;
     this.wBData[ptr] = z.y;
@@ -530,6 +554,7 @@ var MapWorkingData = /** @class */ (function () {
   };
   return MapWorkingData;
 }()); // End Class MapWorkingData
+
 var ColorMapEntry = /** @class */ (function () {
   function ColorMapEntry(cutOff, colorNum) {
     this.cutOff = cutOff;

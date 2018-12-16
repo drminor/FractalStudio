@@ -70,7 +70,7 @@ export class ColorMapEditorComponent {
       sectionStart: new FormControl(''),
       sectionEnd: new FormControl(''),
       sectionCnt: new FormControl(''),
-      applyColorsAfterDivide: new FormControl(''),
+      applyColorsAfterDivide: new FormControl(true),
       useCutoffs: new FormControl(false),
 
       cEntries: new FormArray([]),
@@ -204,26 +204,26 @@ export class ColorMapEditorComponent {
       let cmfe: ColorMapForExport = JSON.parse(rawResult) as ColorMapForExport;
       let loadedColorMap: ColorMapUI = ColorMapUI.fromColorMapForExport(cmfe, -1);
 
+      // Save a copy to use if we want to re-apply these colors.
+      this._lastLoadedColorMap = loadedColorMap;
+
+      let newColorMap: ColorMapUI;
       if (this.colorMapForm.controls.useCutoffs.value === false) {
         //console.log('Loading ColorMap without cutoffs.');
-
-        //// Get the cut off values from the live form values,
-        //let cutOffs = ColorMapEntryForms.getCutoffs(this.colorEntryForms);
-        //this._lastLoadedColorMap = loadedColorMap.mergeCutoffs(cutOffs, -1);
-
         let cm = this.getColorMap();
-        this._lastLoadedColorMap = cm.applyColors(loadedColorMap.ranges, -1);
+        newColorMap = cm.applyColors(loadedColorMap.ranges, -1);
       }
       else {
-        this._lastLoadedColorMap = loadedColorMap;
+        newColorMap = loadedColorMap;
       }
-      this.colorMapUpdated.emit(this._lastLoadedColorMap);
+
+      this.colorMapUpdated.emit(newColorMap);
     });
 
     fr.readAsText(files.item(0));
   }
 
-  onDivide() : void {
+  onDivide(): void {
     console.log('Dividing Histogram data to set offsets.');
 
     if (this._histogram === null) {
@@ -240,30 +240,37 @@ export class ColorMapEditorComponent {
     let secEnd = this.colorMapForm.controls.sectionEnd.value;
     let secCnt = this.colorMapForm.controls.sectionCnt.value;
 
-    if (! (this.isInteger(secStart) && secStart >= 0) ) {
+    if (!(this.isInteger(secStart) && secStart >= 0)) {
       alert('Section start must be an integer greater or equal to 0.');
       return;
     }
 
-    if (!  (this.isInteger(secEnd) && (secEnd <= cm.ranges.length) ) ) {
-      alert('Section end must be an integer less than or equal to ' + cm.ranges.length + '.');
+    if (!(this.isInteger(secEnd) && (secEnd <= cm.ranges.length))) {
+      alert('Section end must be an integer less than or equal to ' + (cm.ranges.length) + '.');
       return;
     }
 
-    let oldColorMap = this.buildColorMapByDivision(cm, this._histogram, secStart, secEnd, secCnt, -1);
-
-    let newColorMap = this.buildColorMapByDivision_New(cm, this._histogram, secStart, secEnd, secCnt, -1);
-
-    if (this.colorMapForm.controls.applyColorsAfterDivide.value) {
-      if (this._lastLoadedColorMap !== null) {
-        let recoloredMap = newColorMap.applyColors(this._lastLoadedColorMap.ranges, -1);
-        this.colorMapUpdated.emit(recoloredMap);
-      }
-      else {
-        this.colorMapUpdated.emit(newColorMap);
-      }
+    if (!(this.isInteger(secCnt) && secCnt > 0)) {
+      alert('Section cnt must be a positive integer.');
+      return;
     }
 
+    let secStartNum: number = parseInt(secStart);
+    let secEndNum: number = parseInt(secEnd);
+    let secCntNum: number = parseInt(secCnt);
+
+    //let oldColorMap = this.buildColorMapByDivision_Old(cm, this._histogram, secStartNum, secEndNum, secCntNum, -1);
+
+    let newColorMap = this.buildColorMapByDivision(cm, this._histogram, secStartNum, secEndNum, secCntNum, -1);
+
+    if (this.colorMapForm.controls.applyColorsAfterDivide.value
+      && this._lastLoadedColorMap !== null) {
+      let recoloredMap = newColorMap.applyColors(this._lastLoadedColorMap.ranges, -1);
+      this.colorMapUpdated.emit(recoloredMap);
+    }
+    else {
+      this.colorMapUpdated.emit(newColorMap);
+    }
   }
 
   private isInteger(x: string): boolean {
@@ -338,6 +345,25 @@ export class ColorMapEditorComponent {
     return result;
   }
 
+  //private buildColorMapByDivision_Old(curColorMap: ColorMapUI,
+  //  histogram: Histogram,
+  //  secStart: number,
+  //  secEnd: number,
+  //  sectionCnt: number,
+  //  serialNumber: number): ColorMapUI {
+
+  //  let breakPoints = histogram.getEqualGroupsForAll(sectionCnt);
+  //  let bpDisplay = Histogram.getBreakPointsDisplay(breakPoints);
+  //  console.log('Dividing all entries into ' + sectionCnt + ' equal groups gives:');
+  //  console.log(bpDisplay);
+
+  //  let result = curColorMap.mergeCutoffs(breakPoints, serialNumber);
+  //  let cosMergeWhole = result.getOffsets();
+  //  console.log('The new updated map dividing all entries has offsets: ' + cosMergeWhole + '.');
+
+  //  return result;
+  //}
+
   private buildColorMapByDivision(curColorMap: ColorMapUI,
     histogram: Histogram,
     secStart: number,
@@ -345,49 +371,64 @@ export class ColorMapEditorComponent {
     sectionCnt: number,
     serialNumber: number): ColorMapUI {
 
-    let breakPoints = histogram.getEqualGroupsForAll(sectionCnt);
-    let bpDisplay = Histogram.getBreakPointsDisplay(breakPoints);
-    console.log('Dividing all entries into ' + sectionCnt + ' equal groups gives:');
-    console.log(bpDisplay);
+    // The secStart and secEnd point to the entries that need to be replaced.
+    // This range of start and end are treated inclusively.
 
-    let result = curColorMap.mergeCutoffs(breakPoints, serialNumber);
-    let cosMergeWhole = result.getOffsets();
-    console.log('The new updated map dividing all entries has offsets: ' + cosMergeWhole + '.');
+    // The starting cutOff is 1 greater than the offset of the entry just prior to the one pointed to by
+    // secStart.
 
-    return result;
-  }
+    // If secStart = 0, then the cutOff value is 0 so that we include the entire range of count values.
 
-  private buildColorMapByDivision_New(curColorMap: ColorMapUI,
-    histogram: Histogram,
-    secStart: number,
-    secEnd: number,
-    sectionCnt: number,
-    serialNumber: number): ColorMapUI {
+    // The ending cutOff is the value of the cutOff of the entry pointed to by secEnd.
 
-    let startVal = curColorMap.ranges[secStart].cutOff;
+    // If secEnd is greater than the last index, then use use -1 to signal
+    // that we want to include all count value up to, but not including, the max count value.
+    // The max count value being the one that holds the number of occurances for the maxIterations.
 
+    let startVal: number;
+
+    if (secStart === 0) {
+      startVal = 0;
+    }
+    else {
+      startVal = 1 + curColorMap.ranges[secStart - 1].cutOff;
+    }
+
+    let adjustedSecEnd: number;
     let endVal: number;
-    // We need to include the offset just past the one pointed to by secEnd.
-    secEnd++;
-
     if (secEnd > curColorMap.ranges.length - 1) {
       endVal = -1 // Indicate that we want to include the last histogram entry (except the max of course.)
+      adjustedSecEnd = curColorMap.ranges.length - 1;
     }
     else {
       endVal = curColorMap.ranges[secEnd].cutOff;
+      adjustedSecEnd = secEnd;
     }
-    //let endVal = curColorMap.ranges[secEnd].cutOff;
 
-    let breakPoints = histogram.getEqualGroupsForSubset(sectionCnt, startVal, endVal);
+    let breakPointsRaw = histogram.getEqualGroupsForSubset(sectionCnt, startVal, endVal);
+    let breakPoints = this.removeBreakPointsWithZeroValue(breakPointsRaw);
 
     let bpDisplay = Histogram.getBreakPointsDisplay(breakPoints);
     console.log('Dividing entries starting at ' + secStart + ' and ending with ' + secEnd + ' into ' + sectionCnt + ' equal groups gives:');
     console.log(bpDisplay);
 
-    let numToRemove = 1 + secEnd - secStart;
+    let numToRemove = 1 + adjustedSecEnd - secStart;
     let result = curColorMap.spliceCutOffs(secStart, numToRemove, breakPoints, serialNumber);
     let splicedOffSets = result.getOffsets();
     console.log('The new updated map dividing the given subset of entries has offsets: ' + splicedOffSets + '.');
+
+    return result;
+  }
+
+  private removeBreakPointsWithZeroValue(breakPoints: number[]): number[] {
+    let result: number[] = [];
+
+    let ptr: number;
+    for (ptr = 0; ptr < breakPoints.length; ptr++) {
+      if (breakPoints[ptr] > 0) {
+        result.push(breakPoints[ptr]);
+      }
+    }
 
     return result;
   }
