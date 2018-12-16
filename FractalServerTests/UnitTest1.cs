@@ -3,16 +3,18 @@ using Hjg.Pngcs;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PngImageBuilder;
 using System.Drawing;
+using System.IO;
 
 namespace FractalServerTests
 {
     [TestClass]
     public class UnitTest1
     {
+        public const string BasePath = @"C:\Users\david_000\Documents\Mbrodts";
         [TestMethod]
         public void BuildTestMap()
         {
-            string imagePath = @"C:\MBY1.png";
+            string imagePath = Path.Combine(BasePath,  "MBY1.png");
 
             //Size canvasSize = new Size(1440, 960);
             //Size canvasSize = new Size(7200, 4800);
@@ -36,7 +38,10 @@ namespace FractalServerTests
         [TestMethod]
         public void BuildMapFromJason()
         {
-            string path = @"C:\MandlebrodtMapInfo.json";
+            //string path = @"C:\MandlebrodtMapInfo.json";
+
+            int fn = 40;
+            string path = Path.Combine(BasePath, $"MandlebrodtMapInfo ({fn}).json");
 
             JsonReader jr = new JsonReader();
             MapInfoWithColorMap miwcm = jr.Read(path);
@@ -47,7 +52,7 @@ namespace FractalServerTests
             //Size canvasSize = new Size(14400, 9600);
             Size canvasSize = new Size(21600, 14400);
 
-            string imagePath = @"C:\MBZ1_21600.png";
+            string imagePath = Path.Combine(BasePath, $"MBZ ({fn})_21600.png");
 
             BuildMap(imagePath, canvasSize, miwcm);
         }
