@@ -1,20 +1,20 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { MMapParamsComponent } from './m-map-params.component';
+import { MMapViewerParamsComponent } from './m-map-viewer-params.component';
 
-describe('MMapParamsComponent', () => {
-  let component: MMapParamsComponent;
-  let fixture: ComponentFixture<MMapParamsComponent>;
+describe('MMapViewerParamsComponent', () => {
+  let component: MMapViewerParamsComponent;
+  let fixture: ComponentFixture<MMapViewerParamsComponent>;
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      declarations: [ MMapParamsComponent ]
+      declarations: [ MMapViewerParamsComponent ]
     })
     .compileComponents();
   }));
 
   beforeEach(() => {
-    fixture = TestBed.createComponent(MMapParamsComponent);
+    fixture = TestBed.createComponent(MMapViewerParamsComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

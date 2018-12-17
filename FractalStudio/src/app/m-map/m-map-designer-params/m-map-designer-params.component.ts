@@ -3,15 +3,15 @@ import { FormControl, FormGroup } from '@angular/forms';
 
 import {
   IPoint, Point, IBox, Box, IMapInfo, MapInfo,
-  ColorMapUI, ColorMapForExport, MapInfoWithColorMap, MapInfoWithColorMapForExport
+  ColorMapForExport, MapInfoWithColorMap, MapInfoWithColorMapForExport
 } from '../m-map-common';
 
 @Component({
-  selector: 'app-m-map-params',
-  templateUrl: './m-map-params.component.html',
-  styleUrls: ['./m-map-params.component.css']
+  selector: 'app-m-map-designer-params',
+  templateUrl: './m-map-designer-params.component.html',
+  styleUrls: ['./m-map-designer-params.component.css']
 })
-export class MMapParamsComponent {
+export class MMapDesignerParamsComponent {
   //@Output() colorMapUpdated = new EventEmitter<ColorMapUI>();
 
   @Output() mapInfoUpdated = new EventEmitter<IMapInfo>();
