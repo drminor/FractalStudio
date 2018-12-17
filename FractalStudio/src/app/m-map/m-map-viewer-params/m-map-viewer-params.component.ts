@@ -66,12 +66,13 @@ export class MMapViewerParamsComponent {
 
     let defaultPrintWidth = 21600;
     let defaultPrintDensity = 300;
-    let displayWidth = defaultPrintWidth / defaultPrintDensity;
+    let defaultZoomFactor = 1;
+    let displayWidth = this.getDisplayWidth(defaultPrintWidth, defaultPrintDensity, defaultZoomFactor);
 
     let result = new FormGroup({
       printWidth: new FormControl(defaultPrintWidth),
       printDensity: new FormControl(defaultPrintDensity),
-      zoomFactor: new FormControl('1'),
+      zoomFactor: new FormControl(defaultZoomFactor),
       left: new FormControl('0'),
       top: new FormControl('0'),
       displayWidth: new FormControl(displayWidth)
@@ -90,15 +91,32 @@ export class MMapViewerParamsComponent {
 
   onSubmit() {
     let zoomFactor = this.mapViewForm.controls.zoomFactor.value;
-    alert('User pressed apply. The zoom factor is ' + zoomFactor + ' cw: ' + this.mapDisplayWidth + ' ch: ' + this.mapDisplayHeight + '.');
 
     let printWidth = this.mapViewForm.controls.printWidth.value;
     let printDensity = this.mapViewForm.controls.printDensity.value;
 
-    let displayWidthInPixels = printWidth / zoomFactor;
-    let displayWidthInInches = displayWidthInPixels / printDensity;
+    let maxZoomFactor = this.getMaxZoomFactor(printWidth, printDensity, 939, 96);
+    console.log('User pressed apply. The zoom factor is ' + zoomFactor + ' max zf is ' + maxZoomFactor + ' cw: ' + this.mapDisplayWidth + ' ch: ' + this.mapDisplayHeight + '.');
+
+    let displayWidthInInches = this.getDisplayWidth(printWidth, printDensity, zoomFactor);
 
     this.mapViewForm.controls.displayWidth.setValue(displayWidthInInches);
+  }
+
+  private getDisplayWidth(printWidth: number, printDensity: number, zoomFactor: number): number {
+    let displayWidthInPixels = printWidth / zoomFactor;
+    let displayWidthInInches = displayWidthInPixels / printDensity;
+    return displayWidthInInches;
+  }
+
+  private getMaxZoomFactor(printWidth: number, printDensity: number, canvasWidth: number, displayDensity: number): number {
+
+    let canvasWidthInInches = canvasWidth / displayDensity;
+
+    let printWidthInInches = printWidth / printDensity;
+
+    let result = printWidthInInches / canvasWidthInInches;
+    return result;
   }
 
   onMoveL(evt: KeyboardEvent) {
