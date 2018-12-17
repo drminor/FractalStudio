@@ -5,6 +5,12 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Numerics;
 
+/// <remarks>
+/// This is copied wholesale from: https://github.com/MikeMcl/big.js
+/// See the file BigFloat_LICENSE.txt
+/// </remarks>
+
+
 [Serializable]
 class BigFloat : IComparable, IComparable<BigFloat>, IEquatable<BigFloat>
 {
@@ -388,7 +394,7 @@ class BigFloat : IComparable, IComparable<BigFloat>, IEquatable<BigFloat>
     }
 
     //static methods
-    public static bool Equals(object left, object right)
+    public static new bool Equals(object left, object right)
     {
         if (left == null && right == null) return true;
         else if (left == null || right == null) return false;
