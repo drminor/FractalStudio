@@ -12,7 +12,6 @@ import {
   styleUrls: ['./m-map-designer-params.component.css']
 })
 export class MMapDesignerParamsComponent {
-  //@Output() colorMapUpdated = new EventEmitter<ColorMapUI>();
 
   @Output() mapInfoUpdated = new EventEmitter<IMapInfo>();
   @Output() mapInfoLoaded = new EventEmitter<MapInfoWithColorMap>();
@@ -75,9 +74,6 @@ export class MMapDesignerParamsComponent {
 
     let maxIterations = parseInt(frm.controls["maxIterations"].value);
     let iterationsPerStep = parseInt(frm.controls["iterationsPerStep"].value);
-
-    // TODO: consider creating a field on our form to store the upsideDownValue.
-    // for rigth now, we know that the MapInfo we use in the UI is always right side up.
     result = new MapInfo(coords, maxIterations, iterationsPerStep);
 
     return result;

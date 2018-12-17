@@ -145,20 +145,11 @@ export class MMapDesignerComponent {
     this.history = [];
     this.updateDownloadLinkVisibility(false);
 
-    //// It is important to set the color map before setting the Map Info
-    //// so as to avoid the display component having to do extra work.
-    //console.log('MapInfoLoaded -- About to set the color map.');
-    //this.colorMap = miwcm.colorMapUi;
-
-    //console.log('MapInfoLoaded -- About to set the map info.');
-    //this.mapInfo = miwcm.mapInfo;
-
     if (miwcm.colorMapUi.serialNumber === -1) {
       miwcm.colorMapUi.serialNumber = this.ColorMapSerialNumber++;
     }
 
     this.mapInfoWithColorMap = miwcm;
-
     this.atHome = false;
   }
 

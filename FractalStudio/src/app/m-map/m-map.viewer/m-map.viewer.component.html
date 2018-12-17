@@ -1,1 +1,46 @@
-<app-m-map-viewer-params></app-m-map-viewer-params>
+<div style="float:left; width:939px; margin-bottom:5px">
+  <h2 style="margin-bottom:5px  ">The Mandlebrodt Set Viewer</h2>
+
+  <app-m-map-viewer-params [mapInfoWithColorMap]="mapInfoWithColorMap"
+                             [isBuilding]="isBuilding"
+                             [mapDisplayWidth]="mapDisplayWidth"
+                             [mapDisplayHeight]="mapDisplayHeight"
+                             (mapInfoUpdated)="onMapInfoUpdated($event)"
+                             (mapInfoLoaded)="onMapInfoLoaded($event)"
+                             (goBack)="onGoBack($event)">
+  </app-m-map-viewer-params>
+
+  <button type="button" (click)="mapDisplay.getImageDataForExport()" style="margin: 10px 0px 0px 0px">Get Image Data</button>
+  <a #download href="" download="mandlebrodt.jpg" target="_blank" hidden="hidden">Download</a>
+</div>
+
+<section>
+  <div [ngStyle]="{'float': 'left',
+                        'position': 'relative',
+                        'width': mapDisplayWidth || '939px',
+                        'height': mapDisplayHeight || '626px',
+                        'border': '2px solid black'
+                 }">
+
+    <div [ngStyle]="{'position': 'relative',
+                        'width': mapDisplayWidth || '939px',
+                        'height': mapDisplayHeight || '626px'
+                 }">
+
+
+      <app-m-map-display #mapDisplay
+                         [mapInfoWithColorMap]="mapInfoWithColorMap"
+                         (zoomed)="onZoomed($event)"
+                         (haveImageData)="onHaveImageData($event)"
+                         (haveHistogram)="onHaveHistogram($event)"
+                         (buildingComplete)="onBuildingComplete()">
+      </app-m-map-display>
+
+    </div>
+  </div>
+
+
+</section>
+
+
+

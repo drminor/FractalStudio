@@ -401,7 +401,10 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
       console.log("The initial canvas size is W = " + this.canvasSize.width + " H = " + this.canvasSize.height);
 
       // Now that we know the size of our canvas,
-      this.buildWorkingData();
+
+      if (this._mapInfo !== null) {
+        this.buildWorkingData();
+      }
     }
   }
 

@@ -1343,7 +1343,16 @@ export class MapWorkingData implements IMapWorkingData {
     let topPtr = sectionHeightWN;
 
     let yVals: number[];
-    yVals = MapWorkingData.buildValsRev(canvasSize.height, mapInfo.bottomLeft.y, mapInfo.topRight.y);
+
+    if (mapInfo.upsideDown) {
+      // The y coordinates are already reversed, just use buildVals
+      yVals = MapWorkingData.buildVals(canvasSize.height, mapInfo.bottomLeft.y, mapInfo.topRight.y);
+    }
+    else {
+      // The y coordinates are not reveresed, must use buildValsRev
+      yVals = MapWorkingData.buildValsRev(canvasSize.height, mapInfo.bottomLeft.y, mapInfo.topRight.y);
+    }
+    //yVals = MapWorkingData.buildValsRev(canvasSize.height, mapInfo.bottomLeft.y, mapInfo.topRight.y);
 
     let ptr: number = 0;
 
