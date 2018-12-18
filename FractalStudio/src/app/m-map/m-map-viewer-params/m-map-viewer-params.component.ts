@@ -18,9 +18,17 @@ export class MMapViewerParamsComponent {
   @Output() mapInfoLoaded = new EventEmitter<MapInfoWithColorMap>();
   @Output() goBack = new EventEmitter<number>();
 
-  @Input('mapDisplayWidth') mapDisplayWidth: number;
-  @Input('mapDisplayHeight') mapDisplayHeight: number;
+  private mapDisplayWidth: number = 1000;
+  @Input('mapDisplayWidth')
+  set mapDisplayWidthPx(value: string) {
+    this.mapDisplayWidth = parseInt(value.substring(0, value.length - 2));
+  }
 
+  private mapDisplayHeight: number = 1000;
+  @Input('mapDisplayHeight') 
+  set mapDisplayHeightPx(value: string) {
+    this.mapDisplayHeight = parseInt(value.substring(0, value.length - 2));
+  }
 
   private _miwcm: MapInfoWithColorMap;
   @Input('mapInfoWithColorMap')
@@ -64,18 +72,33 @@ export class MMapViewerParamsComponent {
 
   private buildMainForm(): FormGroup {
 
-    let defaultPrintWidth = 21600;
-    let defaultPrintDensity = 300;
+    let defaultImageWidthPx = 21600; // Total number of pixels in print output.
+    let defaultPrintDensity = 300; // Pixels per linear inch.
+
+    let defaultScreenTopPrintPixRat = this.getHomeScreenToPrintPixRat(defaultImageWidthPx, this.mapDisplayWidth);
+
     let defaultZoomFactor = 1;
-    let displayWidth = this.getDisplayWidth(defaultPrintWidth, defaultPrintDensity, defaultZoomFactor);
+
+    let imageWidth = defaultImageWidthPx / defaultPrintDensity;
+
+    let viewWidthPx = this.getViewWidth(defaultImageWidthPx, defaultZoomFactor);
+    let viewWidth = this.getViewWidth(imageWidth, defaultZoomFactor);
+
+    let screenToPrintPixRat = this.getScreenToPrintPixRat(defaultImageWidthPx, this.mapDisplayWidth, defaultZoomFactor);
 
     let result = new FormGroup({
-      printWidth: new FormControl(defaultPrintWidth),
+      imageWidthPx: new FormControl(defaultImageWidthPx),
+      imageWidth: new FormControl(imageWidth),
+
       printDensity: new FormControl(defaultPrintDensity),
       zoomFactor: new FormControl(defaultZoomFactor),
-      left: new FormControl('0'),
-      top: new FormControl('0'),
-      displayWidth: new FormControl(displayWidth)
+      left: new FormControl(0),
+      top: new FormControl(0),
+
+      viewWidthPx: new FormControl(viewWidthPx),
+      viewWidth: new FormControl(viewWidth),
+
+      screenToPrintPixRatio: new FormControl(screenToPrintPixRat)
     });
 
     return result;
@@ -92,30 +115,56 @@ export class MMapViewerParamsComponent {
   onSubmit() {
     let zoomFactor = this.mapViewForm.controls.zoomFactor.value;
 
-    let printWidth = this.mapViewForm.controls.printWidth.value;
+    let imageWidthPx = this.mapViewForm.controls.imageWidthPx.value;
     let printDensity = this.mapViewForm.controls.printDensity.value;
 
-    let maxZoomFactor = this.getMaxZoomFactor(printWidth, printDensity, 939, 96);
+    // Print Output in inches
+    let imageWidth = imageWidthPx / printDensity;
+    this.mapViewForm.controls.imageWidth.setValue(imageWidth);
+
+    // Number of print output pixels currently displayed.
+    let viewWidthPx = this.getViewWidth(imageWidthPx, zoomFactor);
+    this.mapViewForm.controls.viewWidthPx.setValue(viewWidthPx);
+
+    // Number of print output inches currently displayed.
+    let viewWidth = this.getViewWidth(imageWidth, zoomFactor);
+    this.mapViewForm.controls.viewWidth.setValue(viewWidth);
+
+    let screenToPrintPixRat = this.getScreenToPrintPixRat(imageWidthPx, this.mapDisplayWidth, zoomFactor);
+    this.mapViewForm.controls.screenToPrintPixRatio.setValue(screenToPrintPixRat);
+
+    let maxZoomFactor = this.getMaxZoomFactor(imageWidthPx, this.mapDisplayWidth);
     console.log('User pressed apply. The zoom factor is ' + zoomFactor + ' max zf is ' + maxZoomFactor + ' cw: ' + this.mapDisplayWidth + ' ch: ' + this.mapDisplayHeight + '.');
-
-    let displayWidthInInches = this.getDisplayWidth(printWidth, printDensity, zoomFactor);
-
-    this.mapViewForm.controls.displayWidth.setValue(displayWidthInInches);
   }
 
-  private getDisplayWidth(printWidth: number, printDensity: number, zoomFactor: number): number {
-    let displayWidthInPixels = printWidth / zoomFactor;
-    let displayWidthInInches = displayWidthInPixels / printDensity;
-    return displayWidthInInches;
+  private getHomeScreenToPrintPixRat(imageWidthPx: number, canvasWidthPx: number): number {
+    let screenToPrintRat = imageWidthPx / canvasWidthPx;
+
+    // Round up to the nearest integer
+    let result = parseInt((screenToPrintRat + 1).toString());
+    return result;
   }
 
-  private getMaxZoomFactor(printWidth: number, printDensity: number, canvasWidth: number, displayDensity: number): number {
+  private getScreenToPrintPixRat(imageWidthPx: number, canvasWidthPx: number, zoomFactor: number): number {
 
-    let canvasWidthInInches = canvasWidth / displayDensity;
+    let screenToPrintRat = imageWidthPx / canvasWidthPx;
+    let result = screenToPrintRat / zoomFactor;
 
-    let printWidthInInches = printWidth / printDensity;
+    return result;
+  }
 
-    let result = printWidthInInches / canvasWidthInInches;
+  private getViewWidth(imageWidth: number, zoomFactor: number): number {
+    let result = imageWidth / zoomFactor;
+    return result;
+  }
+
+  private getMaxZoomFactor(imageWidth: number, canvasWidth: number): number {
+
+    //let canvasWidthInInches = canvasWidth / displayDensity;
+
+    //let printWidthInInches = imageWidth / printDensity;
+
+    let result = imageWidth / canvasWidth;
     return result;
   }
 

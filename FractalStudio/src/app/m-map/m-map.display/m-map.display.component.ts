@@ -794,6 +794,8 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
   }
 
   onMousedown(that: MMapDisplayComponent, e: MouseEvent): void {
+    if (this._mapInfo === null) return;
+
     let cce = that.canvasControlElement;
     let mousePos = MMapDisplayComponent.getMousePos(cce, e);
 

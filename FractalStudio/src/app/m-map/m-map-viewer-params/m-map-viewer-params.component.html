@@ -6,35 +6,47 @@
 
   <br />
 
-  <table>
+  <table class="form-table">
     <tr>
       <td>
-        <label>Print Width (in pixels): <input type="text" formControlName="printWidth"></label>
+        <label>Image Width (in pixels): <input type="text" formControlName="imageWidthPx" size="2"></label>
+      </td>
+      <td>
+        <label>Image Width (in inches): <input type="text" formControlName="imageWidth" size="2"></label>
       </td>
     </tr>
     <tr>
       <td>
         <label>Print Density (in pixels / inch): <input type="text" formControlName="printDensity"></label>
       </td>
+      <td></td>
     </tr>
     <tr>
+      <td>
+        <label>Each screen pixel covers <input type="text" formControlName="screenToPrintPixRatio" size="1"> print pixels.</label>
+      </td>
       <td>
         <label>Zoom Factor: <input type="text" formControlName="zoomFactor"></label>
       </td>
     </tr>
     <tr>
       <td>
-        <label>Left: <input type="text" formControlName="left"></label>
+        <label>Left: <input type="text" formControlName="left" size="1"></label>
       </td>
+      <td></td>
     </tr>
     <tr>
       <td>
-        <label>Top: <input type="text" formControlName="top"></label>
+        <label>Top: <input type="text" formControlName="top" size="1"></label>
       </td>
+      <td></td>
     </tr>
     <tr>
       <td>
-        <label>Display Width (in inches): <input type="text" formControlName="displayWidth"></label>
+        <label>View Width (in pixels): <input type="text" formControlName="viewWidthPx"></label>
+      </td>
+      <td>
+        <label>View Width (in inches): <input type="text" formControlName="viewWidth"></label>
       </td>
     </tr>
   </table>
