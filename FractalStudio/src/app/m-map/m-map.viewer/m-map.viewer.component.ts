@@ -60,6 +60,12 @@ export class MMapViewerComponent {
           }
         }
         this.virtualMap = new VirtualMap(coords, value.imageSize, value.scrToPrnPixRat, this.displaySize);
+
+        if (this.virtualMap.scrToPrnPixRat !== value.scrToPrnPixRat) {
+          // The Virtual Map has adjusted the scrToPrnPixRat to valid value,
+          // now update our new value to use it.
+          value.scrToPrnPixRat = this.virtualMap.scrToPrnPixRat;
+        }
         value.viewSize = this.virtualMap.getViewSize();
         this._virtualMapParams = value;
 

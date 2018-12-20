@@ -45,41 +45,16 @@ export class VirtualMapParams implements IVirtualMapParams {
   }
 
   constructor(public imageSize: ICanvasSize, public printDensity: number, public scrToPrnPixRat: number) {
+    this.imageSizeInInches = this.getSizeInInches(imageSize, printDensity);
 
     this.viewSize = null;
-    this.imageSizeInInches = null;
-
-    //this.viewSize = this.getViewSize(imageSize, scrToPrnPixRat);
-    this.imageSizeInInches = this.getSizeInInches(imageSize, printDensity);
-    //this.viewSizeInInches = this.getSizeInInches(this.viewSize, printDensity);
+    this.viewSizeInInches = null;
   }
 
   private getSizeInInches(sz: ICanvasSize, printDensity: number): ICanvasSize {
     let result = new CanvasSize(sz.width / printDensity, sz.height / printDensity);
     return result;
   }
-
-  public getHomeScreenToPrintPixRat(imageWidthPx: number, canvasWidthPx: number): number {
-    let screenToPrintRat = imageWidthPx / canvasWidthPx;
-
-    // Truncate to the nearest integer
-    let result = parseInt((screenToPrintRat).toString());
-    return result;
-  }
-
-  //private checkScrToPrnPixRat(): void {
-
-  //  let defaultScreenToPrintPixRat = this.getHomeScreenToPrintPixRat(imageWidthPx, this.displaySize.width);
-
-  //  // TODO: validate this input -- should be a positive integer.
-  //  let screenToPrintPixRat = parseInt(this.mapViewForm.controls.screenToPrintPixRatio.value);
-
-  //  if (screenToPrintPixRat < 0 || screenToPrintPixRat > defaultScreenToPrintPixRat) {
-  //    alert('Invalid Screen to Print Pixel ratio, using ' + defaultScreenToPrintPixRat + '.');
-  //    screenToPrintPixRat = defaultScreenToPrintPixRat;
-  //  }
-  //}
-
 }
 
 export class VirtualMap implements IVirtualMap {
@@ -88,6 +63,12 @@ export class VirtualMap implements IVirtualMap {
   private yVals: number[];
 
   constructor(public coords: IBox, public imageSize: ICanvasSize, public scrToPrnPixRat: number, public displaySize: ICanvasSize) {
+
+
+    let maxScrToPrnPixRat = this.getHomeScreenToPrintPixRat(imageSize.width, displaySize.width);
+    if (scrToPrnPixRat > maxScrToPrnPixRat) {
+      this.scrToPrnPixRat = maxScrToPrnPixRat;
+    }
 
     if (coords !== null) {
       // X coordinates get larger as one moves from the left of the map to  the right.
@@ -114,6 +95,16 @@ export class VirtualMap implements IVirtualMap {
   public getViewSize(): ICanvasSize {
 
     let result = new CanvasSize(this.displaySize.width * this.scrToPrnPixRat, this.displaySize.height * this.scrToPrnPixRat);
+    return result;
+  }
+
+  // If the screen to print pixel ratio is any larger than this
+  // then the resulting image will be smaller than our Map Display Canvas.
+  public getHomeScreenToPrintPixRat(imageWidthPx: number, displayWidthPx: number): number {
+    let screenToPrintRat = imageWidthPx / displayWidthPx;
+
+    // Truncate to the nearest integer
+    let result = parseInt((screenToPrintRat).toString());
     return result;
   }
 

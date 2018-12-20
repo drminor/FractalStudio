@@ -98,13 +98,14 @@ export class MMapViewerParamsComponent {
     this.mapViewForm.controls.imageWidth.setValue(params.imageSizeInInches.width);
 
     // Number of print output pixels currently displayed.
-    //let viewWidthPx = this.displaySize.width * screenToPrintPixRat;
     this.mapViewForm.controls.viewWidthPx.setValue(params.viewSize.width);
     this.mapViewForm.controls.viewHeightPx.setValue(params.viewSize.height);
 
     // Number of print output inches currently displayed.
-    //let viewWidth = params.viewSize.width / params.printDensity;
     this.mapViewForm.controls.viewWidth.setValue(params.viewSizeInInches.width);
+
+    this.mapViewForm.controls.screenToPrintPixRatio.setValue(params.scrToPrnPixRat);
+
 
     let zoomFactor = params.imageSize.width / params.viewSize.width;
     this.mapViewForm.controls.zoomFactor.setValue(zoomFactor);
