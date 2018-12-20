@@ -123,7 +123,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
         // We have no working map, initialize our values and build one.
         this._colorMap = cm;
         this._mapInfo = mi;
-        if (this.viewInitialized) {
+        if (mi !== null && this.viewInitialized) {
           this.buildWorkingData();
         }
       }

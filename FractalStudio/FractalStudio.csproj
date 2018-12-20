@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <None Remove="src\app\m-map\m-map-common.ts" />
+    <None Remove="src\app\m-map\m-map-viewer-state.ts" />
   </ItemGroup>
 
   <ItemGroup>
@@ -20,6 +21,7 @@
     <TypeScriptCompile Include="src\app\m-map\m-map-common.ts">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </TypeScriptCompile>
+    <TypeScriptCompile Include="src\app\m-map\m-map-viewer-state.ts" />
     <TypeScriptCompile Include="src\app\SampleClassTypeDeclarations\file.ts" />
   </ItemGroup>
 

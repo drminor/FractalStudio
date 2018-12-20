@@ -2,12 +2,11 @@
   <h2 style="margin-bottom:5px  ">The Mandlebrodt Set Viewer</h2>
 
   <app-m-map-viewer-params [mapInfoWithColorMap]="mapInfoWithColorMap"
-                             [isBuilding]="isBuilding"
-                             [mapDisplayWidth]="mapDisplayWidth"
-                             [mapDisplayHeight]="mapDisplayHeight"
-                             (mapInfoUpdated)="onMapInfoUpdated($event)"
-                             (mapInfoLoaded)="onMapInfoLoaded($event)"
-                             (goBack)="onGoBack($event)">
+                           [virtualMapParams]="virtualMapParams"
+                          [isBuilding]="isBuilding"
+
+                           (virtualMapParamsUpdated)="onVirtualMapParamsUpdated($event)"
+                          (mapInfoLoaded)="onMapInfoLoaded($event)">
   </app-m-map-viewer-params>
 
   <button type="button" (click)="mapDisplay.getImageDataForExport()" style="margin: 10px 0px 0px 0px">Get Image Data</button>
@@ -30,7 +29,6 @@
 
       <app-m-map-display #mapDisplay
                          [mapInfoWithColorMap]="mapInfoWithColorMap"
-                         (zoomed)="onZoomed($event)"
                          (haveImageData)="onHaveImageData($event)"
                          (haveHistogram)="onHaveHistogram($event)"
                          (buildingComplete)="onBuildingComplete()">

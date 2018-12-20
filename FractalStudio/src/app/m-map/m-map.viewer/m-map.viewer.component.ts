@@ -2,9 +2,10 @@ import { Component, ViewChild, ElementRef } from '@angular/core';
 
 import {
   IPoint, Point, IMapInfo, MapInfo, IBox, Box,
-  ColorMapUI, ColorMapUIEntry, ColorNumbers, MapInfoWithColorMap,
-  Histogram, Divisions
+  ColorMapUI,  MapInfoWithColorMap, Histogram, ICanvasSize, CanvasSize
 } from '../../m-map/m-map-common';
+
+import { IVirtualMap, VirtualMap, IVirtualMapParams, VirtualMapParams } from '../m-map-viewer-state';
 
 import { MMapDisplayComponent } from '../../m-map/m-map.display/m-map.display.component';
 
@@ -14,6 +15,11 @@ import { MMapDisplayComponent } from '../../m-map/m-map.display/m-map.display.co
   styleUrls: ['./m-map.viewer.component.css']
 })
 export class MMapViewerComponent {
+
+  //public imageSize: ICanvasSize; // Total number of pixels in print output.
+  //public printDensity: number; // Pixels per linear inch.
+
+  public displaySize: ICanvasSize;
   public mapDisplayWidth: string;
   public mapDisplayHeight: string;
 
@@ -21,26 +27,53 @@ export class MMapViewerComponent {
   @ViewChild('download') downloadRef: ElementRef;
   @ViewChild('mapDisplay') mapDisplayComponent: MMapDisplayComponent
 
-  mapInfo: IMapInfo;
+  private virtualMap: IVirtualMap;
 
-  _colorMap: ColorMapUI = null;
-  set colorMap(value: ColorMapUI) {
-    if (this._colorMap === null || (this._colorMap !== null && value === null)) {
-      this._colorMap = value;
-    }
-    else {
-      if (this._colorMap.serialNumber !== value.serialNumber) {
-        this._colorMap = value;
+  private _virtualMapParams: IVirtualMapParams;
+  set virtualMapParams(value: IVirtualMapParams) {
+    if (value === null) {
+      if (this._virtualMapParams !== null) {
+        this._virtualMapParams = value;
+        // TODO: Clear the existing VirtualMap and set our mapInfoWithColorMap to null.
       }
     }
-  }
+    else {
+      let shouldUpdate = false;
+      if (this._virtualMapParams === null) {
+        shouldUpdate = true;
+      }
+      else {
+        if (this._virtualMapParams.imageSize.width !== value.imageSize.width) {
+          shouldUpdate = true;
+        }
+        if (this._virtualMapParams.scrToPrnPixRat !== value.scrToPrnPixRat) {
+          shouldUpdate = true;
+        }
+      }
+      if (shouldUpdate) {
+        // Create a new VirtualMap.
+        let coords: IBox = null;
 
-  get colorMap(): ColorMapUI {
-    return this._colorMap;
+        if (this._miwcm !== null) {
+          if (this._miwcm.mapInfo !== null) {
+            coords = this._miwcm.mapInfo.coords;
+          }
+        }
+        this.virtualMap = new VirtualMap(coords, value.imageSize, value.scrToPrnPixRat, this.displaySize);
+        value.viewSize = this.virtualMap.getViewSize();
+        this._virtualMapParams = value;
+
+        // TODO: Set our mapInfoWithColorMap using our new VirtualMap.
+      }
+
+    }
+
+  }
+  get virtualMapParams(): IVirtualMapParams {
+    return this._virtualMapParams;
   }
 
   private _miwcm: MapInfoWithColorMap;
-
   set mapInfoWithColorMap(value: MapInfoWithColorMap) {
 
     if (value === null) {
@@ -48,9 +81,6 @@ export class MMapViewerComponent {
     }
 
     this._miwcm = value;
-
-    this.colorMap = value.colorMapUi;
-    this.mapInfo = value.mapInfo;
     this.isBuilding = true;
   }
 
@@ -58,29 +88,41 @@ export class MMapViewerComponent {
     return this._miwcm;
   }
 
-  histogram: Histogram;
 
-  history: IMapInfo[] = [];
+
   isBuilding: boolean = false;
-  atHome: boolean;
-
-  sectionCnt: number;
 
   public ColorMapSerialNumber: number;
+
 
   constructor() {
 
     this.ColorMapSerialNumber = 0;
 
     this.mapInfoWithColorMap = null;
+    this.virtualMap = null;
 
-    this.histogram = null;
+    this.displaySize = new CanvasSize(939, 626);
+    this.mapDisplayWidth = this.displaySize.width.toString() + 'px';
+    this.mapDisplayHeight = this.displaySize.height.toString() + 'px';
 
-    this.atHome = true;
-    this.sectionCnt = 10;
+    this._virtualMapParams = this.buildVirtualMapParams();
+  }
 
-    this.mapDisplayWidth = '939px';
-    this.mapDisplayHeight = '626px';
+  private buildVirtualMapParams(): IVirtualMapParams {
+    let imageSize = new CanvasSize(21600, 14400);
+    let printDensity = 300;
+    let scrToPrnPixRat = 23;
+    let result = new VirtualMapParams(imageSize, printDensity, scrToPrnPixRat);
+    result.viewSize = this.displaySize;
+    return result;
+  }
+
+  onVirtualMapParamsUpdated(params: IVirtualMapParams) {
+    //if (params !== null) {
+    //  params.viewSize = this.displaySize;
+    //}
+    this.virtualMapParams = params;
   }
   
   onBuildingComplete() {
@@ -88,11 +130,6 @@ export class MMapViewerComponent {
   }
 
   onHaveHistogram(h: Histogram) {
-    console.log('We now have a histogram. It has ' + h.entriesMap.size + ' entries.');
-
-    console.log(h.toString());
-
-    this.histogram = h;
     this.isBuilding = false;
   }
 
@@ -111,20 +148,7 @@ export class MMapViewerComponent {
     //anchorTag.click();
   }
 
-  onMapInfoUpdated(mapInfo: IMapInfo) {
-    console.log('Received the updated mapinfo from Param Form ' + mapInfo.bottomLeft.x + '.');
-    this.history.push(this.mapInfo);
-    this.updateDownloadLinkVisibility(false);
-
-    // Update the MapInfo, but keep the exiting colorMap.
-    this.mapInfoWithColorMap = new MapInfoWithColorMap(mapInfo, this.colorMap);
-
-    this.atHome = false;
-  }
-
   onMapInfoLoaded(miwcm: MapInfoWithColorMap) {
-    // Clear History.
-    this.history = [];
     this.updateDownloadLinkVisibility(false);
 
     if (miwcm.colorMapUi.serialNumber === -1) {
@@ -132,53 +156,11 @@ export class MMapViewerComponent {
     }
 
     this.mapInfoWithColorMap = miwcm;
-    this.atHome = false;
-  }
-
-  onZoomed(mapCoords: IBox) {
-    console.log('Received the updated mapinfo from zoom ' + mapCoords.botLeft.x + '.');
-    this.history.push(this.mapInfo);
-    this.updateDownloadLinkVisibility(false);
-
-    //this.mapInfo = new MapInfo(mapCoords, this.mapInfo.maxIterations, this.mapInfo.iterationsPerStep, this.mapInfo.upsideDown);
-
-    // Build a new MapInfo using the existing Max Iterations and IterationsPerStep
-    let mi = new MapInfo(mapCoords, this.mapInfo.maxIterations, this.mapInfo.iterationsPerStep);
-
-    // Update the MapInfo, keeping the existing Color Map.
-    this.mapInfoWithColorMap = new MapInfoWithColorMap(mi, this.colorMap);
-
-    this.atHome = false;
-  }
-
-  // Handles Back and Reset operations.
-  onGoBack(steps: number) {
-    if (steps === -1) {
-      if (!this.atHome) {
-        this.history = [];
-
-        this.mapInfoWithColorMap = null;
-        this.atHome = true;
-      }
-    }
-    else if (steps === 1) {
-      // Go Back 1 step
-      if (this.history.length > 0) {
-        let mi = this.history.pop();
-        this.mapInfoWithColorMap = new MapInfoWithColorMap(mi, this.colorMap);
-      }
-    }
-    else {
-      throw new RangeError('Steps must be 1 or -1.');
-    }
-
-    this.updateDownloadLinkVisibility(false);
   }
 
   private updateDownloadLinkVisibility(show: boolean): void {
     let anchorTag = this.downloadRef.nativeElement as HTMLAnchorElement;
     anchorTag.hidden = !show;
   }
-
 
 }

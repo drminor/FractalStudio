@@ -264,15 +264,19 @@ export class CanvasSize implements ICanvasSize {
 
   constructor(public width: number, public height: number) {
     if (!this.isReasonableExtent(this.width, MAX_CANVAS_WIDTH)) {
+      console.log('A CanvasSize is being contructed with an invalid width.');
       alert('Width is invalid');
     }
     if (!this.isReasonableExtent(this.height, MAX_CANVAS_HEIGHT)) {
+      console.log('A CanvasSize is being contructed with an invalid height.');
       alert('Height is invalid');
     }
   }
 
   isReasonableExtent(nVal:number, max:number): boolean {
-    return isFinite(nVal) && nVal > 0 && nVal <= max && Math.floor(nVal) === nVal;
+    //return isFinite(nVal) && nVal > 0 && nVal <= max && Math.floor(nVal) === nVal;
+    return isFinite(nVal) && nVal > 0 && nVal <= max;
+
   }
 }
 

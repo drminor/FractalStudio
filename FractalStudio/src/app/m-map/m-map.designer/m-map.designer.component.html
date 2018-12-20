@@ -1,14 +1,6 @@
 <div style="float:left; width:939px; margin-bottom:5px">
   <h2 style="margin-bottom:5px  ">The Mandlebrodt Set</h2>
 
-  <!--(colorMapUpdated)="onColorMapUpdated($event)"-->
-  <!--<app-m-map-params [mapInfo]="mapInfo"
-                    [colorMap]="colorMap"
-                    (mapInfoUpdated)="onMapInfoUpdated($event)"
-                    (mapInfoLoaded)="onMapInfoLoaded($event)"
-                    (goBack)="onGoBack($event)">
-  </app-m-map-params>-->
-
   <app-m-map-designer-params [mapInfoWithColorMap]="mapInfoWithColorMap"
                     [isBuilding]="isBuilding"
                     (mapInfoUpdated)="onMapInfoUpdated($event)"
@@ -32,15 +24,6 @@
                         'width': mapDisplayWidth || '939px',
                         'height': mapDisplayHeight || '626px'
                  }">
-
-      <!--<app-m-map-display #mapDisplay [mapCoords]="mapCoords"
-                     [maxIterations]="maxIterations"
-                     [iterationsPerStep]="iterationsPerStep"
-                     [colorMap]="colorMap"
-                     (zoomed)="onZoomed($event)"
-                     (haveImageData)="onHaveImageData($event)"
-                     (haveHistogram)="onHaveHistogram($event)">
-      </app-m-map-display>-->
 
       <app-m-map-display #mapDisplay
                          [mapInfoWithColorMap]="mapInfoWithColorMap"

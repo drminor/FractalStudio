@@ -40,7 +40,7 @@ namespace FractalServerTests
         {
             //string path = @"C:\MandlebrodtMapInfo.json";
 
-            int fn = 39;
+            int fn = 41;
             string path = Path.Combine(BasePath, $"MandlebrodtMapInfo ({fn}).json");
 
             JsonReader jr = new JsonReader();
