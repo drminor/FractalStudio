@@ -110,7 +110,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
       if (this._mapInfo !== null) {
         // Set our mapInfo to null, if its not already null
         this._mapInfo = null;
-        // TODO: clear the canvas
+        this.clearTheCanvas();
       }
       else {
         // Do nothing.
@@ -145,7 +145,6 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
           }
           else {
             // Do nothing.
-            //this.buildingComplete.emit();
           }
         }
         else {
@@ -302,6 +301,19 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     ctx.putImageData(imageData, left, bot);
 
     //console.log('Just drew image data for sn=' + sectionNumber + ' left=' + left + ' bot =' + bot  + '.');
+  }
+
+  private clearTheCanvas(): void {
+
+    let canvasElement = this.canvasElement;
+
+    let ctx: CanvasRenderingContext2D = canvasElement.getContext('2d');
+
+    let cw: number = canvasElement.width;
+    let ch: number = canvasElement.height;
+
+    ctx.fillStyle = '#DD0031';
+    ctx.clearRect(0, 0, cw, ch);
   }
 
   buildCanvasForExport(imageData: ImageData, mapWorkingData: IMapWorkingData, sectionNumber: number): void {

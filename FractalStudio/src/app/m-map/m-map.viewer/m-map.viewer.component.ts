@@ -29,72 +29,128 @@ export class MMapViewerComponent {
 
   private virtualMap: IVirtualMap;
 
-  private _virtualMapParams: IVirtualMapParams;
+  private _virtualMapParams: IVirtualMapParams = null;
   set virtualMapParams(value: IVirtualMapParams) {
     if (value === null) {
       if (this._virtualMapParams !== null) {
         this._virtualMapParams = value;
-        // TODO: Clear the existing VirtualMap and set our mapInfoWithColorMap to null.
+
+        // Clear the virtual map and the current display.
+        this.virtualMap = null;
+        this.curViewCoords = null;
       }
     }
     else {
-      let shouldUpdate = false;
+      let buildNewMap = false;
+      let updatePos = false;
+
       if (this._virtualMapParams === null) {
-        shouldUpdate = true;
+        buildNewMap = true;
+      }
+      else if (this._virtualMapParams.imageSize.width !== value.imageSize.width) {
+        buildNewMap = true;
+      }
+      else if (this._virtualMapParams.scrToPrnPixRat !== value.scrToPrnPixRat) {
+        buildNewMap = true;
       }
       else {
-        if (this._virtualMapParams.imageSize.width !== value.imageSize.width) {
-          shouldUpdate = true;
+        if (this._virtualMapParams.left !== value.left) {
+          updatePos = true;
         }
-        if (this._virtualMapParams.scrToPrnPixRat !== value.scrToPrnPixRat) {
-          shouldUpdate = true;
+        if (this._virtualMapParams.top !== value.top) {
+          updatePos = true;
         }
-      }
-      if (shouldUpdate) {
-        // Create a new VirtualMap.
-        let coords: IBox = null;
 
-        if (this._miwcm !== null) {
-          if (this._miwcm.mapInfo !== null) {
-            coords = this._miwcm.mapInfo.coords;
+      }
+
+      if (buildNewMap) {
+        // Create a new VirtualMap.
+
+        let coords: IBox;
+        if (this._miwcm !== null && this._miwcm.mapInfo !== null) {
+          coords = this._miwcm.mapInfo.coords;
+        }
+        else {
+          coords = null;
+        }
+
+        this.virtualMap = this.createVirtualMap(coords, value, this.displaySize);
+        this.updateParamsFromVirtualMap(value, this.virtualMap);
+        this.curViewCoords = this.virtualMap.getCurCoords(value.left, value.top);
+      }
+      else {
+        if (updatePos) {
+          if (this.virtualMap !== null) {
+            this.curViewCoords = this.virtualMap.getCurCoords(value.left, value.top);
           }
         }
-        this.virtualMap = new VirtualMap(coords, value.imageSize, value.scrToPrnPixRat, this.displaySize);
-
-        if (this.virtualMap.scrToPrnPixRat !== value.scrToPrnPixRat) {
-          // The Virtual Map has adjusted the scrToPrnPixRat to valid value,
-          // now update our new value to use it.
-          value.scrToPrnPixRat = this.virtualMap.scrToPrnPixRat;
-        }
-        value.viewSize = this.virtualMap.getViewSize();
-        this._virtualMapParams = value;
-
-        // TODO: Set our mapInfoWithColorMap using our new VirtualMap.
       }
-
+      this._virtualMapParams = value;
     }
-
   }
+
   get virtualMapParams(): IVirtualMapParams {
     return this._virtualMapParams;
   }
 
+  // This is the map for the entir image being displayed.
   private _miwcm: MapInfoWithColorMap;
   set mapInfoWithColorMap(value: MapInfoWithColorMap) {
 
-    if (value === null) {
-      value = new MapInfoWithColorMap(null, null);
+    this._miwcm = value;
+    let coords: IBox = null;
+
+    if (value !== null) {
+      coords = value.mapInfo.coords;
     }
 
-    this._miwcm = value;
-    this.isBuilding = true;
+    let params = this.virtualMapParams;
+    if (params !== null) {
+      this.virtualMap = this.createVirtualMap(coords, params, this.displaySize);
+      this.updateParamsFromVirtualMap(params, this.virtualMap);
+      this.curViewCoords = this.virtualMap.getCurCoords(params.left, params.top);
+    }
+    else {
+      this.curViewCoords = null;
+    }
   }
 
   get mapInfoWithColorMap(): MapInfoWithColorMap {
     return this._miwcm;
   }
 
+  curMapInfoWithColorMap: MapInfoWithColorMap;
 
+  // TODO: This updates the params argument as a side effect -- please fix.
+  private createVirtualMap(coords: IBox, params: IVirtualMapParams, displaySize: ICanvasSize) : IVirtualMap {
+    let result = new VirtualMap(coords, params.imageSize, params.scrToPrnPixRat, displaySize);
+    return result;
+  }
+
+  private updateParamsFromVirtualMap(params: IVirtualMapParams, virtualMap: IVirtualMap): void {
+
+    if (virtualMap.scrToPrnPixRat !== params.scrToPrnPixRat) {
+      // The Virtual Map has adjusted the scrToPrnPixRat to valid value,
+      // now update our value to match.
+      params.scrToPrnPixRat = virtualMap.scrToPrnPixRat;
+    }
+
+    params.viewSize = virtualMap.getViewSize();
+  }
+
+  set curViewCoords(value: IBox) {
+    if (this._miwcm !== null) {
+
+      let newMapInfo = new MapInfo(value, this._miwcm.mapInfo.maxIterations, this._miwcm.mapInfo.iterationsPerStep);
+      let newMapInfoWithColorMap = new MapInfoWithColorMap(newMapInfo, this._miwcm.colorMapUi);
+      this.curMapInfoWithColorMap = newMapInfoWithColorMap;
+
+      this.isBuilding = true;
+    }
+    else {
+      this.curMapInfoWithColorMap = null;
+    }
+  }
 
   isBuilding: boolean = false;
 
@@ -102,6 +158,7 @@ export class MMapViewerComponent {
 
 
   constructor() {
+    this.curMapInfoWithColorMap = null;
 
     this.ColorMapSerialNumber = 0;
 
@@ -112,15 +169,16 @@ export class MMapViewerComponent {
     this.mapDisplayWidth = this.displaySize.width.toString() + 'px';
     this.mapDisplayHeight = this.displaySize.height.toString() + 'px';
 
-    this._virtualMapParams = this.buildVirtualMapParams();
+    this.virtualMapParams = this.buildVirtualMapParams();
   }
 
   private buildVirtualMapParams(): IVirtualMapParams {
     let imageSize = new CanvasSize(21600, 14400);
     let printDensity = 300;
-    let scrToPrnPixRat = 23;
-    let result = new VirtualMapParams(imageSize, printDensity, scrToPrnPixRat);
-    result.viewSize = this.displaySize;
+    let scrToPrnPixRat = 10; // 23
+    let left = 0;
+    let top = 0;
+    let result = new VirtualMapParams(imageSize, printDensity, scrToPrnPixRat, left, top);
     return result;
   }
 

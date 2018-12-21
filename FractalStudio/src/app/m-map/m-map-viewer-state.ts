@@ -8,6 +8,8 @@ export interface IVirtualMapParams {
   imageSize: ICanvasSize;
   printDensity: number;
   scrToPrnPixRat: number;
+  left: number,
+  top: number,
 
   viewSize: ICanvasSize;
   imageSizeInInches: ICanvasSize;
@@ -22,6 +24,7 @@ export interface IVirtualMap {
   displaySize: ICanvasSize;
 
   getViewSize(): ICanvasSize;
+  getCurCoords(left: number, top: number): IBox
 }
 
 export class VirtualMapParams implements IVirtualMapParams {
@@ -33,7 +36,7 @@ export class VirtualMapParams implements IVirtualMapParams {
   public set viewSize(value: ICanvasSize) {
     this._viewSize = value;
     if (value !== null) {
-      this.viewSizeInInches = this.getSizeInInches(this._viewSize, this.printDensity);
+      this.viewSizeInInches = this.getSizeInInches(value, this.printDensity);
     }
   }
   public get viewSize(): ICanvasSize {
@@ -44,7 +47,8 @@ export class VirtualMapParams implements IVirtualMapParams {
     return this._viewSize !== null;
   }
 
-  constructor(public imageSize: ICanvasSize, public printDensity: number, public scrToPrnPixRat: number) {
+  constructor(public imageSize: ICanvasSize, public printDensity: number,
+    public scrToPrnPixRat: number, public left: number, public top: number) {
     this.imageSizeInInches = this.getSizeInInches(imageSize, printDensity);
 
     this.viewSize = null;
@@ -64,7 +68,8 @@ export class VirtualMap implements IVirtualMap {
 
   constructor(public coords: IBox, public imageSize: ICanvasSize, public scrToPrnPixRat: number, public displaySize: ICanvasSize) {
 
-
+    // If the given scrToPrnPixRat is too high, set it to the maximum
+    // value that keeps the entire viewWidth > the display width.
     let maxScrToPrnPixRat = this.getHomeScreenToPrintPixRat(imageSize.width, displaySize.width);
     if (scrToPrnPixRat > maxScrToPrnPixRat) {
       this.scrToPrnPixRat = maxScrToPrnPixRat;
@@ -108,9 +113,9 @@ export class VirtualMap implements IVirtualMap {
     return result;
   }
 
-  public getMapInfo(): IMapInfo {
+  public getCurCoords(left: number, top: number): IBox {
 
-    let result: IMapInfo = null;
+    let result: IBox = this.coords;
 
     //let result: IMapWorkingData[] = Array<IMapWorkingData>(numberOfSections);
 

@@ -25,16 +25,16 @@ export class MMapViewerParamsComponent {
     return this._virtualMapParams;
   }
 
-  private _miwcm: MapInfoWithColorMap;
-  @Input('mapInfoWithColorMap')
+  //private _miwcm: MapInfoWithColorMap;
+  //@Input('mapInfoWithColorMap')
 
-  set mapInfoWithColorMap(value: MapInfoWithColorMap) {
-    this._miwcm = value;
+  //set mapInfoWithColorMap(value: MapInfoWithColorMap) {
+  //  this._miwcm = value;
 
-  }
-  get mapInfoWithColorMap(): MapInfoWithColorMap {
-    return this._miwcm;
-  }
+  //}
+  //get mapInfoWithColorMap(): MapInfoWithColorMap {
+  //  return this._miwcm;
+  //}
 
   @Input('isBuilding')
   set isBuilding(value: boolean) {
@@ -54,12 +54,7 @@ export class MMapViewerParamsComponent {
   @ViewChild('fileSelector') fileSelectorRef: ElementRef;
 
   constructor() {
-    //let defaultScreenToPrintPixRat = this.getHomeScreenToPrintPixRat(defaultImageWidthPx, this.mapDisplayWidth);
-    this._miwcm = new MapInfoWithColorMap(null, null);
-    //this.displaySize = new CanvasSize(1000, 1000);
-
     this.mapViewForm = this.buildMainForm();
-    //this.updateForm(this._virtualMapParams);
   }
 
   private buildMainForm(): FormGroup {
@@ -129,7 +124,11 @@ export class MMapViewerParamsComponent {
 
     let screenToPrintPixRat = parseInt(this.mapViewForm.controls.screenToPrintPixRatio.value);
 
-    let params = new VirtualMapParams(imageSize, printDensity, screenToPrintPixRat);
+    let left = this.mapViewForm.controls.left.value;
+    let top = this.mapViewForm.controls.top.value;
+
+
+    let params = new VirtualMapParams(imageSize, printDensity, screenToPrintPixRat, left, top);
 
     this.virtualMapParamsUpdated.emit(params);
   }
@@ -159,19 +158,19 @@ export class MMapViewerParamsComponent {
     this.moveMap('d', amount);
   }
 
-  private moveMap(dir: string, percent: number) {
-    let newCoords: IBox;
+  private moveMap(dir: string, percent: number): void {
+    //let newCoords: IBox;
 
-    let mi = this.mapInfoWithColorMap.mapInfo;
+    //let mi = this.mapInfoWithColorMap.mapInfo;
 
-    if (dir === 'o') {
-      newCoords = mi.coords.getExpandedBox(percent);
-    }
-    else {
-      newCoords = mi.coords.getShiftedBox(dir, percent);
-    }
+    //if (dir === 'o') {
+    //  newCoords = mi.coords.getExpandedBox(percent);
+    //}
+    //else {
+    //  newCoords = mi.coords.getShiftedBox(dir, percent);
+    //}
 
-    let newMapInfo = new MapInfo(newCoords, mi.maxIterations, mi.iterationsPerStep);
+    //let newMapInfo = new MapInfo(newCoords, mi.maxIterations, mi.iterationsPerStep);
     //this.raiseMapInfoUpdated(newMapInfo);
   }
 
