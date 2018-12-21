@@ -11,9 +11,7 @@ import { IVirtualMapParams, VirtualMapParams } from '../m-map-viewer-state';
 })
 export class MMapViewerParamsComponent {
 
-
   public mapViewForm: FormGroup;
-
 
   private _virtualMapParams;
   @Input('virtualMapParams')
@@ -24,17 +22,6 @@ export class MMapViewerParamsComponent {
   get virtualMapParams(): IVirtualMapParams {
     return this._virtualMapParams;
   }
-
-  //private _miwcm: MapInfoWithColorMap;
-  //@Input('mapInfoWithColorMap')
-
-  //set mapInfoWithColorMap(value: MapInfoWithColorMap) {
-  //  this._miwcm = value;
-
-  //}
-  //get mapInfoWithColorMap(): MapInfoWithColorMap {
-  //  return this._miwcm;
-  //}
 
   @Input('isBuilding')
   set isBuilding(value: boolean) {
@@ -109,11 +96,6 @@ export class MMapViewerParamsComponent {
     //console.log('User pressed apply. The zoom factor is ' + zoomFactor + ' max zf is ' + maxZoomFactor + ' cw: ' + this.displaySize.width + ' ch: ' + this.displaySize.height + '.');
   }
 
-  private getMapInfo(frm: FormGroup): IMapInfo {
-    let result: IMapInfo;
-    return result;
-  }
-
   onSubmit() {
 
     let imageSize = new CanvasSize(
@@ -127,15 +109,8 @@ export class MMapViewerParamsComponent {
     let left = this.mapViewForm.controls.left.value;
     let top = this.mapViewForm.controls.top.value;
 
-
     let params = new VirtualMapParams(imageSize, printDensity, screenToPrintPixRat, left, top);
-
     this.virtualMapParamsUpdated.emit(params);
-  }
-
-  private getMaxZoomFactor(imageWidth: number, canvasWidth: number): number {
-    let result = imageWidth / canvasWidth;
-    return result;
   }
 
   onMoveL(evt: KeyboardEvent) {
@@ -173,17 +148,7 @@ export class MMapViewerParamsComponent {
     //let newMapInfo = new MapInfo(newCoords, mi.maxIterations, mi.iterationsPerStep);
     //this.raiseMapInfoUpdated(newMapInfo);
   }
-
-  onGoBack() {
-    alert('User pressed go back.');
-    //this.goBack.emit(1);
-  }
-
-  onReset() {
-    alert('User pressed Reset.');
-    //this.goBack.emit(-1);
-  }
-
+  
   onLoadMapInfo() {
     let fSelector = this.fileSelectorRef.nativeElement as HTMLInputElement;
 
