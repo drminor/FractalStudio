@@ -104,7 +104,7 @@ export class MMapViewerParamsComponent implements OnInit {
 
     let imageSize = new CanvasSize(
       this.mapViewForm.controls.imageWidthPx.value,
-      this.mapViewForm.controls.imageHeightPx.value);
+      this.mapViewForm.controls.imageWidthPx.value / 1.5);
 
     let printDensity = this.mapViewForm.controls.printDensity.value;
 

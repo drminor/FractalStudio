@@ -150,25 +150,40 @@ export class VirtualMap implements IVirtualMap {
 
     // Calculate indexes into the virtual x and y values array.
 
-    let sx = left * this.displaySize.width;
-    let ex = -1 + sx + this.displaySize.width;
+    //let sx = left * this.displaySize.width;
+    //let ex = -1 + sx + this.displaySize.width;
 
-    let sy = top * this.displaySize.height;
-    let ey = -1 + sy + this.displaySize.height;
+    //let sy = top * this.displaySize.height;
+    //let ey = -1 + sy + this.displaySize.height;
+
+    //let dMapWidth = this.coords.width;
+    //let dMapHeight = imageBot - imageTop;
+
+    //let virtualViewExtent = this.imageSize.getScaledCanvas(1 / this.scrToPrnPixRat);
+
+    //let unitExtentW = dMapWidth / virtualViewExtent.width;
+    //let unitExtentH = dMapHeight / virtualViewExtent.height;
+
+    //let sxc = this.coords.botLeft.x + sx * unitExtentW;
+    //let exc = this.coords.botLeft.x + ex * unitExtentW;
+
+    //let syc = imageBot - sy * unitExtentH;
+    //let eyc = imageBot - ey * unitExtentH;
 
     let dMapWidth = this.coords.width;
     let dMapHeight = imageBot - imageTop;
 
-    let virtualViewExtent = this.imageSize.getScaledCanvas(1 / this.scrToPrnPixRat);
+    let vvw = this.scrToPrnPixRat * this.displaySize.width / this.imageSize.width;
+    let vvh = this.scrToPrnPixRat * this.displaySize.height / this.imageSize.height;
 
-    let unitExtentW = dMapWidth / virtualViewExtent.width;
-    let unitExtentH = dMapHeight / virtualViewExtent.height;
+    let unitExtentW = dMapWidth * vvw;
+    let unitExtentH = dMapHeight * vvh;
 
-    let sxc = this.coords.botLeft.x + sx * unitExtentW;
-    let exc = this.coords.botLeft.x + ex * unitExtentW;
+    let sxc = this.coords.botLeft.x + left * unitExtentW;
+    let exc = this.coords.botLeft.x + (left + 1) * unitExtentW;
 
-    let syc = imageBot - sy * unitExtentH;
-    let eyc = imageBot - ey * unitExtentH;
+    let syc = imageBot - top * unitExtentH;
+    let eyc = imageBot - (top + 1) * unitExtentH;
 
     let result = new Box(new Point(sxc, eyc), new Point(exc, syc));
 
