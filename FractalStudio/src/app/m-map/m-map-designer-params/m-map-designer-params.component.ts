@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output, Input, ViewChild, ElementRef } from '@angular/core';
+import { Component, EventEmitter, Output, Input, ViewChild, ElementRef, OnInit } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 
 import {
@@ -11,7 +11,7 @@ import {
   templateUrl: './m-map-designer-params.component.html',
   styleUrls: ['./m-map-designer-params.component.css']
 })
-export class MMapDesignerParamsComponent {
+export class MMapDesignerParamsComponent implements OnInit {
 
   @Output() mapInfoUpdated = new EventEmitter<IMapInfo>();
   @Output() mapInfoLoaded = new EventEmitter<MapInfoWithColorMap>();
@@ -158,6 +158,13 @@ export class MMapDesignerParamsComponent {
     //a.hidden = false;
 
     console.log('The MapInfoWithColorMap is |' + dump + '|');
+  }
+
+  ngOnInit(): void {
+    let fSelector = this.fileSelectorRef.nativeElement as HTMLInputElement;
+    fSelector.onchange = (evd => {
+      this.onLoadMapInfo();
+    });
   }
 
   onLoadMapInfo() {

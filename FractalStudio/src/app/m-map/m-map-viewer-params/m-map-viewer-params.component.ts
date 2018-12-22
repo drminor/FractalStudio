@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output, Input, ViewChild, ElementRef } from '@angular/core';
+import { Component, EventEmitter, Output, Input, ViewChild, ElementRef, OnInit } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 
 import { IBox, IMapInfo, MapInfo, MapInfoWithColorMap, MapInfoWithColorMapForExport, ICanvasSize, CanvasSize } from '../m-map-common';
@@ -9,13 +9,14 @@ import { IVirtualMapParams, VirtualMapParams } from '../m-map-viewer-state';
   templateUrl: './m-map-viewer-params.component.html',
   styleUrls: ['./m-map-viewer-params.component.css']
 })
-export class MMapViewerParamsComponent {
+export class MMapViewerParamsComponent implements OnInit {
 
   public mapViewForm: FormGroup;
 
   private _virtualMapParams;
   @Input('virtualMapParams')
   set virtualMapParams(value: IVirtualMapParams) {
+    console.log('Viewer params is having its params value set.');
     this._virtualMapParams = value;
     this.updateForm(this._virtualMapParams);
   }
@@ -36,6 +37,7 @@ export class MMapViewerParamsComponent {
 
   @Output() mapInfoLoaded = new EventEmitter<MapInfoWithColorMap>();
   @Output() virtualMapParamsUpdated = new EventEmitter<IVirtualMapParams>();
+  @Output() mapPositionUpdated = new EventEmitter<string>();
 
   @ViewChild('applyButton') applyButton: ElementRef;
   @ViewChild('fileSelector') fileSelectorRef: ElementRef;
@@ -88,6 +90,8 @@ export class MMapViewerParamsComponent {
 
     this.mapViewForm.controls.screenToPrintPixRatio.setValue(params.scrToPrnPixRat);
 
+    this.mapViewForm.controls.left.setValue(params.left);
+    this.mapViewForm.controls.top.setValue(params.top);
 
     let zoomFactor = params.imageSize.width / params.viewSize.width;
     this.mapViewForm.controls.zoomFactor.setValue(zoomFactor);
@@ -106,10 +110,11 @@ export class MMapViewerParamsComponent {
 
     let screenToPrintPixRat = parseInt(this.mapViewForm.controls.screenToPrintPixRatio.value);
 
-    let left = this.mapViewForm.controls.left.value;
-    let top = this.mapViewForm.controls.top.value;
+    let left = parseInt(this.mapViewForm.controls.left.value);
+    let top = parseInt(this.mapViewForm.controls.top.value);
 
     let params = new VirtualMapParams(imageSize, printDensity, screenToPrintPixRat, left, top);
+    console.log('Viewer Params is emitting a Params Update.');
     this.virtualMapParamsUpdated.emit(params);
   }
 
@@ -134,19 +139,17 @@ export class MMapViewerParamsComponent {
   }
 
   private moveMap(dir: string, percent: number): void {
-    //let newCoords: IBox;
+    let eventData: string = dir + percent.toString();
+    console.log('Viewer Params is emitting a Map Pos Update.');
 
-    //let mi = this.mapInfoWithColorMap.mapInfo;
+    this.mapPositionUpdated.emit(eventData);
+  }
 
-    //if (dir === 'o') {
-    //  newCoords = mi.coords.getExpandedBox(percent);
-    //}
-    //else {
-    //  newCoords = mi.coords.getShiftedBox(dir, percent);
-    //}
-
-    //let newMapInfo = new MapInfo(newCoords, mi.maxIterations, mi.iterationsPerStep);
-    //this.raiseMapInfoUpdated(newMapInfo);
+  ngOnInit(): void {
+    let fSelector = this.fileSelectorRef.nativeElement as HTMLInputElement;
+    fSelector.onchange = (evd => {
+      this.onLoadMapInfo();
+    });
   }
   
   onLoadMapInfo() {
@@ -154,7 +157,7 @@ export class MMapViewerParamsComponent {
 
     let files: FileList = fSelector.files;
 
-    console.log('The user selected these files: ' + files + '.');
+    //console.log('The user selected these files: ' + files + '.');
     if (files.length <= 0) {
       return;
     }

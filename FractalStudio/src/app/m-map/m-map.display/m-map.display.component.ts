@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, ElementRef, ViewChild, Input, EventEmitter, Output } from '@angular/core';
+import { Component, AfterViewInit, ElementRef, ViewChild, Input, EventEmitter, Output } from '@angular/core';
 //import { saveAs } from 'file-saver';
 
 import {
@@ -15,7 +15,7 @@ import {
   templateUrl: './m-map.display.component.html',
   styleUrls: ['./m-map.display.component.css']
 })
-export class MMapDisplayComponent implements AfterViewInit, OnInit {
+export class MMapDisplayComponent implements AfterViewInit {
 
   @ViewChild('myCanvas') canvasRef: ElementRef;
   @ViewChild('myControlCanvas') canvasControlRef: ElementRef;
@@ -26,66 +26,34 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
   @Output() haveHistogram = new EventEmitter<Histogram>();
   @Output() buildingComplete = new EventEmitter();
 
+  private _mapInfo: IMapInfo;
+  private _colorMap: ColorMapUI;
+
   private _histogram: Histogram;
 
-  public alive: boolean;
-
   private viewInitialized: boolean;
-  private componentInitialized: boolean;
   private canvasSize: ICanvasSize;
+
+  private useWorkers: boolean;
 
   // Array of WebWorkers
   private workers: Worker[];
+
   private numberOfSections: number;
   private sections: IMapWorkingData[];
 
-  private zoomBox: IBox;
   private canvasElement: HTMLCanvasElement;
   private canvasControlElement: HTMLCanvasElement;
   private canvasExportElement: HTMLCanvasElement;
 
-  private useWorkers: boolean;
-
-  private _canvasSizeForExport: ICanvasSize;
-  private _sectionCompleteFlags: boolean[];
-  private _buildingNewMap: boolean;
   private _exportWorkers: Worker[];
+  private _canvasSizeForExport: ICanvasSize;
 
-  private _mapInfo: IMapInfo;
+  private _buildingNewMap: boolean;
+  private _sectionCompleteFlags: boolean[];
 
-  set maxIterations(maxIters: number) {
+  private zoomBox: IBox;
 
-    if (this.viewInitialized) {
-
-      if (this._mapInfo.maxIterations < maxIters) {
-        this._mapInfo.maxIterations = maxIters;
-        console.log('The Maximum Iterations is being increased. Will perform the additional iterations. The new MapInfo is:' + this._mapInfo.toString());
-        this.doMoreIterations(maxIters);
-      }
-      else if (this._mapInfo.maxIterations > maxIters) {
-        this._mapInfo.maxIterations = maxIters;
-        console.log('The Maximum Iterations is being decreased. Will rebuild the map. The new MapInfo is:' + this._mapInfo.toString());
-        this.buildWorkingData();
-      }
-      else {
-        console.log('The Maximum Iterations is being set to the same value it currently has. The new MapInfo is:' + this._mapInfo.toString());
-      }
-    }
-    else {
-      // The view is not ready, just save the new value.
-      this._mapInfo.maxIterations = maxIters;
-      console.log('The Maximum Iterations is being updated. The view has not been initialized. The new MapInfo is:' + this._mapInfo.toString());
-    }
-  }
-
-  set iterationsPerStep(itersPerStep: number) {
-    if (this._mapInfo.iterationsPerStep != itersPerStep) {
-      this._mapInfo.iterationsPerStep = itersPerStep;
-      console.log('The Iterations Per Step is being updated. The new MapInfo is:' + this._mapInfo.toString());
-    }
-  }
-
-  //private _miwcm: MapInfoWithColorMap;
   @Input('mapInfoWithColorMap')
   set mapInfoWithColorMap(value: MapInfoWithColorMap) {
 
@@ -159,20 +127,46 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     }
   }
 
-  //get mapInfoWithColorMap(): MapInfoWithColorMap {
-  //  return this._miwcm;
-  //}
+  set maxIterations(maxIters: number) {
 
-  private _colorMap: ColorMapUI = null;
+    if (this.viewInitialized) {
 
-  get colorMap(): ColorMapUI {
-    return this._colorMap;
+      if (this._mapInfo.maxIterations < maxIters) {
+        this._mapInfo.maxIterations = maxIters;
+        console.log('The Maximum Iterations is being increased. Will perform the additional iterations. The new MapInfo is:' + this._mapInfo.toString());
+        this.doMoreIterations(maxIters);
+      }
+      else if (this._mapInfo.maxIterations > maxIters) {
+        this._mapInfo.maxIterations = maxIters;
+        console.log('The Maximum Iterations is being decreased. Will rebuild the map. The new MapInfo is:' + this._mapInfo.toString());
+        this.buildWorkingData();
+      }
+      else {
+        console.log('The Maximum Iterations is being set to the same value it currently has. The new MapInfo is:' + this._mapInfo.toString());
+      }
+    }
+    else {
+      // The view is not ready, just save the new value.
+      this._mapInfo.maxIterations = maxIters;
+      console.log('The Maximum Iterations is being updated. The view has not been initialized. The new MapInfo is:' + this._mapInfo.toString());
+    }
   }
+
+  set iterationsPerStep(itersPerStep: number) {
+    if (this._mapInfo.iterationsPerStep != itersPerStep) {
+      this._mapInfo.iterationsPerStep = itersPerStep;
+      console.log('The Iterations Per Step is being updated. The new MapInfo is:' + this._mapInfo.toString());
+    }
+  }
+
+  @Input('allowZoom') allowZoom: boolean;
+  @Input('overLayBox') overLayBox: IBox;
+
+
 
   constructor() {
     console.log('m-map.display is being constructed.');
 
-    this.componentInitialized = false;
     this.viewInitialized = false;
 
     this._mapInfo = null;
@@ -201,6 +195,9 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
     this._histogram = null;
     this._buildingNewMap = false;
+
+    this.allowZoom = true;
+    this.overLayBox = null;
   }
 
   public getImageDataForExport(): void {
@@ -210,7 +207,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     canvas.width = this._canvasSizeForExport.width;
     canvas.height = this._canvasSizeForExport.height;
 
-    let regularColorMap = this.colorMap.getRegularColorMap();
+    let regularColorMap = this._colorMap.getRegularColorMap();
 
     //let cs = new CanvasSize(14400, 9600);
 
@@ -300,7 +297,19 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
     ctx.putImageData(imageData, left, bot);
 
+    if (this.overLayBox !== null) {
+      let scaledBox = this.getOverLayRect(this.overLayBox, this.canvasSize);
+      ctx.strokeStyle = '#0000FF'; // Blue
+      ctx.strokeRect(scaledBox.botLeft.x, scaledBox.botLeft.y, scaledBox.width, scaledBox.height);
+    }
+
     //console.log('Just drew image data for sn=' + sectionNumber + ' left=' + left + ' bot =' + bot  + '.');
+  }
+
+  private getOverLayRect(oBox: IBox, cs: ICanvasSize) {
+
+    let result = oBox.getScaledBox(cs);
+    return result;
   }
 
   private clearTheCanvas(): void {
@@ -381,17 +390,6 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     return true;
   }
 
-  ngOnInit(): void {
-    if (!this.componentInitialized) {
-      this.componentInitialized = true;
-      //console.log("We are inited.");
-      //this.initWebWorker();
-    }
-    else {
-      //console.log('We are being inited, but ngOnInit has already been called.');
-    }
-  }
-
   ngAfterViewInit() {
     if (!this.viewInitialized) {
       this.viewInitialized = true;
@@ -425,7 +423,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     this._histogram = null;
     this.resetSectionCompleteFlags();
 
-    let regularColorMap = this.colorMap.getRegularColorMap();
+    let regularColorMap = this._colorMap.getRegularColorMap();
 
     if (this.useWorkers) {
       // Clear existing workers, if any
@@ -635,7 +633,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     if (this._buildingNewMap) {
       throw new RangeError('The buildingNewMap flag is true on call to updateWorkersColorMap.');
     }
-    let regularColorMap = this.colorMap.getRegularColorMap();
+    let regularColorMap = this._colorMap.getRegularColorMap();
     let upColorMapMsg = WebWorkerUpdateColorMapRequest.CreateRequest(regularColorMap);
 
     let ptr: number = 0;
@@ -684,11 +682,18 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
   }
 
   private zoomOut(pos: IPoint): void {
-
+    this.zoomBox = null;
+    let coords = this._mapInfo.coords;
+    let newCoords = coords.getExpandedBox(50);
+    this.zoomed.emit(newCoords);
   }
 
   private zoomIn(box: IBox): void {
+    this.zoomBox = null;
 
+    if (box.width < 2 || box.height < 2) {
+      return;
+    }
     // The new coordinates must have its width = 1.5 * its height, because our canvas has that aspect ratio.
 
     let nx: number;
@@ -806,6 +811,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
   }
 
   onMousedown(that: MMapDisplayComponent, e: MouseEvent): void {
+    if (!this.allowZoom) return;
     if (this._mapInfo === null) return;
 
     let cce = that.canvasControlElement;
@@ -834,7 +840,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
         that.zoomBox.topRight = mousePos;
         that.zoomIn(that.zoomBox);
-        that.zoomBox = null;
+        //that.zoomBox = null;
       }
     }
   }
@@ -883,8 +889,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     let mousePos = MMapDisplayComponent.getMousePos(cce, e);
     that.zoomBox.topRight = mousePos;
     that.zoomIn(that.zoomBox);
-
-    that.zoomBox = null;
+    //that.zoomBox = null;
   }
 
 

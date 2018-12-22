@@ -4,7 +4,8 @@
   <app-m-map-viewer-params [virtualMapParams]="virtualMapParams"
                           [isBuilding]="isBuilding"
                            (virtualMapParamsUpdated)="onVirtualMapParamsUpdated($event)"
-                          (mapInfoLoaded)="onMapInfoLoaded($event)">
+                          (mapInfoLoaded)="onMapInfoLoaded($event)"
+                           (mapPositionUpdated)="onMapPositionUpdated($event)">
   </app-m-map-viewer-params>
 
   <button type="button" (click)="mapDisplay.getImageDataForExport()" style="margin: 10px 0px 0px 0px">Get Image Data</button>
@@ -27,6 +28,8 @@
 
       <app-m-map-display #mapDisplay
                          [mapInfoWithColorMap]="curMapInfoWithColorMap"
+                         [allowZoom]="false"
+                         [overLayBox]="overLayBox"
                          (haveImageData)="onHaveImageData($event)"
                          (haveHistogram)="onHaveHistogram($event)"
                          (buildingComplete)="onBuildingComplete()">

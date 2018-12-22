@@ -16,24 +16,21 @@ import { MMapDisplayComponent } from '../../m-map/m-map.display/m-map.display.co
 })
 export class MMapViewerComponent {
 
-  //public imageSize: ICanvasSize; // Total number of pixels in print output.
-  //public printDensity: number; // Pixels per linear inch.
-
   public displaySize: ICanvasSize;
   public mapDisplayWidth: string;
   public mapDisplayHeight: string;
-
 
   @ViewChild('download') downloadRef: ElementRef;
   @ViewChild('mapDisplay') mapDisplayComponent: MMapDisplayComponent
 
   private virtualMap: IVirtualMap;
 
-  private _virtualMapParams: IVirtualMapParams = null;
-  set virtualMapParams(value: IVirtualMapParams) {
+  public virtualMapParams: IVirtualMapParams = null;
+
+  set virtualMapParamsProp(value: IVirtualMapParams) {
     if (value === null) {
-      if (this._virtualMapParams !== null) {
-        this._virtualMapParams = value;
+      if (this.virtualMapParams !== null) {
+        this.virtualMapParams = value;
 
         // Clear the virtual map and the current display.
         this.virtualMap = null;
@@ -42,26 +39,26 @@ export class MMapViewerComponent {
     }
     else {
       let buildNewMap = false;
-      let updatePos = false;
+      //let updatePos = false;
 
-      if (this._virtualMapParams === null) {
+      if (this.virtualMapParams === null) {
         buildNewMap = true;
       }
-      else if (this._virtualMapParams.imageSize.width !== value.imageSize.width) {
+      else if (this.virtualMapParams.imageSize.width !== value.imageSize.width) {
         buildNewMap = true;
       }
-      else if (this._virtualMapParams.scrToPrnPixRat !== value.scrToPrnPixRat) {
+      else if (this.virtualMapParams.scrToPrnPixRat !== value.scrToPrnPixRat) {
         buildNewMap = true;
       }
-      else {
-        if (this._virtualMapParams.left !== value.left) {
-          updatePos = true;
-        }
-        if (this._virtualMapParams.top !== value.top) {
-          updatePos = true;
-        }
+      //else {
+      //  if (this._virtualMapParams.left !== value.left) {
+      //    updatePos = true;
+      //  }
+      //  if (this._virtualMapParams.top !== value.top) {
+      //    updatePos = true;
+      //  }
 
-      }
+      //}
 
       if (buildNewMap) {
         // Create a new VirtualMap.
@@ -79,18 +76,22 @@ export class MMapViewerComponent {
         this.curViewCoords = this.virtualMap.getCurCoords(value.left, value.top);
       }
       else {
-        if (updatePos) {
-          if (this.virtualMap !== null) {
-            this.curViewCoords = this.virtualMap.getCurCoords(value.left, value.top);
-          }
-        }
+        //if (updatePos) {
+        //  if (this.virtualMap !== null) {
+        //    this.curViewCoords = this.virtualMap.getCurCoords(value.left, value.top);
+        //  }
+        //}
       }
-      this._virtualMapParams = value;
+
+      this.updateParamsFromVirtualMap(value, this.virtualMap);
+
+      console.log('Viewer component is updating its params property.');
+      this.virtualMapParams = value;
     }
   }
 
-  get virtualMapParams(): IVirtualMapParams {
-    return this._virtualMapParams;
+  get virtualMapParamsProp(): IVirtualMapParams {
+    return this.virtualMapParams;
   }
 
   // This is the map for the entir image being displayed.
@@ -104,7 +105,7 @@ export class MMapViewerComponent {
       coords = value.mapInfo.coords;
     }
 
-    let params = this.virtualMapParams;
+    let params = this.virtualMapParamsProp;
     if (params !== null) {
       this.virtualMap = this.createVirtualMap(coords, params, this.displaySize);
       this.updateParamsFromVirtualMap(params, this.virtualMap);
@@ -119,43 +120,11 @@ export class MMapViewerComponent {
     return this._miwcm;
   }
 
-  curMapInfoWithColorMap: MapInfoWithColorMap;
-
-  // TODO: This updates the params argument as a side effect -- please fix.
-  private createVirtualMap(coords: IBox, params: IVirtualMapParams, displaySize: ICanvasSize) : IVirtualMap {
-    let result = new VirtualMap(coords, params.imageSize, params.scrToPrnPixRat, displaySize);
-    return result;
-  }
-
-  private updateParamsFromVirtualMap(params: IVirtualMapParams, virtualMap: IVirtualMap): void {
-
-    if (virtualMap.scrToPrnPixRat !== params.scrToPrnPixRat) {
-      // The Virtual Map has adjusted the scrToPrnPixRat to valid value,
-      // now update our value to match.
-      params.scrToPrnPixRat = virtualMap.scrToPrnPixRat;
-    }
-
-    params.viewSize = virtualMap.getViewSize();
-  }
-
-  set curViewCoords(value: IBox) {
-    if (this._miwcm !== null) {
-
-      let newMapInfo = new MapInfo(value, this._miwcm.mapInfo.maxIterations, this._miwcm.mapInfo.iterationsPerStep);
-      let newMapInfoWithColorMap = new MapInfoWithColorMap(newMapInfo, this._miwcm.colorMapUi);
-      this.curMapInfoWithColorMap = newMapInfoWithColorMap;
-
-      this.isBuilding = true;
-    }
-    else {
-      this.curMapInfoWithColorMap = null;
-    }
-  }
-
-  isBuilding: boolean = false;
+  public curMapInfoWithColorMap: MapInfoWithColorMap;
+  public isBuilding: boolean = false;
 
   public ColorMapSerialNumber: number;
-
+  public overLayBox: IBox;
 
   constructor() {
     this.curMapInfoWithColorMap = null;
@@ -169,7 +138,10 @@ export class MMapViewerComponent {
     this.mapDisplayWidth = this.displaySize.width.toString() + 'px';
     this.mapDisplayHeight = this.displaySize.height.toString() + 'px';
 
-    this.virtualMapParams = this.buildVirtualMapParams();
+    this.virtualMapParamsProp = this.buildVirtualMapParams();
+
+    //this.overLayBox = new Box(new Point(0.2, 0.2), new Point(0.7, 0.5));
+    this.overLayBox = Box.fromPointExtent(new Point(0.5, 0.5), 0.5, 0.5); 
   }
 
   private buildVirtualMapParams(): IVirtualMapParams {
@@ -182,11 +154,91 @@ export class MMapViewerComponent {
     return result;
   }
 
+  // TODO: This updates the params argument as a side effect -- please fix.
+  private createVirtualMap(coords: IBox, params: IVirtualMapParams, displaySize: ICanvasSize): IVirtualMap {
+    let result = new VirtualMap(coords, params.imageSize, params.scrToPrnPixRat, displaySize);
+    return result;
+  }
+
+  private updateParamsFromVirtualMap(params: IVirtualMapParams, virtualMap: IVirtualMap): void {
+
+    if (virtualMap === null) {
+      console.log('The Virtual Map is null on call to updateParamsFromVirtualMap.');
+      params.imageSize = new CanvasSize(100, 100);
+      return;
+    }
+
+    if (virtualMap.scrToPrnPixRat !== params.scrToPrnPixRat) {
+      // The Virtual Map has adjusted the scrToPrnPixRat to valid value,
+      // now update our value to match.
+      params.scrToPrnPixRat = virtualMap.scrToPrnPixRat;
+    }
+
+    params.viewSize = virtualMap.getViewSize();
+  }
+
+  set curViewCoords(value: IBox) {
+    console.log('Viewer component is updating its cur map property.');
+    if (this._miwcm !== null) {
+
+      let newMapInfo = new MapInfo(value, this._miwcm.mapInfo.maxIterations, this._miwcm.mapInfo.iterationsPerStep);
+      let newMapInfoWithColorMap = new MapInfoWithColorMap(newMapInfo, this._miwcm.colorMapUi);
+      this.curMapInfoWithColorMap = newMapInfoWithColorMap;
+
+      this.isBuilding = true;
+    }
+    else {
+      this.curMapInfoWithColorMap = null;
+    }
+  }
+
   onVirtualMapParamsUpdated(params: IVirtualMapParams) {
+    console.log('Viewer component is receiving a Params update.');
     //if (params !== null) {
     //  params.viewSize = this.displaySize;
     //}
-    this.virtualMapParams = params;
+    this.virtualMapParamsProp = params;
+  }
+
+  onMapPositionUpdated(ev: string) {
+    console.log('Viewer Component is receiving a map pos update.');
+    let dir = ev.substring(0, 1);
+    //let percentage = ev.substring(1);
+
+    let params = this.virtualMapParamsProp;
+
+    if (params !== null) {
+      let curLeft = this.virtualMapParamsProp.left;
+      let curTop = this.virtualMapParamsProp.top;
+
+      let newLeft = curLeft;
+      let newTop = curTop;
+
+
+      switch (dir) {
+        case 'l':
+          newLeft--;
+          break;
+        case 'r':
+          newLeft++;
+          break;
+        case 'u':
+          newTop--;
+          break;
+        case 'd':
+          newTop++;
+          break;
+      }
+
+      let newParams = new VirtualMapParams(params.imageSize, params.printDensity, params.scrToPrnPixRat, newLeft, newTop);
+      this.updateParamsFromVirtualMap(newParams, this.virtualMap);
+      this.virtualMapParamsProp = newParams;
+
+      if (this.virtualMap !== null) {
+        this.curViewCoords = this.virtualMap.getCurCoords(newLeft, newTop);
+      }
+    }
+
   }
   
   onBuildingComplete() {

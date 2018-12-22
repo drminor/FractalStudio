@@ -8,7 +8,7 @@ import { ColorItem } from '../../color-picker/color-picker.component';
   templateUrl: './color-map-editor.component.html',
   styleUrls: ['./color-map-editor.component.css']
 })
-export class ColorMapEditorComponent {
+export class ColorMapEditorComponent implements OnInit {
 
   _colorMap: ColorMapUI;
   _lastLoadedColorMap: ColorMapUI;
@@ -185,6 +185,13 @@ export class ColorMapEditorComponent {
     //a.hidden = false;
 
     console.log('The color map is |' + dump + '|');
+  }
+
+  ngOnInit(): void {
+    let fSelector = this.fileSelectorRef.nativeElement as HTMLInputElement;
+    fSelector.onchange = (evd => {
+      this.onLoadColorMap();
+    });
   }
 
   onLoadColorMap() {

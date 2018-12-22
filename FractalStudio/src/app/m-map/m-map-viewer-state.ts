@@ -70,15 +70,13 @@ export class VirtualMap implements IVirtualMap {
 
     // If the given scrToPrnPixRat is too high, set it to the maximum
     // value that keeps the entire viewWidth > the display width.
-    let maxScrToPrnPixRat = this.getHomeScreenToPrintPixRat(imageSize.width, displaySize.width);
+    let maxScrToPrnPixRat = this.getMaxScreenToPrintPixRat(imageSize.width, displaySize.width);
     if (scrToPrnPixRat > maxScrToPrnPixRat) {
       this.scrToPrnPixRat = maxScrToPrnPixRat;
     }
 
     if (coords !== null) {
-      // X coordinates get larger as one moves from the left of the map to  the right.
       this.xVals = this.buildVals(this.displaySize.width, this.coords.botLeft.x, this.coords.topRight.x);
-
       this.yVals = this.buildVals(this.displaySize.height, this.coords.botLeft.y, this.coords.topRight.y);
     }
   }
@@ -97,15 +95,17 @@ export class VirtualMap implements IVirtualMap {
     return result;
   }
 
+  // How many logical pixels are displayed on our canvas.
   public getViewSize(): ICanvasSize {
 
-    let result = new CanvasSize(this.displaySize.width * this.scrToPrnPixRat, this.displaySize.height * this.scrToPrnPixRat);
+    //let result = new CanvasSize(this.displaySize.width * this.scrToPrnPixRat, this.displaySize.height * this.scrToPrnPixRat);
+    let result = this.displaySize.getScaledCanvas(this.scrToPrnPixRat);
     return result;
   }
 
   // If the screen to print pixel ratio is any larger than this
   // then the resulting image will be smaller than our Map Display Canvas.
-  public getHomeScreenToPrintPixRat(imageWidthPx: number, displayWidthPx: number): number {
+  public getMaxScreenToPrintPixRat(imageWidthPx: number, displayWidthPx: number): number {
     let screenToPrintRat = imageWidthPx / displayWidthPx;
 
     // Truncate to the nearest integer
@@ -113,79 +113,80 @@ export class VirtualMap implements IVirtualMap {
     return result;
   }
 
+  // Top is the distance measured from the top of the image to the top of the section being displayed.
+  // Left is the distance measured from the left of the image to the left of the section being displayed.
   public getCurCoords(left: number, top: number): IBox {
 
-    let result: IBox = this.coords;
+    if (this.coords === null) {
+      return null;
+    }
 
-    //let result: IMapWorkingData[] = Array<IMapWorkingData>(numberOfSections);
+    //console.log('The current coords are ' + this.coords.toString() + '.');
+    //console.log('The current width is ' + this.coords.width + '.');
 
-    //// Calculate the heigth of each section, rounded down to the nearest whole number.
-    //let sectionHeight = canvasSize.height / numberOfSections;
-    //let sectionHeightWN = parseInt(sectionHeight.toString(), 10);
+    //let curWidth = this.coords.width;
 
-    //// Calculate the height of the last section.
-    //let lastSectionHeight: number = canvasSize.height - sectionHeightWN * (numberOfSections - 1);
+    let imageBot: number;
+    let imageTop: number;
 
-    //let left = mapInfo.bottomLeft.x;
-    //let right = mapInfo.topRight.x;
+    // Set the imageBot so that is the larger of the two values.
+    // As we move from imageBot to imageTop, the coordinate values should decrease.
+    if (this.coords.upsideDown) {
+      // If the coords are upside down, then the y value for botLeft is larger than the y value for topRight.
+      imageBot = this.coords.botLeft.y;
+      imageTop = this.coords.topRight.y;
+    }
+    else {
+      // reverse the map coordinates so that they increase from top to bottom.
+      imageBot = this.coords.topRight.y;
+      imageTop = this.coords.botLeft.y;
+    }
 
-    //let bottomPtr = 0;
-    //let topPtr = sectionHeightWN;
+    if (imageBot < imageTop) {
+      console.log('The y values are not reversed.');
+    }
 
-    //let yVals: number[];
+    //let viewSize = this.getViewSize();
 
-    //if (mapInfo.upsideDown) {
-    //  // The y coordinates are already reversed, just use buildVals
-    //  yVals = MapWorkingData.buildVals(canvasSize.height, mapInfo.bottomLeft.y, mapInfo.topRight.y);
-    //}
-    //else {
-    //  // The y coordinates are not reveresed, must use buildValsRev
-    //  yVals = MapWorkingData.buildValsRev(canvasSize.height, mapInfo.bottomLeft.y, mapInfo.topRight.y);
-    //}
-    ////yVals = MapWorkingData.buildValsRev(canvasSize.height, mapInfo.bottomLeft.y, mapInfo.topRight.y);
+    // Calculate indexes into the virtual x and y values array.
 
-    //let ptr: number = 0;
+    let sx = left * this.displaySize.width;
+    let ex = -1 + sx + this.displaySize.width;
 
-    //// Build all but the last section.
-    //for (; ptr < numberOfSections - 1; ptr++) {
+    let sy = top * this.displaySize.height;
+    let ey = -1 + sy + this.displaySize.height;
 
-    //  let secCanvasSize = new CanvasSize(canvasSize.width, sectionHeightWN);
+    let dMapWidth = this.coords.width;
+    let dMapHeight = imageBot - imageTop;
 
-    //  let secBottom = yVals[bottomPtr];
-    //  let secTop = yVals[topPtr];
 
-    //  let secBotLeft = new Point(left, secBottom);
-    //  let secTopRight = new Point(right, secTop);
+    //let virtualViewExtentW = this.imageSize.width / this.scrToPrnPixRat;
+    //let virtualViewExtentH = this.imageSize.height / this.scrToPrnPixRat;
 
-    //  let coords: IBox = new Box(secBotLeft, secTopRight);
-    //  let secMapInfo = new MapInfo(coords, mapInfo.maxIterations, mapInfo.iterationsPerStep);
+    //let unitExtentW = dMapWidth / virtualViewExtentW;
+    //let unitExtentH = dMapHeight / virtualViewExtentH;
 
-    //  let yOffset = ptr * sectionHeightWN;
-    //  let secAnchor: IPoint = new Point(0, yOffset);
-    //  result[ptr] = new MapWorkingData(secCanvasSize, secMapInfo, colorMap, secAnchor);
+    //let sxc = this.coords.botLeft.x + sx * unitExtentW;
+    //let exc = this.coords.botLeft.x + ex * unitExtentW;
 
-    //  // The next bottomPtr should point to one immediately following the last top.
-    //  bottomPtr = topPtr + 1;
-    //  topPtr += sectionHeightWN;
-    //}
+    let virtualViewExtent = this.imageSize.getScaledCanvas(1 / this.scrToPrnPixRat);
 
-    //// Build the last section.
-    //let secCanvasSize = new CanvasSize(canvasSize.width, lastSectionHeight);
+    let unitExtentW = dMapWidth / virtualViewExtent.width;
+    let unitExtentH = dMapHeight / virtualViewExtent.height;
 
-    //let secBottom = yVals[bottomPtr];
-    //let secBotLeft = new Point(left, secBottom);
+    let sxc = this.coords.botLeft.x + sx * unitExtentW;
+    let exc = this.coords.botLeft.x + ex * unitExtentW;
 
-    //topPtr = yVals.length - 1;
-    //let secTop = yVals[topPtr];
-    //let secTopRight = new Point(right, secTop);
+    let syc = imageBot - sy * unitExtentH;
+    let eyc = imageBot - ey * unitExtentH;
 
-    //let coords: IBox = new Box(secBotLeft, secTopRight);
-    //let secMapInfo = new MapInfo(coords, mapInfo.maxIterations, mapInfo.iterationsPerStep);
+    let result = new Box(new Point(sxc, eyc), new Point(exc, syc));
 
-    //let yOffset = ptr * sectionHeightWN;
-    //let secAnchor: IPoint = new Point(0, yOffset);
+    //console.log('The new coords are ' + result.toString() + '.');
+    //console.log('The new width is ' + result.width + '.');
 
-    //result[ptr] = new MapWorkingData(secCanvasSize, secMapInfo, colorMap, secAnchor);
+    //let diff = result.width - curWidth;
+    //console.log('The new width - the old width = ' + diff + '.');
 
     return result;
   }

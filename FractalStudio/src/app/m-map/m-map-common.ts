@@ -18,6 +18,7 @@ export interface IBox {
   getShiftedBox(dir: string, percent: number): IBox;
   addX(amount: number): IBox;
   addY(amount: number): IBox;
+  getScaledBox(factor: ICanvasSize): IBox;
   getExpandedBox(percent: number): IBox;
 
   isEqual(box: IBox): boolean;
@@ -38,7 +39,9 @@ export interface IMapInfo {
 
 export interface ICanvasSize {
   width: number;
-  height: number
+  height: number;
+
+  getScaledCanvas(amount: number): ICanvasSize;
 }
 
 export interface IMapWorkingData {
@@ -162,6 +165,14 @@ export class Box implements IBox {
     return result;
   }
 
+  public getScaledBox(factor: ICanvasSize): IBox {
+    let result = new Box(
+      new Point(this.botLeft.x * factor.width, this.botLeft.y * factor.height),
+      new Point(this.topRight.x * factor.width, this.topRight.y * factor.height)
+    );
+    return result;
+  }
+
   public getExpandedBox(percent: number): IBox {
 
     // 1/2 the amount of change for the width
@@ -271,6 +282,11 @@ export class CanvasSize implements ICanvasSize {
       console.log('A CanvasSize is being contructed with an invalid height.');
       alert('Height is invalid');
     }
+  }
+
+  public getScaledCanvas(amount: number): ICanvasSize {
+    let result = new CanvasSize(this.width * amount, this.height * amount);
+    return result;
   }
 
   isReasonableExtent(nVal:number, max:number): boolean {
