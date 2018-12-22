@@ -17,8 +17,12 @@ import { MMapDisplayComponent } from '../../m-map/m-map.display/m-map.display.co
 export class MMapViewerComponent {
 
   public displaySize: ICanvasSize;
+
   public mapDisplayWidth: string;
   public mapDisplayHeight: string;
+  public overViewOffset: string;
+  public overViewWidth: string;
+  public overViewHeight: string;
 
   @ViewChild('download') downloadRef: ElementRef;
   @ViewChild('mapDisplay') mapDisplayComponent: MMapDisplayComponent
@@ -73,6 +77,7 @@ export class MMapViewerComponent {
 
         this.virtualMap = this.createVirtualMap(coords, value, this.displaySize);
         this.updateParamsFromVirtualMap(value, this.virtualMap);
+        this.overLayBox = this.virtualMap.getOverLayBox(value.left, value.top);
         this.curViewCoords = this.virtualMap.getCurCoords(value.left, value.top);
       }
       else {
@@ -109,6 +114,7 @@ export class MMapViewerComponent {
     if (params !== null) {
       this.virtualMap = this.createVirtualMap(coords, params, this.displaySize);
       this.updateParamsFromVirtualMap(params, this.virtualMap);
+      this.overLayBox = this.virtualMap.getOverLayBox(params.left, params.top);
       this.curViewCoords = this.virtualMap.getCurCoords(params.left, params.top);
     }
     else {
@@ -138,10 +144,15 @@ export class MMapViewerComponent {
     this.mapDisplayWidth = this.displaySize.width.toString() + 'px';
     this.mapDisplayHeight = this.displaySize.height.toString() + 'px';
 
+    this.overViewOffset = '946px';
+    this.overViewWidth = '384px';
+    this.overViewHeight = '256px';
+
     this.virtualMapParamsProp = this.buildVirtualMapParams();
 
     //this.overLayBox = new Box(new Point(0.2, 0.2), new Point(0.7, 0.5));
-    this.overLayBox = Box.fromPointExtent(new Point(0.5, 0.5), 0.5, 0.5); 
+    //this.overLayBox = Box.fromPointExtent(new Point(0.5, 0.5), 0.5, 0.5);
+    this.overLayBox = null;
   }
 
   private buildVirtualMapParams(): IVirtualMapParams {
@@ -235,6 +246,7 @@ export class MMapViewerComponent {
       this.virtualMapParamsProp = newParams;
 
       if (this.virtualMap !== null) {
+        this.overLayBox = this.virtualMap.getOverLayBox(newLeft, newTop);
         this.curViewCoords = this.virtualMap.getCurCoords(newLeft, newTop);
       }
     }

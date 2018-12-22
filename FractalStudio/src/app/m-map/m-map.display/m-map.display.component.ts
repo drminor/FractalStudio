@@ -160,9 +160,16 @@ export class MMapDisplayComponent implements AfterViewInit {
   }
 
   @Input('allowZoom') allowZoom: boolean;
-  @Input('overLayBox') overLayBox: IBox;
 
-
+  private _overLayBox: IBox;
+  @Input('overLayBox')
+  set overLayBox(value: IBox) {
+    this._overLayBox = value;
+    this.drawOverLayBox(value);
+  }
+  get overLayBox(): IBox {
+    return this._overLayBox;
+  }
 
   constructor() {
     console.log('m-map.display is being constructed.');
@@ -297,13 +304,30 @@ export class MMapDisplayComponent implements AfterViewInit {
 
     ctx.putImageData(imageData, left, bot);
 
-    if (this.overLayBox !== null) {
-      let scaledBox = this.getOverLayRect(this.overLayBox, this.canvasSize);
+    //if (this.overLayBox !== null) {
+    //  this.drawOverLayBox(this.overLayBox);
+    //}
+
+    //console.log('Just drew image data for sn=' + sectionNumber + ' left=' + left + ' bot =' + bot  + '.');
+  }
+
+  private drawOverLayBox(oBox: IBox): void {
+
+    if (oBox !== null) {
+
+      let cce = this.canvasControlElement;
+      let ctx: CanvasRenderingContext2D = cce.getContext('2d');
+
+      ctx.lineWidth = 2;
+      ctx.fillStyle = '#DD0031';
+
+      // clear out old box first
+      ctx.clearRect(0, 0, cce.width, cce.height);      
+
+      let scaledBox = this.getOverLayRect(oBox, this.canvasSize);
       ctx.strokeStyle = '#0000FF'; // Blue
       ctx.strokeRect(scaledBox.botLeft.x, scaledBox.botLeft.y, scaledBox.width, scaledBox.height);
     }
-
-    //console.log('Just drew image data for sn=' + sectionNumber + ' left=' + left + ' bot =' + bot  + '.');
   }
 
   private getOverLayRect(oBox: IBox, cs: ICanvasSize) {

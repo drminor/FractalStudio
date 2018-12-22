@@ -1,11 +1,13 @@
-<div style="float:left; width:939px; margin-bottom:5px">
+<!--<div style="float:left; width:939px; margin-bottom:5px">-->
+
+<div style="margin-bottom:5px">
   <h2 style="margin-bottom:5px  ">The Mandlebrodt Set Viewer</h2>
 
   <app-m-map-viewer-params [virtualMapParams]="virtualMapParams"
-                          [isBuilding]="isBuilding"
-                           (virtualMapParamsUpdated)="onVirtualMapParamsUpdated($event)"
-                          (mapInfoLoaded)="onMapInfoLoaded($event)"
-                           (mapPositionUpdated)="onMapPositionUpdated($event)">
+                            [isBuilding]="isBuilding"
+                            (virtualMapParamsUpdated)="onVirtualMapParamsUpdated($event)"
+                            (mapInfoLoaded)="onMapInfoLoaded($event)"
+                            (mapPositionUpdated)="onMapPositionUpdated($event)">
   </app-m-map-viewer-params>
 
   <button type="button" (click)="mapDisplay.getImageDataForExport()" style="margin: 10px 0px 0px 0px">Get Image Data</button>
@@ -14,32 +16,52 @@
 
 <section>
   <div [ngStyle]="{'float': 'left',
-                        'position': 'relative',
-                        'width': mapDisplayWidth || '939px',
-                        'height': mapDisplayHeight || '626px',
-                        'border': '2px solid black'
-                 }">
+                      'position': 'relative',
+                      'width': mapDisplayWidth || '939px',
+                      'height': mapDisplayHeight || '626px',
+                      'border': '2px solid black'
+                }">
 
     <div [ngStyle]="{'position': 'relative',
-                        'width': mapDisplayWidth || '939px',
-                        'height': mapDisplayHeight || '626px'
-                 }">
+                      'width': mapDisplayWidth || '939px',
+                      'height': mapDisplayHeight || '626px'
+                }">
 
 
       <app-m-map-display #mapDisplay
-                         [mapInfoWithColorMap]="curMapInfoWithColorMap"
-                         [allowZoom]="false"
-                         [overLayBox]="overLayBox"
-                         (haveImageData)="onHaveImageData($event)"
-                         (haveHistogram)="onHaveHistogram($event)"
-                         (buildingComplete)="onBuildingComplete()">
+                          [mapInfoWithColorMap]="curMapInfoWithColorMap"
+                          [allowZoom]="false"
+                          (haveImageData)="onHaveImageData($event)"
+                          (haveHistogram)="onHaveHistogram($event)"
+                          (buildingComplete)="onBuildingComplete()">
       </app-m-map-display>
 
     </div>
   </div>
 
+  <div [ngStyle]="{'margin-left': overViewOffSet || '946px',
+                      'width':  overViewWidth || '384px',
+                      'padding': '3px 3px 3px 3px',
+                      'border': '2px solid black',
+                      'height': '258px'
+                }">
 
-</section>
+    <div [ngStyle]="{'position': 'relative',
+                      'width': overViewWidth || '384px',
+                      'height': overViewHeight || '256px'
+                }">
+
+
+      <app-m-map-display #mapOverView
+                          [mapInfoWithColorMap]="mapInfoWithColorMap"
+                          [allowZoom]="false"
+                          [overLayBox]="overLayBox">
+      </app-m-map-display>
+
+    </div>
+  </div>
+
+ </section>
 
 
 

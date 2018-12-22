@@ -24,7 +24,8 @@ export interface IVirtualMap {
   displaySize: ICanvasSize;
 
   getViewSize(): ICanvasSize;
-  getCurCoords(left: number, top: number): IBox
+  getCurCoords(left: number, top: number): IBox;
+  getOverLayBox(left: number, top: number): IBox;
 }
 
 export class VirtualMapParams implements IVirtualMapParams {
@@ -63,8 +64,8 @@ export class VirtualMapParams implements IVirtualMapParams {
 
 export class VirtualMap implements IVirtualMap {
 
-  private xVals: number[];
-  private yVals: number[];
+  //private xVals: number[];
+  //private yVals: number[];
 
   constructor(public coords: IBox, public imageSize: ICanvasSize, public scrToPrnPixRat: number, public displaySize: ICanvasSize) {
 
@@ -75,30 +76,29 @@ export class VirtualMap implements IVirtualMap {
       this.scrToPrnPixRat = maxScrToPrnPixRat;
     }
 
-    if (coords !== null) {
-      this.xVals = this.buildVals(this.displaySize.width, this.coords.botLeft.x, this.coords.topRight.x);
-      this.yVals = this.buildVals(this.displaySize.height, this.coords.botLeft.y, this.coords.topRight.y);
-    }
+    //if (coords !== null) {
+    //  this.xVals = this.buildVals(this.displaySize.width, this.coords.botLeft.x, this.coords.topRight.x);
+    //  this.yVals = this.buildVals(this.displaySize.height, this.coords.botLeft.y, this.coords.topRight.y);
+    //}
   }
 
-  // Build the array of 'c' values for one dimension of the map.
-  private buildVals(canvasExtent: number, start: number, end: number): number[] {
-    let result: number[] = new Array<number>(canvasExtent);
+  //// Build the array of 'c' values for one dimension of the map.
+  //private buildVals(canvasExtent: number, start: number, end: number): number[] {
+  //  let result: number[] = new Array<number>(canvasExtent);
 
-    let mapExtent: number = end - start;
-    let unitExtent: number = mapExtent / canvasExtent;
+  //  let mapExtent: number = end - start;
+  //  let unitExtent: number = mapExtent / canvasExtent;
 
-    var i: number;
-    for (i = 0; i < canvasExtent; i++) {
-      result[i] = start + i * unitExtent;
-    }
-    return result;
-  }
+  //  var i: number;
+  //  for (i = 0; i < canvasExtent; i++) {
+  //    result[i] = start + i * unitExtent;
+  //  }
+  //  return result;
+  //}
 
   // How many logical pixels are displayed on our canvas.
   public getViewSize(): ICanvasSize {
 
-    //let result = new CanvasSize(this.displaySize.width * this.scrToPrnPixRat, this.displaySize.height * this.scrToPrnPixRat);
     let result = this.displaySize.getScaledCanvas(this.scrToPrnPixRat);
     return result;
   }
@@ -159,16 +159,6 @@ export class VirtualMap implements IVirtualMap {
     let dMapWidth = this.coords.width;
     let dMapHeight = imageBot - imageTop;
 
-
-    //let virtualViewExtentW = this.imageSize.width / this.scrToPrnPixRat;
-    //let virtualViewExtentH = this.imageSize.height / this.scrToPrnPixRat;
-
-    //let unitExtentW = dMapWidth / virtualViewExtentW;
-    //let unitExtentH = dMapHeight / virtualViewExtentH;
-
-    //let sxc = this.coords.botLeft.x + sx * unitExtentW;
-    //let exc = this.coords.botLeft.x + ex * unitExtentW;
-
     let virtualViewExtent = this.imageSize.getScaledCanvas(1 / this.scrToPrnPixRat);
 
     let unitExtentW = dMapWidth / virtualViewExtent.width;
@@ -190,5 +180,29 @@ export class VirtualMap implements IVirtualMap {
 
     return result;
   }
+
+  public getOverLayBox(left: number, top: number): IBox {
+
+    if (this.coords === null) {
+      return null;
+    }
+
+    let vvw = this.scrToPrnPixRat * this.displaySize.width / this.imageSize.width;
+    let vvh = this.scrToPrnPixRat * this.displaySize.height / this.imageSize.height;
+
+
+    let sx = left * vvw;
+    let ex = sx + vvw;
+
+    let sy = top * vvh;
+    let ey = sy + vvh;
+
+
+    let result = new Box(new Point(sx, sy), new Point(ex, ey));
+
+    return result;
+
+  }
+
 
 }
