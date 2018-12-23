@@ -132,52 +132,27 @@ export class VirtualMap implements IVirtualMap {
 
     //let curWidth = this.coords.width;
 
-    let imageBot: number;
-    let imageTop: number;
+    //let imageTop: number;
 
-    // Set the imageBot so that is the larger of the two values.
-    // As we move from imageBot to imageTop, the coordinate values should decrease.
-    if (this.coords.isUpsideDown) {
-      // If the coords are upside down, then the y value for botLeft is larger than the y value for topRight.
-      imageBot = this.coords.botLeft.y;
-      imageTop = this.coords.topRight.y;
-    }
-    else {
-      // reverse the map coordinates so that they increase from top to bottom.
-      imageBot = this.coords.topRight.y;
-      imageTop = this.coords.botLeft.y;
-    }
+    //// Set the imageTop so that is the larger of the two values.
+    //// As we move from imageBot to imageTop, the coordinate values should decrease.
+    //if (this.coords.isUpsideDown) {
+    //  // If the coords are upside down, then the y value for botLeft is larger than the y value for topRight.
+    //  imageTop = this.coords.botLeft.y;
+    //}
+    //else {
+    //  // reverse the map coordinates so that they increase from top to bottom.
+    //  imageTop = this.coords.topRight.y;
+    //}
 
-    if (imageBot < imageTop) {
-      console.log('The y values are not reversed.');
-    }
-
-    //let viewSize = this.getViewSize();
+    let imageTop = this.coords.absTop;
 
     // Calculate indexes into the virtual x and y values array.
 
-    //let sx = left * this.displaySize.width;
-    //let ex = -1 + sx + this.displaySize.width;
-
-    //let sy = top * this.displaySize.height;
-    //let ey = -1 + sy + this.displaySize.height;
-
-    //let dMapWidth = this.coords.width;
-    //let dMapHeight = imageBot - imageTop;
-
-    //let virtualViewExtent = this.imageSize.getScaledCanvas(1 / this.scrToPrnPixRat);
-
-    //let unitExtentW = dMapWidth / virtualViewExtent.width;
-    //let unitExtentH = dMapHeight / virtualViewExtent.height;
-
-    //let sxc = this.coords.botLeft.x + sx * unitExtentW;
-    //let exc = this.coords.botLeft.x + ex * unitExtentW;
-
-    //let syc = imageBot - sy * unitExtentH;
-    //let eyc = imageBot - ey * unitExtentH;
 
     let dMapWidth = this.coords.width;
-    let dMapHeight = imageBot - imageTop;
+    //let dMapHeight = imageBot - imageTop;
+    let dMapHeight = this.coords.absHeight;
 
     let vvw = this.scrToPrnPixRat * this.displaySize.width / this.imageSize.width;
     let vvh = this.scrToPrnPixRat * this.displaySize.height / this.imageSize.height;
@@ -185,13 +160,13 @@ export class VirtualMap implements IVirtualMap {
     let unitExtentW = dMapWidth * vvw;
     let unitExtentH = dMapHeight * vvh;
 
-    let sxc = this.coords.botLeft.x + left * unitExtentW;
-    let exc = this.coords.botLeft.x + (left + 1) * unitExtentW;
+    let sx = this.coords.botLeft.x + left * unitExtentW;
+    let ex = this.coords.botLeft.x + (left + 1) * unitExtentW;
 
-    let syc = imageBot - top * unitExtentH;
-    let eyc = imageBot - (top + 1) * unitExtentH;
+    let ey = imageTop - top * unitExtentH;
+    let sy = imageTop - (top + 1) * unitExtentH;
 
-    let result = new Box(new Point(sxc, eyc), new Point(exc, syc));
+    let result = new Box(new Point(sx, sy), new Point(ex, ey));
 
     //console.log('The new coords are ' + result.toString() + '.');
     //console.log('The new width is ' + result.width + '.');
