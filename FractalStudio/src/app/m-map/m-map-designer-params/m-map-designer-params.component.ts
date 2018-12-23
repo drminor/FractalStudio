@@ -91,28 +91,28 @@ export class MMapDesignerParamsComponent implements OnInit {
   }
 
   onMoveL(evt: KeyboardEvent) {
-    let amount: number = evt.shiftKey ? 50 : evt.ctrlKey ? 5 : 20;
-    this.moveMap('l', amount);
+    this.moveMap('l', this.getPercentFromKeyState(evt));
   }
 
   onMoveR(evt: KeyboardEvent) {
-    let amount: number = evt.shiftKey ? 50 : evt.ctrlKey ? 5 : 20;
-    this.moveMap('r', amount);
+    this.moveMap('r', this.getPercentFromKeyState(evt));
   }
 
   onMoveU(evt: KeyboardEvent) {
-    let amount: number = evt.shiftKey ? 50 : evt.ctrlKey ? 5 : 20;
-    this.moveMap('u', amount);
+    this.moveMap('u', this.getPercentFromKeyState(evt));
   }
 
   onMoveD(evt: KeyboardEvent) {
-    let amount: number = evt.shiftKey ? 50 : evt.ctrlKey ? 5 : 20;
-    this.moveMap('d', amount);
+    this.moveMap('d', this.getPercentFromKeyState(evt));
   }
 
   onZoomOut(evt: KeyboardEvent) {
-    let amount: number = evt.shiftKey ? 50 : evt.ctrlKey ? 5 : 20;
-    this.moveMap('o', amount);
+    this.moveMap('o', this.getPercentFromKeyState(evt));
+  }
+
+  private getPercentFromKeyState(evt: KeyboardEvent): number {
+    let result: number = evt.shiftKey ? 50 : evt.ctrlKey ? 5 : 20;
+    return result;
   }
 
   private moveMap(dir: string, percent: number) {

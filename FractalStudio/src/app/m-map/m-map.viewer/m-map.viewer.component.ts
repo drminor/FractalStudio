@@ -43,7 +43,7 @@ export class MMapViewerComponent {
     }
     else {
       let buildNewMap = false;
-      //let updatePos = false;
+      let updatePos = false;
 
       if (this.virtualMapParams === null) {
         buildNewMap = true;
@@ -54,15 +54,15 @@ export class MMapViewerComponent {
       else if (this.virtualMapParams.scrToPrnPixRat !== value.scrToPrnPixRat) {
         buildNewMap = true;
       }
-      //else {
-      //  if (this._virtualMapParams.left !== value.left) {
-      //    updatePos = true;
-      //  }
-      //  if (this._virtualMapParams.top !== value.top) {
-      //    updatePos = true;
-      //  }
+      else {
+        if (this.virtualMapParams.left !== value.left) {
+          updatePos = true;
+        }
+        if (this.virtualMapParams.top !== value.top) {
+          updatePos = true;
+        }
 
-      //}
+      }
 
       if (buildNewMap) {
         // Create a new VirtualMap.
@@ -77,15 +77,15 @@ export class MMapViewerComponent {
 
         this.virtualMap = this.createVirtualMap(coords, value, this.displaySize);
         this.updateParamsFromVirtualMap(value, this.virtualMap);
-        this.overLayBox = this.virtualMap.getOverLayBox(value.left, value.top);
         this.curViewCoords = this.virtualMap.getCurCoords(value.left, value.top);
       }
       else {
-        //if (updatePos) {
-        //  if (this.virtualMap !== null) {
-        //    this.curViewCoords = this.virtualMap.getCurCoords(value.left, value.top);
-        //  }
-        //}
+        if (updatePos) {
+          if (this.virtualMap !== null) {
+            this.overLayBox = this.virtualMap.getOverLayBox(value.left, value.top);
+            this.curViewCoords = this.virtualMap.getCurCoords(value.left, value.top);
+          }
+        }
       }
 
       this.updateParamsFromVirtualMap(value, this.virtualMap);
@@ -214,7 +214,7 @@ export class MMapViewerComponent {
   onMapPositionUpdated(ev: string) {
     console.log('Viewer Component is receiving a map pos update.');
     let dir = ev.substring(0, 1);
-    //let percentage = ev.substring(1);
+    let amount = parseFloat(ev.substring(1));
 
     let params = this.virtualMapParamsProp;
 
@@ -225,19 +225,18 @@ export class MMapViewerComponent {
       let newLeft = curLeft;
       let newTop = curTop;
 
-
       switch (dir) {
         case 'l':
-          newLeft--;
+          newLeft -= amount;
           break;
         case 'r':
-          newLeft++;
+          newLeft += amount;
           break;
         case 'u':
-          newTop--;
+          newTop -= amount;
           break;
         case 'd':
-          newTop++;
+          newTop += amount;
           break;
       }
 

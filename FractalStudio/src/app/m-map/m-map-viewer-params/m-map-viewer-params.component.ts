@@ -110,8 +110,8 @@ export class MMapViewerParamsComponent implements OnInit {
 
     let screenToPrintPixRat = parseInt(this.mapViewForm.controls.screenToPrintPixRatio.value);
 
-    let left = parseInt(this.mapViewForm.controls.left.value);
-    let top = parseInt(this.mapViewForm.controls.top.value);
+    let left = parseFloat(this.mapViewForm.controls.left.value);
+    let top = parseFloat(this.mapViewForm.controls.top.value);
 
     let params = new VirtualMapParams(imageSize, printDensity, screenToPrintPixRat, left, top);
     console.log('Viewer Params is emitting a Params Update.');
@@ -119,27 +119,28 @@ export class MMapViewerParamsComponent implements OnInit {
   }
 
   onMoveL(evt: KeyboardEvent) {
-    let amount: number = evt.shiftKey ? 50 : evt.ctrlKey ? 5 : 20;
-    this.moveMap('l', amount);
+    this.moveMap('l', this.getFactorFromKeyState(evt));
   }
 
   onMoveR(evt: KeyboardEvent) {
-    let amount: number = evt.shiftKey ? 50 : evt.ctrlKey ? 5 : 20;
-    this.moveMap('r', amount);
+    this.moveMap('r', this.getFactorFromKeyState(evt));
   }
 
   onMoveU(evt: KeyboardEvent) {
-    let amount: number = evt.shiftKey ? 50 : evt.ctrlKey ? 5 : 20;
-    this.moveMap('u', amount);
+    this.moveMap('u', this.getFactorFromKeyState(evt));
   }
 
   onMoveD(evt: KeyboardEvent) {
-    let amount: number = evt.shiftKey ? 50 : evt.ctrlKey ? 5 : 20;
-    this.moveMap('d', amount);
+    this.moveMap('d', this.getFactorFromKeyState(evt));
   }
 
-  private moveMap(dir: string, percent: number): void {
-    let eventData: string = dir + percent.toString();
+  private getFactorFromKeyState(evt: KeyboardEvent): number {
+    let result: number = evt.shiftKey ? 1.0 : evt.ctrlKey ? 0.2 : 0.5;
+    return result;
+  }
+
+  private moveMap(dir: string, factor: number): void {
+    let eventData: string = dir + factor.toString();
     console.log('Viewer Params is emitting a Map Pos Update.');
 
     this.mapPositionUpdated.emit(eventData);
