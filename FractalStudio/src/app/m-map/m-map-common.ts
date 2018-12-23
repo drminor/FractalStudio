@@ -4,6 +4,13 @@ const MAX_CANVAS_HEIGHT: number = 50000;
 export interface IPoint {
   x: number;
   y: number;
+
+  add(amount: number): IPoint;
+  mult(amount: number): IPoint;
+
+  scale(factor: IPoint): IPoint;
+  translate(factor: IPoint): IPoint;
+
   isEqual(p: IPoint): boolean;
 }
 
@@ -12,13 +19,27 @@ export interface IBox {
   topRight: IPoint;
   width: number;
   height: number;
-  upsideDown: boolean;
+
+  isUpsideDown: boolean;
+  isBackwards: boolean;
+
+  absHeight: number;
+  absTop: number;
+  absWidth: number;
+  absLeft: number;
+
+  size: ICanvasSize;
+  absSize: ICanvasSize;
+
+  addX(amount: number): IBox;
+  addY(amount: number): IBox;
+
+  mult(amount: number): IBox;
+  scale(factor: ICanvasSize): IBox;
+  translate(factor: IBox): IBox;
 
   getNormalizedBox(): IBox;
   getShiftedBox(dir: string, percent: number): IBox;
-  addX(amount: number): IBox;
-  addY(amount: number): IBox;
-  getScaledBox(factor: ICanvasSize): IBox;
   getExpandedBox(percent: number): IBox;
 
   isEqual(box: IBox): boolean;
@@ -41,7 +62,9 @@ export interface ICanvasSize {
   width: number;
   height: number;
 
-  getScaledCanvas(amount: number): ICanvasSize;
+  //getScaledCanvas(amount: number): ICanvasSize;
+  mult(amount: number): ICanvasSize;
+  scale(factor: ICanvasSize): ICanvasSize;
 }
 
 export interface IMapWorkingData {
@@ -90,6 +113,23 @@ export class Point implements IPoint {
     return result;
   }
 
+  public add(amount: number): IPoint {
+    return new Point(this.x + amount, this.y + amount);
+  }
+
+  public mult(amount: number): IPoint {
+    return new Point(this.x * amount, this.y * amount);
+
+  }
+
+  public scale(factor: IPoint): IPoint {
+    return new Point(this.x * factor.x, this.y * factor.y);
+  }
+
+  public translate(factor: IPoint): IPoint {
+    return new Point(this.x + factor.x, this.y + factor.y);
+  }
+
   public isEqual(p: IPoint): boolean {
     if (p === null) return false;
     if (p.x !== this.x) return false;
@@ -116,9 +156,56 @@ export class Box implements IBox {
     return this.topRight.y - this.botLeft.y;
   }
 
-  public get upsideDown(): boolean {
-    let result = this.topRight.y < this.botLeft.y;
-    return result;
+  public get isUpsideDown(): boolean {
+    return this.topRight.y < this.botLeft.y;
+  }
+
+  public get isBackwards(): boolean {
+    return this.topRight.x < this.botLeft.x;
+  }
+
+  public get absHeight(): number {
+    if (this.isUpsideDown) {
+      return this.botLeft.y - this.topRight.y;
+    }
+    else {
+      return this.height;
+    }
+  }
+
+  public get absTop(): number {
+    if (this.isUpsideDown) {
+      return this.botLeft.y;
+    }
+    else {
+      return this.topRight.y;
+    }
+  }
+
+  public get absWidth(): number {
+    if (this.isBackwards) {
+      return this.botLeft.x - this.topRight.x;
+    }
+    else {
+      return this.width;
+    }
+  }
+
+  public get absLeft(): number {
+    if (this.isBackwards) {
+      return this.botLeft.x;
+    }
+    else {
+      return this.topRight.x;
+    }
+  }
+
+  public get size(): ICanvasSize {
+    return new CanvasSize(this.width, this.height);
+  }
+
+  public get absSize(): ICanvasSize {
+    return new CanvasSize(this.absWidth, this.absHeight);
   }
 
   public getShiftedBox(dir: string, percent: number): IBox {
@@ -165,12 +252,28 @@ export class Box implements IBox {
     return result;
   }
 
-  public getScaledBox(factor: ICanvasSize): IBox {
+  public mult(amount: number): IBox {
+
+    let botLeft = new Point(this.botLeft.x * amount, this.botLeft.y * amount);
+    let topRight = new Point(this.topRight.x * amount, this.topRight.y * amount);
+
+    let result = new Box(botLeft, topRight);
+    return result;
+  }
+
+  public scale(factor: ICanvasSize): IBox {
+
+    console.log('The dif in x vs y factor on getScaledBox is ' + (factor.width - factor.height) + '.');
+
     let result = new Box(
       new Point(this.botLeft.x * factor.width, this.botLeft.y * factor.height),
       new Point(this.topRight.x * factor.width, this.topRight.y * factor.height)
     );
     return result;
+  }
+
+  public translate(factor: IBox): IBox {
+    return new Box(this.botLeft.translate(factor.botLeft), this.topRight.translate(factor.topRight));
   }
 
   public getExpandedBox(percent: number): IBox {
@@ -289,6 +392,16 @@ export class CanvasSize implements ICanvasSize {
     return result;
   }
 
+  public mult(amount: number): ICanvasSize {
+    let result = new CanvasSize(this.width * amount, this.height * amount);
+    return result;
+  }
+
+  public scale(factor: ICanvasSize): ICanvasSize {
+    let result = new CanvasSize(this.width * factor.width, this.height * factor.height);
+    return result;
+  }
+
   isReasonableExtent(nVal:number, max:number): boolean {
     //return isFinite(nVal) && nVal > 0 && nVal <= max && Math.floor(nVal) === nVal;
     return isFinite(nVal) && nVal > 0 && nVal <= max;
@@ -328,7 +441,7 @@ export class MapInfo implements IMapInfo {
   }
 
   public get upsideDown(): boolean {
-    return this.coords.upsideDown;
+    return this.coords.isUpsideDown;
   }
 
   public isEqual(other: IMapInfo): boolean {

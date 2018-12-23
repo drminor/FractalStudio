@@ -330,9 +330,9 @@ export class MMapDisplayComponent implements AfterViewInit {
     }
   }
 
-  private getOverLayRect(oBox: IBox, cs: ICanvasSize) {
+  private getOverLayRect(oBox: IBox, cs: ICanvasSize) : IBox {
 
-    let result = oBox.getScaledBox(cs);
+    let result = oBox.scale(cs);
     return result;
   }
 
