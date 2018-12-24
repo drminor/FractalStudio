@@ -15,7 +15,10 @@
         <label>End X: <input type="text" formControlName="endX"></label>
       </td>
       <td>
-        <label>Iterations: <input type="text" formControlName="maxIterations" size="6"></label>
+        <label>Iterations: <input type="text" formControlName="maxIterations" size="4"></label>
+      </td>
+      <td>
+        <label>Threshold: <input type="text" formControlName="threshold" size="2"></label>
       </td>
     </tr>
     <tr>
@@ -26,8 +29,9 @@
         <label>End Y: <input type="text" formControlName="endY"></label>
       </td>
       <td>
-        <label>Redraw after <input type="text" formControlName="iterationsPerStep" size="6"> iterations</label>
+        <label>Redraw after <input type="text" formControlName="iterationsPerStep" size="4"> iterations</label>
       </td>
+      <td></td>
     </tr>
   </table>
   <button #applyButton type="submit" [disabled]="!mapCoordsForm.valid">Apply</button>

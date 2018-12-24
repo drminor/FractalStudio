@@ -161,7 +161,7 @@ export class MMapDesignerComponent {
     //this.mapInfo = new MapInfo(mapCoords, this.mapInfo.maxIterations, this.mapInfo.iterationsPerStep, this.mapInfo.upsideDown);
 
     // Build a new MapInfo using the existing Max Iterations and IterationsPerStep
-    let mi = new MapInfo(mapCoords, this.mapInfo.maxIterations, this.mapInfo.iterationsPerStep);
+    let mi = new MapInfo(mapCoords, this.mapInfo.maxIterations, this.mapInfo.threshold, this.mapInfo.iterationsPerStep);
 
     // Update the MapInfo, keeping the existing Color Map.
     this.mapInfoWithColorMap = new MapInfoWithColorMap(mi, this.colorMap);
@@ -207,8 +207,9 @@ export class MMapDesignerComponent {
     let mapCoords = new Box(bottomLeft, topRight);
 
     let maxIterations = 100;
+    let threshold = 4;
     let iterationsPerStep = 10;
-    let result = new MapInfo(mapCoords, maxIterations, iterationsPerStep);
+    let result = new MapInfo(mapCoords, maxIterations, 4, iterationsPerStep);
 
     return result;
   }

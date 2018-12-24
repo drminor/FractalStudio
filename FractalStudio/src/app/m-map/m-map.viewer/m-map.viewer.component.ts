@@ -20,7 +20,7 @@ export class MMapViewerComponent {
 
   public mapDisplayWidth: string;
   public mapDisplayHeight: string;
-  public overViewOffset: string;
+  public overViewOffSet: string;
   public overViewWidth: string;
   public overViewHeight: string;
 
@@ -48,10 +48,8 @@ export class MMapViewerComponent {
       if (this.virtualMapParams === null) {
         buildNewMap = true;
       }
-      else if (this.virtualMapParams.imageSize.width !== value.imageSize.width) {
-        buildNewMap = true;
-      }
-      else if (this.virtualMapParams.scrToPrnPixRat !== value.scrToPrnPixRat) {
+      else if (this.virtualMapParams.imageSize.width !== value.imageSize.width
+        || this.virtualMapParams.scrToPrnPixRat !== value.scrToPrnPixRat) {
         buildNewMap = true;
       }
       else {
@@ -67,6 +65,10 @@ export class MMapViewerComponent {
       if (buildNewMap) {
         // Create a new VirtualMap.
 
+        // Reset the position to 0.
+        value.left = 0;
+        value.top = 0;
+
         let coords: IBox;
         if (this._miwcm !== null && this._miwcm.mapInfo !== null) {
           coords = this._miwcm.mapInfo.coords;
@@ -77,18 +79,18 @@ export class MMapViewerComponent {
 
         this.virtualMap = this.createVirtualMap(coords, value, this.displaySize);
         this.updateParamsFromVirtualMap(value, this.virtualMap);
+        this.overLayBox = this.virtualMap.getOverLayBox(value.left, value.top);
         this.curViewCoords = this.virtualMap.getCurCoords(value.left, value.top);
       }
       else {
         if (updatePos) {
           if (this.virtualMap !== null) {
+            this.updateParamsFromVirtualMap(value, this.virtualMap);
             this.overLayBox = this.virtualMap.getOverLayBox(value.left, value.top);
             this.curViewCoords = this.virtualMap.getCurCoords(value.left, value.top);
           }
         }
       }
-
-      this.updateParamsFromVirtualMap(value, this.virtualMap);
 
       console.log('Viewer component is updating its params property.');
       this.virtualMapParams = value;
@@ -116,6 +118,9 @@ export class MMapViewerComponent {
       this.updateParamsFromVirtualMap(params, this.virtualMap);
       this.overLayBox = this.virtualMap.getOverLayBox(params.left, params.top);
       this.curViewCoords = this.virtualMap.getCurCoords(params.left, params.top);
+
+
+      //this.virtualMapParamsProp = params;
     }
     else {
       this.curViewCoords = null;
@@ -144,7 +149,7 @@ export class MMapViewerComponent {
     this.mapDisplayWidth = this.displaySize.width.toString() + 'px';
     this.mapDisplayHeight = this.displaySize.height.toString() + 'px';
 
-    this.overViewOffset = '946px';
+    this.overViewOffSet = '946px';
     this.overViewWidth = '384px';
     this.overViewHeight = '256px';
 
@@ -192,7 +197,7 @@ export class MMapViewerComponent {
     console.log('Viewer component is updating its cur map property.');
     if (this._miwcm !== null) {
 
-      let newMapInfo = new MapInfo(value, this._miwcm.mapInfo.maxIterations, this._miwcm.mapInfo.iterationsPerStep);
+      let newMapInfo = new MapInfo(value, this._miwcm.mapInfo.maxIterations, this._miwcm.mapInfo.threshold, this._miwcm.mapInfo.iterationsPerStep);
       let newMapInfoWithColorMap = new MapInfoWithColorMap(newMapInfo, this._miwcm.colorMapUi);
       this.curMapInfoWithColorMap = newMapInfoWithColorMap;
 

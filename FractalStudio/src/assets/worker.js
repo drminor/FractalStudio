@@ -1,18 +1,641 @@
-var __extends = this && this.__extends || (function () {
-  var extendStatics = function (d, b) {
-    extendStatics = Object.setPrototypeOf ||
-      { __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; } ||
-      function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-    return extendStatics(d, b);
-  };
-  return function (d, b) {
-    extendStatics(d, b);
-    function __() { this.constructor = d; }
-    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-  };
-})();
 var MAX_CANVAS_WIDTH = 50000;
 var MAX_CANVAS_HEIGHT = 50000;
+var Point = /** @class */ (function () {
+  function Point(x, y) {
+    this.x = x;
+    this.y = y;
+  }
+  Point.fromStringVals = function (strX, strY) {
+    var xNum = parseFloat(strX);
+    var yNum = parseFloat(strY);
+    var result = new Point(xNum, yNum);
+    return result;
+  };
+  Point.prototype.add = function (amount) {
+    return new Point(this.x + amount, this.y + amount);
+  };
+  Point.prototype.mult = function (amount) {
+    return new Point(this.x * amount, this.y * amount);
+  };
+  Point.prototype.scale = function (factor) {
+    return new Point(this.x * factor.x, this.y * factor.y);
+  };
+  Point.prototype.translate = function (factor) {
+    return new Point(this.x + factor.x, this.y + factor.y);
+  };
+  Point.prototype.isEqual = function (p) {
+    if (p === null)
+      return false;
+    if (p.x !== this.x)
+      return false;
+    if (p.y !== this.y)
+      return false;
+    return true;
+  };
+  return Point;
+}());
+var Box = /** @class */ (function () {
+  function Box(botLeft, topRight) {
+    this.botLeft = botLeft;
+    this.topRight = topRight;
+  }
+  Box.fromPointExtent = function (botLeft, width, height) {
+    var result = new Box(botLeft, new Point(botLeft.x + width, botLeft.y + height));
+    return result;
+  };
+  Object.defineProperty(Box.prototype, "width", {
+    get: function () {
+      return this.topRight.x - this.botLeft.x;
+    },
+    enumerable: true,
+    configurable: true
+  });
+  Object.defineProperty(Box.prototype, "height", {
+    get: function () {
+      return this.topRight.y - this.botLeft.y;
+    },
+    enumerable: true,
+    configurable: true
+  });
+  Object.defineProperty(Box.prototype, "isUpsideDown", {
+    get: function () {
+      return this.topRight.y < this.botLeft.y;
+    },
+    enumerable: true,
+    configurable: true
+  });
+  Object.defineProperty(Box.prototype, "isBackwards", {
+    get: function () {
+      return this.topRight.x < this.botLeft.x;
+    },
+    enumerable: true,
+    configurable: true
+  });
+  Object.defineProperty(Box.prototype, "absHeight", {
+    get: function () {
+      if (this.isUpsideDown) {
+        return this.botLeft.y - this.topRight.y;
+      }
+      else {
+        return this.height;
+      }
+    },
+    enumerable: true,
+    configurable: true
+  });
+  Object.defineProperty(Box.prototype, "absTop", {
+    get: function () {
+      if (this.isUpsideDown) {
+        return this.botLeft.y;
+      }
+      else {
+        return this.topRight.y;
+      }
+    },
+    enumerable: true,
+    configurable: true
+  });
+  Object.defineProperty(Box.prototype, "absWidth", {
+    get: function () {
+      if (this.isBackwards) {
+        return this.botLeft.x - this.topRight.x;
+      }
+      else {
+        return this.width;
+      }
+    },
+    enumerable: true,
+    configurable: true
+  });
+  Object.defineProperty(Box.prototype, "absLeft", {
+    get: function () {
+      if (this.isBackwards) {
+        return this.botLeft.x;
+      }
+      else {
+        return this.topRight.x;
+      }
+    },
+    enumerable: true,
+    configurable: true
+  });
+  Object.defineProperty(Box.prototype, "size", {
+    get: function () {
+      return new CanvasSize(this.width, this.height);
+    },
+    enumerable: true,
+    configurable: true
+  });
+  Object.defineProperty(Box.prototype, "absSize", {
+    get: function () {
+      return new CanvasSize(this.absWidth, this.absHeight);
+    },
+    enumerable: true,
+    configurable: true
+  });
+  Box.prototype.getShiftedBox = function (dir, percent) {
+    var result;
+    var delta;
+    switch (dir) {
+      case 'r':
+        delta = this.width * percent / 100;
+        result = this.addX(delta);
+        break;
+      case 'l':
+        delta = this.width * percent / 100;
+        result = this.addX(-1 * delta);
+        break;
+      case 'u':
+        delta = this.height * percent / 100;
+        result = this.addY(delta);
+        break;
+      case 'd':
+        delta = this.height * percent / 100;
+        result = this.addY(-1 * delta);
+        break;
+      default:
+        console.log('GetShiftedCoords received unrecognized dir ' + dir + '.');
+        result = this;
+    }
+    return result;
+  };
+  Box.prototype.addX = function (amount) {
+    var result = new Box(new Point(this.botLeft.x + amount, this.botLeft.y), new Point(this.topRight.x + amount, this.topRight.y));
+    return result;
+  };
+  Box.prototype.addY = function (amount) {
+    var result = new Box(new Point(this.botLeft.x, this.botLeft.y + amount), new Point(this.topRight.x, this.topRight.y + amount));
+    return result;
+  };
+  Box.prototype.mult = function (amount) {
+    var botLeft = new Point(this.botLeft.x * amount, this.botLeft.y * amount);
+    var topRight = new Point(this.topRight.x * amount, this.topRight.y * amount);
+    var result = new Box(botLeft, topRight);
+    return result;
+  };
+  Box.prototype.scale = function (factor) {
+    console.log('The dif in x vs y factor on getScaledBox is ' + (factor.width - factor.height) + '.');
+    var result = new Box(new Point(this.botLeft.x * factor.width, this.botLeft.y * factor.height), new Point(this.topRight.x * factor.width, this.topRight.y * factor.height));
+    return result;
+  };
+  Box.prototype.translate = function (factor) {
+    return new Box(this.botLeft.translate(factor.botLeft), this.topRight.translate(factor.topRight));
+  };
+  Box.prototype.getExpandedBox = function (percent) {
+    // 1/2 the amount of change for the width
+    var deltaX = this.width * percent / 200;
+    // 1/2 the amount of change for the width
+    var deltaY = this.height * percent / 200;
+    var botLeft = new Point(this.botLeft.x - deltaX, this.botLeft.y - deltaY);
+    var topRight = new Point(this.topRight.x + deltaX, this.topRight.y + deltaY);
+    var result = new Box(botLeft, topRight);
+    return result;
+  };
+  Box.prototype.isEqual = function (box) {
+    if (box === null) {
+      console.log('Comparing this box to null, returning NOT-EQUAL.');
+      return false;
+    }
+    else {
+      if (!this.botLeft.isEqual(box.botLeft)) {
+        console.log('Comparing two boxes and found that they are NOT-EQUAL.');
+        return false;
+      }
+      if (!this.topRight.isEqual(box.topRight)) {
+        console.log('Comparing two boxes and found that they are NOT-EQUAL.');
+        return false;
+      }
+    }
+    console.log('Comparing two boxes and found that they are equal.');
+    return true;
+  };
+  // Return a box of the same size and position
+  // but make sure that the width and height are both positive.
+  Box.prototype.getNormalizedBox = function () {
+    var box = this;
+    var sx;
+    var sy;
+    var ex;
+    var ey;
+    if (box.botLeft.x < box.topRight.x) {
+      if (box.botLeft.y < box.topRight.y) {
+        // Already in normal form.
+        sx = box.botLeft.x;
+        ex = box.topRight.x;
+        sy = box.botLeft.y;
+        ey = box.topRight.y;
+      }
+      else {
+        // Width is already positive, reverse the y values.
+        sx = box.botLeft.x;
+        ex = box.topRight.x;
+        sy = box.topRight.y;
+        ey = box.botLeft.y;
+      }
+    }
+    else {
+      if (box.botLeft.y < box.topRight.y) {
+        // Height is already positive, reverse the x values.
+        sx = box.topRight.x;
+        ex = box.botLeft.x;
+        sy = box.botLeft.y;
+        ey = box.topRight.y;
+      }
+      else {
+        // Reverse both x and y values.
+        sx = box.topRight.x;
+        ex = box.botLeft.x;
+        sy = box.topRight.y;
+        ey = box.botLeft.y;
+      }
+    }
+    var result = new Box(new Point(sx, sy), new Point(ex, ey));
+    return result;
+  };
+  //private round(x: number): number {
+  //  const result: number = parseInt((x + 0.5).toString(), 10);
+  //  return result;
+  //}
+  Box.prototype.toString = function () {
+    return 'sx:' + this.botLeft.x + ' ex:' + this.topRight.x + ' sy:' + this.botLeft.y + ' ey:' + this.topRight.y + '.';
+  };
+  return Box;
+}());
+var CanvasSize = /** @class */ (function () {
+  function CanvasSize(width, height) {
+    this.width = width;
+    this.height = height;
+    if (!this.isReasonableExtent(this.width, MAX_CANVAS_WIDTH)) {
+      console.log('A CanvasSize is being contructed with an invalid width.');
+      alert('Width is invalid');
+    }
+    if (!this.isReasonableExtent(this.height, MAX_CANVAS_HEIGHT)) {
+      console.log('A CanvasSize is being contructed with an invalid height.');
+      alert('Height is invalid');
+    }
+  }
+  CanvasSize.prototype.getScaledCanvas = function (amount) {
+    var result = new CanvasSize(this.width * amount, this.height * amount);
+    return result;
+  };
+  CanvasSize.prototype.mult = function (amount) {
+    var result = new CanvasSize(this.width * amount, this.height * amount);
+    return result;
+  };
+  CanvasSize.prototype.scale = function (factor) {
+    var result = new CanvasSize(this.width * factor.width, this.height * factor.height);
+    return result;
+  };
+  CanvasSize.prototype.isReasonableExtent = function (nVal, max) {
+    //return isFinite(nVal) && nVal > 0 && nVal <= max && Math.floor(nVal) === nVal;
+    return isFinite(nVal) && nVal > 0 && nVal <= max;
+  };
+  return CanvasSize;
+}());
+var MapInfo = /** @class */ (function () {
+  function MapInfo(coords, maxIterations, threshold, iterationsPerStep) {
+    this.coords = coords;
+    this.maxIterations = maxIterations;
+    this.threshold = threshold;
+    this.iterationsPerStep = iterationsPerStep;
+    if (coords === null) {
+      throw new Error('When creating a MapInfo, the coords argument cannot be null.');
+    }
+  }
+  MapInfo.fromPoints = function (bottomLeft, topRight, maxIterations, threshold, iterationsPerStep) {
+    var coords = new Box(bottomLeft, topRight);
+    var result = new MapInfo(coords, maxIterations, threshold, iterationsPerStep);
+    return result;
+  };
+  MapInfo.fromIMapInfo = function (mi) {
+    var bl = new Point(mi.coords.botLeft.x, mi.coords.botLeft.y);
+    var tr = new Point(mi.coords.topRight.x, mi.coords.topRight.y);
+    var coords = new Box(bl, tr);
+    var threshold;
+    if (mi.threshold === null) {
+      threshold = 4;
+    }
+    else {
+      threshold = mi.threshold;
+    }
+    var result = new MapInfo(coords, mi.maxIterations, threshold, mi.iterationsPerStep);
+    return result;
+  };
+  Object.defineProperty(MapInfo.prototype, "bottomLeft", {
+    get: function () {
+      return this.coords.botLeft;
+    },
+    enumerable: true,
+    configurable: true
+  });
+  Object.defineProperty(MapInfo.prototype, "topRight", {
+    get: function () {
+      return this.coords.topRight;
+    },
+    enumerable: true,
+    configurable: true
+  });
+  Object.defineProperty(MapInfo.prototype, "upsideDown", {
+    get: function () {
+      return this.coords.isUpsideDown;
+    },
+    enumerable: true,
+    configurable: true
+  });
+  MapInfo.prototype.isEqual = function (other) {
+    if (other === null)
+      return false;
+    if (!(this.coords.isEqual(other.coords)))
+      return false;
+    if (this.maxIterations !== other.maxIterations)
+      return false;
+    if (this.iterationsPerStep !== other.iterationsPerStep)
+      return false;
+    if (this.threshold !== other.threshold)
+      return false;
+    return true;
+  };
+  MapInfo.prototype.toString = function () {
+    return 'sx:' + this.coords.botLeft.x + ' ex:' + this.coords.topRight.x + ' sy:' + this.coords.botLeft.y + ' ey:' + this.coords.topRight.y + ' mi:' + this.maxIterations + ' ips:' + this.iterationsPerStep + '.';
+  };
+  return MapInfo;
+}());
+var Divisions = /** @class */ (function () {
+  //constructor(total: number, startVal: number, startIdx: number, numberOfDivs: number) {
+  //  this._numberOfDivs = 1;
+  //  this.total = total;
+  //  this.startVal = startVal;
+  //  this.startIdx = startIdx;
+  //  this.numberOfDivs = numberOfDivs;
+  //}
+  function Divisions(numberOfDivs) {
+    this._numberOfDivs = 1;
+    this.total = 1;
+    this.startVal = 0;
+    this.startIdx = 0;
+    this.numberOfDivs = numberOfDivs;
+  }
+  Divisions.createWithStartVal = function (total, startVal, startIdx, numberOfDivs) {
+    var result = new Divisions(numberOfDivs);
+    result.setTotalAndStart(total, startVal, startIdx);
+    return result;
+  };
+  Object.defineProperty(Divisions.prototype, "total", {
+    get: function () {
+      return this._total;
+    },
+    set: function (value) {
+      this._total = value;
+      if (this._numberOfDivs > 1) {
+        var workDivs = this.buildDivisions(this._total, this._startVal, this._startIdx, this._numberOfDivs);
+        var curStartIdx = this._startIdx + 1;
+        var ptr = void 0;
+        for (ptr = 0; ptr < this.children.length; ptr++) {
+          curStartIdx = this.children[ptr].setTotalAndStart(workDivs[ptr].total, workDivs[ptr].startVal, curStartIdx);
+        }
+      }
+    },
+    enumerable: true,
+    configurable: true
+  });
+  Object.defineProperty(Divisions.prototype, "startVal", {
+    get: function () {
+      return this._startVal;
+    },
+    set: function (value) {
+      this._startVal = value;
+      if (this._numberOfDivs > 1) {
+        var workDivs = this.buildDivisions(this._total, this._startVal, this._startIdx, this._numberOfDivs);
+        var curStartIdx = this._startIdx + 1;
+        var ptr = void 0;
+        for (ptr = 0; ptr < this.children.length; ptr++) {
+          curStartIdx = this.children[ptr].setTotalAndStart(workDivs[ptr].total, workDivs[ptr].startVal, curStartIdx);
+        }
+      }
+    },
+    enumerable: true,
+    configurable: true
+  });
+  Object.defineProperty(Divisions.prototype, "startIdx", {
+    get: function () {
+      return this._startIdx;
+    },
+    set: function (value) {
+      this._startIdx = value;
+      if (this._numberOfDivs > 1) {
+        var curStartIdx = value + 1;
+        var ptr = void 0;
+        for (ptr = 0; ptr < this.children.length; ptr++) {
+          curStartIdx = this.children[ptr].setTotalAndStart(this.total, this.startVal, curStartIdx);
+        }
+      }
+    },
+    enumerable: true,
+    configurable: true
+  });
+  Object.defineProperty(Divisions.prototype, "numberOfDivs", {
+    get: function () {
+      return this._numberOfDivs;
+    },
+    set: function (value) {
+      if (value < 1 || parseInt(value.toString()) !== value) {
+        throw new RangeError('The numberOfDivs must be a whole number greater than 0.');
+      }
+      this._numberOfDivs = value;
+      if (value === 1) {
+        this.children = null;
+      }
+      else {
+        this.children = this.buildDivisions(this.total, this.startVal, this._startIdx, value);
+      }
+    },
+    enumerable: true,
+    configurable: true
+  });
+  Divisions.prototype.setTotalAndStart = function (total, startVal, startIdx) {
+    this._total = total;
+    this._startVal = startVal;
+    this._startIdx = startIdx;
+    var curStartIdx = startIdx + 1;
+    if (this._numberOfDivs > 1) {
+      var workDivs = this.buildDivisions(this._total, this._startVal, this._startIdx, this._numberOfDivs);
+      var ptr = void 0;
+      for (ptr = 0; ptr < this.children.length; ptr++) {
+        curStartIdx = this.children[ptr].setTotalAndStart(workDivs[ptr].total, workDivs[ptr].startVal, curStartIdx);
+      }
+    }
+    return curStartIdx;
+  };
+  Divisions.prototype.insertChild = function (newChild, index) {
+    if (index < 0 || index > this._numberOfDivs) {
+      throw new RangeError('The index is out of bounds.');
+    }
+    this._numberOfDivs++;
+    var workDivs = this.buildDivisions(this._total, this._startVal, this._startIdx, this._numberOfDivs);
+    if (this._numberOfDivs === 2) {
+      this.children = new Array(2);
+      if (index === 0) {
+        newChild.setTotalAndStart(this._total, this._startVal, this._startIdx + 1);
+        this.children.push(newChild);
+        this.children.push(workDivs[1]);
+      }
+      else {
+        newChild.setTotalAndStart(this._total, this._startVal, this._startIdx + 2);
+        this.children.push(workDivs[0]);
+        this.children.push(newChild);
+      }
+    }
+    else {
+      this.children.splice(index, 0, newChild);
+      var curStartIdx = this._startIdx + 1;
+      var ptr = void 0;
+      for (ptr = 0; ptr < this.children.length; ptr++) {
+        curStartIdx = this.children[ptr].setTotalAndStart(workDivs[ptr].total, workDivs[ptr].startVal, curStartIdx);
+      }
+    }
+  };
+  Divisions.prototype.deleteChild = function (index) {
+    if (index < 0 || index > this._numberOfDivs) {
+      throw new RangeError('The index is out of bounds.');
+    }
+    this._numberOfDivs--;
+    var workDivs = this.buildDivisions(this._total, this._startVal, this._startIdx, this._numberOfDivs);
+    this.children.splice(index, 1);
+    var curStartIdx = this._startIdx + 1;
+    var ptr;
+    for (ptr = 0; ptr < this.children.length; ptr++) {
+      curStartIdx = this.children[ptr].setTotalAndStart(workDivs[ptr].total, workDivs[ptr].startVal, curStartIdx);
+    }
+  };
+  Divisions.prototype.buildDivisions = function (total, startVal, startIdx, divs) {
+    var result = new Array(divs);
+    var unit = total / divs;
+    var curStartVal = startVal;
+    var firstChildStartIdx = startIdx + 1;
+    var ptr;
+    for (ptr = 0; ptr < divs; ptr++) {
+      result[ptr] = new Divisions(1);
+      result[ptr].setTotalAndStart(unit, curStartVal, firstChildStartIdx++);
+      curStartVal += unit;
+    }
+    return result;
+  };
+  Divisions.prototype.getStartingValsAsPercentages = function () {
+    var result = [];
+    var startingVals = this.getStartingVals();
+    var ptr;
+    for (ptr = 0; ptr < startingVals.length; ptr++) {
+      result.push(Divisions.formatAsPercentage(startingVals[ptr]));
+    }
+    return result;
+  };
+  // Running percentages
+  // Returns a list of numeric values, each value is between 0 and 1.
+  Divisions.prototype.getStartingVals = function () {
+    var curResult = [];
+    var result = this.getStartingValsInternal(curResult);
+    return result;
+  };
+  Divisions.prototype.getStartingValsInternal = function (curResult) {
+    if (this._numberOfDivs === 1) {
+      curResult.push(this.startVal);
+    }
+    else {
+      var ptr = void 0;
+      for (ptr = 0; ptr < this.children.length; ptr++) {
+        curResult = this.children[ptr].getStartingValsInternal(curResult);
+      }
+    }
+    return curResult;
+  };
+  // Individual percentage values
+  // Returns a list of numeric values, each value is between 0 and 1.
+  Divisions.prototype.getVals = function () {
+    var curResult = [];
+    var result = this.getValsInternal(curResult);
+    return result;
+  };
+  Divisions.prototype.getValsInternal = function (curResult) {
+    if (this._numberOfDivs === 1) {
+      curResult.push(this.total);
+    }
+    else {
+      var ptr = void 0;
+      for (ptr = 0; ptr < this.children.length; ptr++) {
+        curResult = this.children[ptr].getValsInternal(curResult);
+      }
+    }
+    return curResult;
+  };
+  Divisions.prototype.toString = function () {
+    return this.toStringInternal('');
+  };
+  Divisions.prototype.toStringInternal = function (curResult) {
+    var result = curResult;
+    if (this._numberOfDivs === 1) {
+      if (result !== '') {
+        result += ', ';
+      }
+      result = '\n(entry:' + this.startIdx + '-' + this.startVal + ':' + this.total + ')';
+    }
+    else {
+      result = '';
+      var ptr = void 0;
+      for (ptr = 0; ptr < this.children.length; ptr++) {
+        if (result !== '') {
+          result += ', ';
+        }
+        result += this.children[ptr].toStringInternal(result);
+      }
+      result = '\n(entry:' + this.startIdx + '-' + this.startVal + ':' + this.total + ')' + '[' + result + ']';
+    }
+    return result;
+  };
+  Divisions.X100With3DecPlaces = function (val) {
+    if (val === 0) {
+      return 0;
+    }
+    else {
+      var percentX1000 = parseInt((100000 * val + 0.5).toString(), 10);
+      var p = percentX1000 / 1000;
+      //let s = percentX1000.toString();
+      //let res = s.slice(0, s.length - 3) + '.' + s.slice(s.length - 3);
+      //if (percentX1000 < 100) {
+      //  res = '0' + res;
+      //}
+      //return parseFloat(res);
+      return p;
+    }
+  };
+  Divisions.prototype.staticFormatX100AsPercentage = function (val) {
+    var result = val.toString() + '%';
+    return result;
+  };
+  Divisions.formatAsPercentage = function (val) {
+    if (val === 0) {
+      return '0.0%';
+    }
+    else {
+      var percentX1000 = parseInt((100000 * val + 0.5).toString(), 10);
+      var p = percentX1000 / 1000;
+      //let s = percentX1000.toString();
+      //let res = s.slice(0, s.length - 3) + '.' + s.slice(s.length - 3) + '%';
+      //if (percentX1000 < 1000) {
+      //  res = '0' + res;
+      //}
+      var res = p.toString() + '%';
+      return res;
+    }
+  };
+  return Divisions;
+}());
+var IndexAndRunningSum = /** @class */ (function () {
+  function IndexAndRunningSum(idx, runningSum) {
+    this.idx = idx;
+    this.runningSum = runningSum;
+  }
+  return IndexAndRunningSum;
+}());
 var HistArrayPair = /** @class */ (function () {
   function HistArrayPair(vals, occurances) {
     this.vals = vals;
@@ -32,46 +655,247 @@ var HistEntry = /** @class */ (function () {
 }());
 var Histogram = /** @class */ (function () {
   function Histogram() {
+    this._maxVal = -1;
     this.entriesMap = new Map();
   }
-  Histogram.prototype.getHistEntriesAsString = function () {
-    var result = '';
-    var hEntries = this.histEntries;
-    var ptr;
-    for (ptr = 0; ptr < hEntries.length; ptr++) {
-      var he = hEntries[ptr];
-      result = result + he.toString() + '\n';
-    }
-    return result;
-  };
-  Object.defineProperty(Histogram.prototype, "histEntries", {
+  Object.defineProperty(Histogram.prototype, "maxVal", {
     get: function () {
-      var result = [];
-      var lst = Array.from(this.entriesMap.entries());
-      var ptr;
-      for (ptr = 0; ptr < lst.length; ptr++) {
-        result.push(new HistEntry(lst[ptr]["0"], lst[ptr]["1"]));
+      if (this._maxVal === -1) {
+        // The getHistEntries method also sets the value of _maxVal.
+        this.getHistEntries();
       }
-      return result;
+      return this._maxVal;
     },
     enumerable: true,
     configurable: true
   });
-  Histogram.prototype.getHistArrayPair = function () {
-    //var vals = new Uint16Array(this.entriesMap.size);
-    //var occs = new Uint16Array(this.entriesMap.size);
-    //var vlst = Array.from(this.entriesMap.keys());
-    //var olst = Array.from(this.entriesMap.values());
-    //var ptr;
-    //for (ptr = 0; ptr < vlst.length; ptr++) {
-    //  vals[ptr] = vlst[ptr];
-    //  occs[ptr] = olst[ptr];
+  /// ---  By Division ----
+  Histogram.prototype.getEqualGroupsForAll = function (numberOfGroups) {
+    var result = this.getEqualGroupsForSubset(numberOfGroups, 0, -1);
+    return result;
+  };
+  Histogram.prototype.getEqualGroupsForSubset = function (numberOfGroups, startCutOff, endCutOff) {
+    console.log('GetEqualGroupsForSubset is being called with cnt:' + numberOfGroups + ' sc:' + startCutOff + ' ec:' + endCutOff + '.');
+    var hes = this.getHistEntries();
+    // Get index of starting cutoff;
+    var startIdx = this.getIndexFromVal(hes, startCutOff, 0);
+    // Get index of ending cutoff;
+    var maxIdx = this.getIndexOfMaxIter(hes, 5);
+    maxIdx--; // Don't include the entry at the end that corresponds to the maxIterations.
+    var endIdx;
+    if (endCutOff === -1) {
+      endIdx = maxIdx;
+    }
+    else {
+      endIdx = this.getIndexFromVal(hes, endCutOff, startIdx);
+      if (endIdx > maxIdx)
+        endIdx = maxIdx;
+    }
+    var cnt = 1 + endIdx - startIdx;
+    var result = this.getEqualGroupsForSubset_Int(hes, numberOfGroups, startIdx, cnt);
+    return result;
+  };
+  Histogram.prototype.getEqualGroupsForSubset_Int = function (hes, numberOfGroups, startIdx, cnt) {
+    console.log('GetEqualGroupsForSubset_Int is being called with cnt:' + numberOfGroups + ' si:' + startIdx + ' cnt:' + cnt + '.');
+    var numOfResultsRemaining = numberOfGroups; // - 2;
+    var result = Array(numOfResultsRemaining);
+    var resultPtr = 0;
+    var resultEndPtr = numberOfGroups - 1; // - 3;
+    while (cnt > 0 && numOfResultsRemaining > 0) {
+      var sum = this.getSumHits(hes, startIdx, cnt);
+      var target = parseInt((0.5 + sum / numberOfGroups).toString(), 10);
+      if (hes[startIdx].occurances >= target) {
+        result[resultPtr++] = hes[startIdx].val;
+        startIdx++;
+        cnt--;
+      }
+      else if (hes[startIdx + cnt - 1].occurances >= target) {
+        result[resultEndPtr--] = hes[startIdx + cnt - 1].val;
+        cnt--;
+      }
+      else {
+        var bp = this.getForwardBreakPoint(hes, startIdx, cnt, target);
+        result[resultPtr++] = hes[bp].val;
+        var newStart = bp + 1;
+        var ac = newStart - startIdx;
+        startIdx = newStart;
+        cnt -= ac;
+      }
+      numOfResultsRemaining--;
+      numberOfGroups--;
+    }
+    return result;
+  };
+  // Returns the index into hes where the runnng sum is >= target.
+  Histogram.prototype.getForwardBreakPoint = function (hes, startIdx, cnt, target) {
+    var runSum = 0;
+    var ptr;
+    for (ptr = startIdx; ptr < startIdx + cnt; ptr++) {
+      runSum += hes[ptr].occurances;
+      if (runSum >= target) {
+        // We have found the breakpoint at ptr.
+        return ptr;
+      }
+    }
+    // The breakpoint is the last index into hes.
+    var result = startIdx + cnt - 1;
+    return result;
+  };
+  Histogram.prototype.getIndexFromVal = function (hes, val, startIdx) {
+    var found = false;
+    var result;
+    var ptr;
+    for (ptr = startIdx; ptr < hes.length; ptr++) {
+      if (hes[ptr].val === val) {
+        result = ptr;
+        found = true;
+        break;
+      }
+      if (hes[ptr].val > val) {
+        result = ptr - 1;
+        if (result < 0)
+          result = 0;
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      result = hes.length - 1;
+    }
+    return result;
+  };
+  Histogram.prototype.getSumHits = function (hes, startIdx, cnt) {
+    var result = 0;
+    var ptr;
+    for (ptr = startIdx; ptr < startIdx + cnt; ptr++) {
+      result += hes[ptr].occurances;
+    }
+    return result;
+  };
+  Histogram.prototype.getAverageOcc = function (hes, startIdx, cnt) {
+    var total = this.getSumHits(hes, startIdx, cnt);
+    var avg = total / cnt;
+    return avg;
+  };
+  //private getFirstLargerThan(hes: HistEntry[], cutOff: number): number {
+  //  let ptr: number;
+  //  for (ptr = 0; ptr < hes.length; ptr++) {
+  //    if (hes[ptr].val > cutOff) {
+  //      break;
+  //    }
+  //  }
+  //  return ptr;
+  //}
+  Histogram.prototype.getIndexOfMaxIter = function (hes, numberOfEntriesToCheck) {
+    var result = 0;
+    var curMaxVal = -1;
+    var ptr;
+    var start = hes.length - 1;
+    var end = start - numberOfEntriesToCheck;
+    if (end < 0)
+      end = 0;
+    for (ptr = start; ptr >= end; ptr--) {
+      if (hes[ptr].occurances > curMaxVal) {
+        curMaxVal = hes[ptr].occurances;
+        result = ptr;
+      }
+    }
+    if (result !== start) {
+      // Perhaps there is no large entry at the end for the maxInterations
+      // If the maximum value found is less than 5 times the average occurances
+      // then just use the last entry.
+      var avg = this.getAverageOcc(hes, 0, hes.length);
+      if (curMaxVal < avg * 5) {
+        result = start;
+      }
+      else {
+        // We did find a large entry near the end, but it was not at the very end.
+        var cnt = end - start;
+        console.log('The maximum value of the last ' + cnt + ' histogram entries is not the last entry.');
+        {
+          debugger;
+        }
+      }
+    }
+    return result;
+  };
+  /// --- End By Division ---
+  /// --- By Percentages ---
+  Histogram.prototype.getCutoffs = function (percentages) {
+    var result = new Array(percentages.length);
+    var hes = this.getHistEntries();
+    // Get Total hits excluding the hits from those points that reached the maxium iteration count.
+    var maxIterIndex = this.getIndexOfMaxIter(hes, 5);
+    var total = this.getSumHits(hes, 0, maxIterIndex);
+    var runningPercent = 0;
+    var idxAndSum = new IndexAndRunningSum(0, 0);
+    var ptr;
+    for (ptr = 0; ptr < percentages.length; ptr++) {
+      runningPercent += percentages[ptr]; // / 100;
+      var target = runningPercent * total;
+      idxAndSum = this.getCutOff(target, hes, idxAndSum);
+      if (idxAndSum.idx < hes.length) {
+        result[ptr] = hes[idxAndSum.idx].val;
+      }
+      else {
+        // Use the value of the last entry and exit.
+        result[ptr] = hes[hes.length - 1].val;
+        break;
+      }
+    }
+    return result;
+  };
+  Histogram.prototype.getCutOff = function (targetVal, hes, startIdxAndSum) {
+    var ptr = startIdxAndSum.idx;
+    var rs = startIdxAndSum.runningSum;
+    //if (targetVal > rs) {
+    //  throw new RangeError('targetVal > running sum on call to getCutOff.');
     //}
-
+    var haveAdvanced = false;
+    while (ptr < hes.length) {
+      var newRs = rs + hes[ptr].occurances;
+      if (newRs > targetVal) {
+        if (haveAdvanced) {
+          var diffPrev = targetVal - rs;
+          var diffNext = newRs - targetVal;
+          if (diffNext <= diffPrev) {
+            rs = newRs;
+            ptr++;
+          }
+        }
+        else {
+          // Must use the next value because we have not yet advanced any -- which means the current value has already been used.
+          rs = newRs;
+          ptr++;
+        }
+        break;
+      }
+      else {
+        rs = newRs;
+        ptr++;
+        haveAdvanced = true;
+      }
+    }
+    var result = new IndexAndRunningSum(ptr, rs);
+    return result;
+  };
+  /// --- End Target Percentage ---
+  Histogram.prototype.getHistEntries = function () {
+    var result = new Array(this.entriesMap.size);
+    var vals = Array.from(this.entriesMap.keys());
+    var occs = Array.from(this.entriesMap.values());
+    var ptr;
+    for (ptr = 0; ptr < this.entriesMap.size; ptr++) {
+      result[ptr] = new HistEntry(vals[ptr], occs[ptr]);
+    }
+    result.sort(function (a, b) { return a.val - b.val; });
+    // Set our maxVal, while since we have gone to the trouble of getting sorting our map.
+    this._maxVal = result[result.length - 1].val;
+    return result;
+  };
+  Histogram.prototype.getHistArrayPair = function () {
     var vals = new Uint16Array(Array.from(this.entriesMap.keys()));
     var occs = new Uint16Array(Array.from(this.entriesMap.values()));
-
-
     var result = new HistArrayPair(vals, occs);
     return result;
   };
@@ -128,6 +952,67 @@ var Histogram = /** @class */ (function () {
       }
     }
   };
+  Histogram.prototype.getGroupCnts = function (breakPoints) {
+    var result = new Array(breakPoints.length);
+    var hes = this.getHistEntries();
+    var lastIdx = 0;
+    var ptr;
+    for (ptr = 0; ptr < breakPoints.length; ptr++) {
+      var accum = 0;
+      var thisBp = breakPoints[ptr];
+      var p2 = void 0;
+      for (p2 = lastIdx; p2 < hes.length; p2++) {
+        if (hes[p2].val <= thisBp) {
+          accum += hes[p2].occurances;
+        }
+        else {
+          break;
+        }
+      }
+      result[ptr] = accum;
+      lastIdx = p2;
+    }
+    // Add up all occurances after the last break point.
+    var accum2 = 0;
+    var p3;
+    for (p3 = lastIdx; p3 < hes.length; p3++) {
+      accum2 += hes[p3].occurances;
+    }
+    result.push(accum2);
+    return result;
+  };
+  Histogram.prototype.getGroupPercentages = function (groupCounts) {
+    var result = new Array(groupCounts.length);
+    var hes = this.getHistEntries();
+    var maxIterIndex = this.getIndexOfMaxIter(hes, 5);
+    var total = this.getSumHits(hes, 0, maxIterIndex);
+    var ptr;
+    for (ptr = 0; ptr < groupCounts.length; ptr++) {
+      result[ptr] = groupCounts[ptr] / total;
+    }
+    return result;
+  };
+  Histogram.prototype.toString = function () {
+    var result = '';
+    var hEntries = this.getHistEntries();
+    var ptr;
+    for (ptr = 0; ptr < hEntries.length; ptr++) {
+      var he = hEntries[ptr];
+      result = result + he.toString() + '\n';
+    }
+    return result;
+  };
+  Histogram.getBreakPointsDisplay = function (bps) {
+    var result = '';
+    var startRange = 0;
+    var ptr;
+    for (ptr = 0; ptr < bps.length; ptr++) {
+      var endRange = bps[ptr];
+      result += 'Range ' + ptr + ': ' + startRange + '-' + endRange + '\n';
+      startRange = endRange;
+    }
+    return result;
+  };
   return Histogram;
 }());
 var MapInfoWithColorMap = /** @class */ (function () {
@@ -135,11 +1020,15 @@ var MapInfoWithColorMap = /** @class */ (function () {
     this.mapInfo = mapInfo;
     this.colorMapUi = colorMapUi;
   }
-  MapInfoWithColorMap.fromForExport = function (miwcm) {
+  MapInfoWithColorMap.fromForExport = function (miwcmfe, serialNumber) {
+    if (typeof (miwcmfe.version) === 'undefined') {
+      miwcmfe.version = 1.0;
+    }
+    //console.log('Loaded the MapInfoWithColorMapForExport and it has version = ' + miwcmfe.version + '.');
     // Create a new MapInfo from the loaded data.
-    var mapInfo = MapInfo.fromIMapInfo(miwcm.mapInfo);
+    var mapInfo = MapInfo.fromIMapInfo(miwcmfe.mapInfo);
     // Create a new ColorMapUI from the loaded data.
-    var colorMap = ColorMapUI.FromColorMapForExport(miwcm.colorMap);
+    var colorMap = ColorMapUI.fromColorMapForExport(miwcmfe.colorMap, serialNumber);
     var result = new MapInfoWithColorMap(mapInfo, colorMap);
     return result;
   };
@@ -149,150 +1038,13 @@ var MapInfoWithColorMapForExport = /** @class */ (function () {
   function MapInfoWithColorMapForExport(mapInfo, colorMap) {
     this.mapInfo = mapInfo;
     this.colorMap = colorMap;
+    this.version = 1.0;
   }
   return MapInfoWithColorMapForExport;
 }());
-var Point = /** @class */ (function () {
-  function Point(x, y) {
-    this.x = x;
-    this.y = y;
-  }
-  Point.fromStringVals = function (strX, strY) {
-    var xNum = parseFloat(strX);
-    var yNum = parseFloat(strY);
-    var result = new Point(xNum, yNum);
-    return result;
-  };
-  return Point;
-}());
-var Box = /** @class */ (function () {
-  function Box(botLeft, topRight) {
-    this.botLeft = botLeft;
-    this.topRight = topRight;
-  }
-  Box.fromPointExtent = function (point, width, height) {
-    var result = new Box(point, new Point(point.x + width, point.y + height));
-    return result;
-  };
-  Object.defineProperty(Box.prototype, "width", {
-    get: function () {
-      return this.end.x - this.start.x;
-    },
-    enumerable: true,
-    configurable: true
-  });
-  Object.defineProperty(Box.prototype, "height", {
-    get: function () {
-      return this.end.y - this.start.y;
-    },
-    enumerable: true,
-    configurable: true
-  });
-  // Return a box of the same size and position
-  // but make sure that the width and height are both positive.
-  Box.prototype.getNormalizedBox = function () {
-    var box = this;
-    var sx;
-    var sy;
-    var ex;
-    var ey;
-    if (box.botLeft.x < box.topRight.x) {
-      if (box.botLeft.y < box.topRight.y) {
-        // Already in normal form.
-        sx = box.botLeft.x;
-        ex = box.topRight.x;
-        sy = box.botLeft.y;
-        ey = box.topRight.y;
-      }
-      else {
-        // Width is already positive, reverse the y values.
-        sx = box.botLeft.x;
-        ex = box.topRight.x;
-        sy = box.topRight.y;
-        ey = box.botLeft.y;
-      }
-    }
-    else {
-      if (box.botLeft.y < box.topRight.y) {
-        // Height is already positive, reverse the x values.
-        sx = box.topRight.x;
-        ex = box.botLeft.x;
-        sy = box.botLeft.y;
-        ey = box.topRight.y;
-      }
-      else {
-        // Reverse both x and y values.
-        sx = box.topRight.x;
-        ex = box.botLeft.x;
-        sy = box.topRight.y;
-        ey = box.botLeft.y;
-      }
-    }
-    var result = new Box(new Point(this.round(sx), this.round(sy)), new Point(this.round(ex), this.round(ey)));
-    return result;
-  };
-  Box.prototype.round = function (x) {
-    var result = parseInt((x + 0.5).toString(), 10);
-    return result;
-  };
-  Box.prototype.toString = function () {
-    return 'sx:' + this.botLeft.x + ' ex:' + this.topRight.x + ' sy:' + this.botLeft.y + ' ey:' + this.topRight.y + '.';
-  };
-  return Box;
-}());
-var CanvasSize = /** @class */ (function () {
-  function CanvasSize(width, height) {
-    this.width = width;
-    this.height = height;
-    if (!this.isReasonableExtent(this.width, MAX_CANVAS_WIDTH)) {
-      alert('Width is invalid');
-    }
-    if (!this.isReasonableExtent(this.height, MAX_CANVAS_HEIGHT)) {
-      alert('Height is invalid');
-    }
-  }
-  CanvasSize.prototype.isReasonableExtent = function (nVal, max) {
-    return isFinite(nVal) && nVal > 0 && nVal <= max && Math.floor(nVal) === nVal;
-  };
-  return CanvasSize;
-}());
-var MapInfo = /** @class */ (function () {
-  function MapInfo(coords, maxIterations, iterationsPerStep) {
-    this.coords = coords;
-    this.maxIterations = maxIterations;
-    this.iterationsPerStep = iterationsPerStep;
-  }
-  MapInfo.fromPoints = function (bottomLeft, topRight, maxIterations, iterationsPerStep) {
-    var coords = new Box(bottomLeft, topRight);
-    var result = new MapInfo(coords, maxIterations, iterationsPerStep);
-    return result;
-  };
-  MapInfo.fromIMapInfo = function (mi) {
-    var result = new MapInfo(mi.coords, mi.maxIterations, mi.iterationsPerStep);
-    return result;
-  };
-  Object.defineProperty(MapInfo.prototype, "bottomLeft", {
-    get: function () {
-      return this.coords.botLeft;
-    },
-    enumerable: true,
-    configurable: true
-  });
-  Object.defineProperty(MapInfo.prototype, "topRight", {
-    get: function () {
-      return this.coords.topRight;
-    },
-    enumerable: true,
-    configurable: true
-  });
-  MapInfo.prototype.toString = function () {
-    return 'sx:' + this.coords.botLeft.x + ' ex:' + this.coords.topRight.x + ' sy:' + this.coords.botLeft.y + ' ey:' + this.coords.topRight.y + ' mi:' + this.maxIterations + ' ips:' + this.iterationsPerStep + '.';
-  };
-  return MapInfo;
-}());
 var MapWorkingData = /** @class */ (function () {
   //public pixelData: Uint8ClampedArray;
-  function MapWorkingData(canvasSize, mapInfo, colorMap, sectionAnchor, forSubDivision) {
+  function MapWorkingData(canvasSize, mapInfo, colorMap, sectionAnchor) {
     this.canvasSize = canvasSize;
     this.mapInfo = mapInfo;
     this.colorMap = colorMap;
@@ -306,14 +1058,17 @@ var MapWorkingData = /** @class */ (function () {
     this.xVals = MapWorkingData.buildVals(this.canvasSize.width, this.mapInfo.bottomLeft.x, this.mapInfo.topRight.x);
     // Y coordinates get larger as one moves from the bottom of the map to the top.
     // But ImageData "blocks" are drawn from top to bottom.
-    if (forSubDivision) {
+    if (mapInfo.upsideDown) {
+      // The y coordinates are already reversed, just use buildVals
       this.yVals = MapWorkingData.buildVals(this.canvasSize.height, this.mapInfo.bottomLeft.y, this.mapInfo.topRight.y);
     }
     else {
       // if we only have a single section, then we must reverse the y values.
+      // The y coordinates are not reveresed, must use buildValsRev
       this.yVals = MapWorkingData.buildValsRev(this.canvasSize.height, this.mapInfo.bottomLeft.y, this.mapInfo.topRight.y);
     }
     this.curIterations = 0;
+    console.log('Constructing MapWorkingData, ColorMap = ' + this.colorMap + '.');
   }
   // Calculate the number of elements in our single dimension data array needed to cover the
   // two-dimensional map.
@@ -347,16 +1102,19 @@ var MapWorkingData = /** @class */ (function () {
   MapWorkingData.prototype.getLinearIndex = function (c) {
     return c.x + c.y * this.canvasSize.width;
   };
-  // Calculates z squared + c
-  MapWorkingData.prototype.getNextVal = function (z, c) {
-    var result = new Point(z.x * z.x - z.y * z.y + c.x, 2 * z.x * z.y + c.y);
-    return result;
-  };
-  // Returns the square of the magnitude of a complex number where a is the real component and b is the complex component.
-  MapWorkingData.prototype.getAbsSizeSquared = function (z) {
-    var result = z.x * z.x + z.y * z.y;
-    return result;
-  };
+  //// Calculates z squared + c
+  //getNextVal(z: IPoint, c: IPoint): IPoint {
+  //  const result: IPoint = new Point(
+  //    z.x * z.x - z.y * z.y + c.x,
+  //    2 * z.x * z.y + c.y
+  //  );
+  //  return result;
+  //}
+  //// Returns the square of the magnitude of a complex number where a is the real component and b is the complex component.
+  //private getAbsSizeSquared(z: IPoint): number {
+  //  const result:number = z.x * z.x + z.y * z.y;
+  //  return result;
+  //}
   // Takes the current value of z for a given coordinate,
   // calculates the next value
   // and updates the current value with this next value.
@@ -372,39 +1130,21 @@ var MapWorkingData = /** @class */ (function () {
     }
     var z = new Point(this.wAData[ptr], this.wBData[ptr]);
     var c = new Point(this.xVals[mapCoordinate.x], this.yVals[mapCoordinate.y]);
-
-
     var cntr;
-
     var zxSquared = z.x * z.x;
     var zySquared = z.y * z.y;
-
     for (cntr = 0; cntr < iterCount; cntr++) {
-
       z.y = 2 * z.x * z.y + c.y;
       z.x = zxSquared - zySquared + c.x;
-
       //z = this.getNextVal(z, c);
-
       zxSquared = z.x * z.x;
       zySquared = z.y * z.y;
-
-      if (zxSquared + zySquared > 4) {
+      if (zxSquared + zySquared > this.mapInfo.threshold) {
         // This point is done.
         this.flags[ptr] = 1;
         break;
       }
-
-
-      //z = this.getNextVal(z, c);
-      //if (this.getAbsSizeSquared(z) > 4) {
-      //  // This point is done.
-      //  this.flags[ptr] = 1;
-      //  break;
-      //}
     }
-
-
     // Store the new value back to our Working Data.
     this.wAData[ptr] = z.x;
     this.wBData[ptr] = z.y;
@@ -441,6 +1181,7 @@ var MapWorkingData = /** @class */ (function () {
   };
   // Divides the specified MapWorking data into the specified vertical sections, each having the width of the original Map.
   MapWorkingData.getWorkingDataSections = function (canvasSize, mapInfo, colorMap, numberOfSections) {
+    console.log('At getWorkingDataSections, ColorMap = ' + colorMap + '.');
     var result = Array(numberOfSections);
     // Calculate the heigth of each section, rounded down to the nearest whole number.
     var sectionHeight = canvasSize.height / numberOfSections;
@@ -452,7 +1193,15 @@ var MapWorkingData = /** @class */ (function () {
     var bottomPtr = 0;
     var topPtr = sectionHeightWN;
     var yVals;
-    yVals = MapWorkingData.buildValsRev(canvasSize.height, mapInfo.bottomLeft.y, mapInfo.topRight.y);
+    if (mapInfo.upsideDown) {
+      // The y coordinates are already reversed, just use buildVals
+      yVals = MapWorkingData.buildVals(canvasSize.height, mapInfo.bottomLeft.y, mapInfo.topRight.y);
+    }
+    else {
+      // The y coordinates are not reveresed, must use buildValsRev
+      yVals = MapWorkingData.buildValsRev(canvasSize.height, mapInfo.bottomLeft.y, mapInfo.topRight.y);
+    }
+    //yVals = MapWorkingData.buildValsRev(canvasSize.height, mapInfo.bottomLeft.y, mapInfo.topRight.y);
     var ptr = 0;
     // Build all but the last section.
     for (; ptr < numberOfSections - 1; ptr++) {
@@ -462,10 +1211,10 @@ var MapWorkingData = /** @class */ (function () {
       var secBotLeft_1 = new Point(left, secBottom_1);
       var secTopRight_1 = new Point(right, secTop_1);
       var coords_1 = new Box(secBotLeft_1, secTopRight_1);
-      var secMapInfo_1 = new MapInfo(coords_1, mapInfo.maxIterations, mapInfo.iterationsPerStep);
+      var secMapInfo_1 = new MapInfo(coords_1, mapInfo.maxIterations, mapInfo.threshold, mapInfo.iterationsPerStep);
       var yOffset_1 = ptr * sectionHeightWN;
       var secAnchor_1 = new Point(0, yOffset_1);
-      result[ptr] = new MapWorkingData(secCanvasSize_1, secMapInfo_1, colorMap, secAnchor_1, true);
+      result[ptr] = new MapWorkingData(secCanvasSize_1, secMapInfo_1, colorMap, secAnchor_1);
       // The next bottomPtr should point to one immediately following the last top.
       bottomPtr = topPtr + 1;
       topPtr += sectionHeightWN;
@@ -478,10 +1227,10 @@ var MapWorkingData = /** @class */ (function () {
     var secTop = yVals[topPtr];
     var secTopRight = new Point(right, secTop);
     var coords = new Box(secBotLeft, secTopRight);
-    var secMapInfo = new MapInfo(coords, mapInfo.maxIterations, mapInfo.iterationsPerStep);
+    var secMapInfo = new MapInfo(coords, mapInfo.maxIterations, mapInfo.threshold, mapInfo.iterationsPerStep);
     var yOffset = ptr * sectionHeightWN;
     var secAnchor = new Point(0, yOffset);
-    result[ptr] = new MapWorkingData(secCanvasSize, secMapInfo, colorMap, secAnchor, true);
+    result[ptr] = new MapWorkingData(secCanvasSize, secMapInfo, colorMap, secAnchor);
     return result;
   };
   MapWorkingData.prototype.getPixelData = function () {
@@ -503,47 +1252,14 @@ var MapWorkingData = /** @class */ (function () {
       pixelData[i] = this.colorMap.getColor(cnt);
     }
   };
-  MapWorkingData.prototype.getImageDataForLine = function (y) {
-    var imageData = new ImageData(this.canvasSize.width, 1);
-    this.updateImageDataForLine(imageData, y);
-    return imageData;
-  };
-  MapWorkingData.prototype.updateImageDataForLine = function (imageData, y) {
-    var data = imageData.data;
-    if (data.length !== 4 * this.canvasSize.width) {
-      console.log("The imagedata data does not have the correct number of elements.");
-      return;
-    }
-    var start = this.getLinearIndex(new Point(0, y));
-    var end = start + this.canvasSize.width;
-    var i;
-    for (i = start; i < end; i++) {
-      var inTheSet = this.flags[i] === 0;
-      this.setPixelValueBinary(inTheSet, i * 4, data);
-    }
-  };
-  MapWorkingData.prototype.setPixelValueBinary = function (on, ptr, imageData) {
-    if (on) {
-      // Points within the set are drawn in black.
-      imageData[ptr] = 0;
-      imageData[ptr + 1] = 0;
-      imageData[ptr + 2] = 0;
-      imageData[ptr + 3] = 255;
+  MapWorkingData.prototype.iterationCountForNextStep = function () {
+    var result;
+    var gap = this.mapInfo.maxIterations - this.curIterations;
+    if (gap > this.mapInfo.iterationsPerStep) {
+      result = this.mapInfo.iterationsPerStep;
     }
     else {
-      // Points outside the set are drawn in white.
-      imageData[ptr] = 255;
-      imageData[ptr + 1] = 255;
-      imageData[ptr + 2] = 255;
-      imageData[ptr + 3] = 255;
-    }
-  };
-  // Returns a 'regular' linear array of booleans from the flags TypedArray.
-  MapWorkingData.prototype.getFlagData = function (mapWorkingData) {
-    var result = new Array(mapWorkingData.elementCount);
-    var i;
-    for (i = 0; i < result.length; i++) {
-      result[i] = mapWorkingData.flags[i] !== 0;
+      result = gap;
     }
     return result;
   };
@@ -554,7 +1270,6 @@ var MapWorkingData = /** @class */ (function () {
   };
   return MapWorkingData;
 }()); // End Class MapWorkingData
-
 var ColorMapEntry = /** @class */ (function () {
   function ColorMapEntry(cutOff, colorNum) {
     this.cutOff = cutOff;
@@ -567,33 +1282,65 @@ var ColorMapEntryForExport = /** @class */ (function () {
     this.cutOff = cutOff;
     this.cssColor = cssColor;
   }
+  ColorMapEntryForExport.fromColorMapUIEntry = function (cme) {
+    var result = new ColorMapEntryForExport(cme.cutOff, cme.rgbHex);
+    return result;
+  };
   return ColorMapEntryForExport;
 }());
 var ColorMapUIEntry = /** @class */ (function () {
   function ColorMapUIEntry(cutOff, colorVals) {
     this.cutOff = cutOff;
-    this.colorVals = colorVals;
-    this.alpha = 255;
+    this.colorComponents = new Array(4);
+    var alpha;
     if (colorVals.length === 3) {
-      this.r = colorVals[0];
-      this.g = colorVals[1];
-      this.b = colorVals[2];
-      this.alpha = 255;
+      alpha = 255;
     }
     else if (colorVals.length === 4) {
-      this.r = colorVals[0];
-      this.g = colorVals[1];
-      this.b = colorVals[2];
-      this.alpha = colorVals[3];
+      alpha = colorVals[3];
     }
     else {
       throw new RangeError('colorVals must have exactly 3 or 4 elements.');
     }
-    this.colorNum = ColorNumbers.getColor(this.r, this.g, this.b, this.alpha);
+    this.colorComponents[0] = colorVals[0];
+    this.colorComponents[1] = colorVals[1];
+    this.colorComponents[2] = colorVals[2];
+    this.colorComponents[3] = alpha;
   }
+  Object.defineProperty(ColorMapUIEntry.prototype, "r", {
+    get: function () {
+      return this.colorComponents[0];
+    },
+    enumerable: true,
+    configurable: true
+  });
+  Object.defineProperty(ColorMapUIEntry.prototype, "g", {
+    get: function () {
+      return this.colorComponents[1];
+    },
+    enumerable: true,
+    configurable: true
+  });
+  Object.defineProperty(ColorMapUIEntry.prototype, "b", {
+    get: function () {
+      return this.colorComponents[2];
+    },
+    enumerable: true,
+    configurable: true
+  });
+  Object.defineProperty(ColorMapUIEntry.prototype, "alpha", {
+    get: function () {
+      return this.colorComponents[3];
+    },
+    enumerable: true,
+    configurable: true
+  });
   Object.defineProperty(ColorMapUIEntry.prototype, "rgbHex", {
     get: function () {
-      var result = '#' + ('0' + this.r.toString(16)).slice(-2) + ('0' + this.g.toString(16)).slice(-2) + ('0' + this.b.toString(16)).slice(-2);
+      var result = '#'
+        + ('0' + this.colorComponents[0].toString(16)).slice(-2)
+        + ('0' + this.colorComponents[1].toString(16)).slice(-2)
+        + ('0' + this.colorComponents[2].toString(16)).slice(-2);
       //return "#FFFF00";
       return result;
     },
@@ -602,7 +1349,12 @@ var ColorMapUIEntry = /** @class */ (function () {
   });
   Object.defineProperty(ColorMapUIEntry.prototype, "rgbaString", {
     get: function () {
-      var result = 'rgba(' + this.r.toString(10) + ',' + this.g.toString(10) + ',' + this.b.toString(10) + ',1)';
+      var result = 'rgba('
+        + this.colorComponents[0].toString(10) + ','
+        + this.colorComponents[1].toString(10) + ','
+        + this.colorComponents[2].toString(10) + ','
+        + '1'
+        + ')';
       //return 'rgba(200,20,40,1)';
       return result;
     },
@@ -610,13 +1362,7 @@ var ColorMapUIEntry = /** @class */ (function () {
     configurable: true
   });
   ColorMapUIEntry.fromColorMapEntry = function (cme) {
-    var result;
-    if (typeof cme === typeof ColorMapUIEntry) {
-      result = cme;
-    }
-    else {
-      result = ColorMapUIEntry.fromOffsetAndColorNum(cme.cutOff, cme.colorNum);
-    }
+    var result = ColorMapUIEntry.fromOffsetAndColorNum(cme.cutOff, cme.colorNum);
     return result;
   };
   ColorMapUIEntry.fromOffsetAndColorNum = function (cutOff, cNum) {
@@ -650,32 +1396,13 @@ var ColorMap = /** @class */ (function () {
     var result = new ColorMap(workRanges, highColor);
     return result;
   };
-  ColorMap.prototype.insertColorMapEntry = function (entry, index) {
-    if (index <= 0) {
-      this.ranges.unshift(entry);
-    }
-    else if (index > this.ranges.length - 1) {
-      this.ranges.push(entry);
-    }
-    else {
-      this.ranges.splice(index, 0, entry);
-    }
-  };
   ColorMap.prototype.getColor = function (countValue) {
-    if (countValue > 0) {
-      var r = 0;
-      //console.log('Got a count value > 0');
-    }
     var result;
     var index = this.searchInsert(countValue);
     if (index === this.ranges.length) {
       result = this.highColor;
     }
     else {
-      if (index > 1) {
-        var rr = 0;
-        //console.log('Get a index into the cm > 0.');
-      }
       result = this.ranges[index].colorNum;
     }
     return result;
@@ -728,38 +1455,99 @@ var ColorMap = /** @class */ (function () {
     }
     return result;
   };
-  return ColorMap;
-}());
-var ColorMapUI = /** @class */ (function (_super) {
-  __extends(ColorMapUI, _super);
-  function ColorMapUI(ranges, highColor) {
-    return _super.call(this, ranges, highColor) || this;
-  }
-  Object.defineProperty(ColorMapUI.prototype, "uIRanges", {
-    get: function () {
-      return this.ranges;
-    },
-    enumerable: true,
-    configurable: true
-  });
-  // TODO: Make the ColorMapUI standalone -- and not extend ColorMap.
-  // Override the method in ColorMap
-  ColorMapUI.prototype.insertColorMapEntry = function (entry, index) {
-    throw new RangeError("Not Implemented.");
-  };
-  ColorMapUI.prototype.getRegularColorMap = function () {
-    var uiRanges = this.uIRanges;
-    var ranges = [];
-    var ptr;
-    for (ptr = 0; ptr < uiRanges.length; ptr++) {
-      var uiCme = uiRanges[ptr];
-      var cme = new ColorMapEntry(uiCme.cutOff, uiCme.colorNum);
-      ranges.push(cme);
-    }
-    var result = new ColorMap(ranges, this.highColor);
+  ColorMap.prototype.toString = function () {
+    var result = 'ColorMap with ' + this.ranges.length + ' entries.';
     return result;
   };
-  ColorMapUI.FromColorMapForExport = function (cmfe) {
+  return ColorMap;
+}());
+var ColorMapUI = /** @class */ (function () {
+  function ColorMapUI(ranges, highColorCss, serialNumber) {
+    this.ranges = ranges;
+    this.highColorCss = highColorCss;
+    this.serialNumber = serialNumber;
+  }
+  ColorMapUI.prototype.insertColorMapEntry = function (index, entry) {
+    this.ranges.splice(index, 0, entry);
+  };
+  ColorMapUI.prototype.removeColorMapEntry = function (index) {
+    var result = this.ranges[index];
+    this.ranges.splice(index, 1);
+    return result;
+  };
+  ColorMapUI.prototype.applyColors = function (colorMapUiEntries, serialNumber) {
+    var ranges = [];
+    var ptrToNewColorEntry = 0;
+    var ptr;
+    for (ptr = 0; ptr < this.ranges.length; ptr++) {
+      var existingCutOff = this.ranges[ptr].cutOff;
+      var newColorComps = colorMapUiEntries[ptrToNewColorEntry++].colorComponents;
+      ranges.push(new ColorMapUIEntry(existingCutOff, newColorComps));
+      if (ptrToNewColorEntry > colorMapUiEntries.length - 1) {
+        ptrToNewColorEntry = 0;
+      }
+    }
+    var result = new ColorMapUI(ranges, this.highColorCss, serialNumber);
+    return result;
+  };
+  ColorMapUI.prototype.mergeCutoffs = function (cutOffs, serialNumber) {
+    //let test: BigInt(42);
+    var ranges = [];
+    var ptrToExistingCmes = 0;
+    var ptr;
+    for (ptr = 0; ptr < cutOffs.length; ptr++) {
+      var existingColorComps = this.ranges[ptrToExistingCmes++].colorComponents;
+      ranges.push(new ColorMapUIEntry(cutOffs[ptr], existingColorComps));
+      if (ptrToExistingCmes > this.ranges.length - 1) {
+        ptrToExistingCmes = 0;
+      }
+    }
+    var result = new ColorMapUI(ranges, this.highColorCss, serialNumber);
+    return result;
+  };
+  ColorMapUI.prototype.spliceCutOffs = function (start, numToRemove, cutOffs, serialNumber) {
+    // Create a range of ColorMapUIEntries from the given cutOffs.
+    var white = new ColorNumbers().white;
+    var whiteComps = ColorNumbers.getColorComponents(white);
+    var rangesToInsert = [];
+    var ptr1;
+    for (ptr1 = 0; ptr1 < cutOffs.length; ptr1++) {
+      rangesToInsert.push(new ColorMapUIEntry(cutOffs[ptr1], whiteComps));
+    }
+    // Create a copy of the existing ranges
+    var rangesResult = [];
+    var ptr2;
+    for (ptr2 = 0; ptr2 < this.ranges.length; ptr2++) {
+      rangesResult.push(new ColorMapUIEntry(this.ranges[ptr2].cutOff, this.ranges[ptr2].colorComponents));
+    }
+    rangesResult.splice.apply(rangesResult, [start, numToRemove].concat(rangesToInsert));
+    var result = new ColorMapUI(rangesResult, this.highColorCss, serialNumber);
+    return result;
+  };
+  ColorMapUI.prototype.getOffsets = function () {
+    var result = new Array(this.ranges.length);
+    var ptr;
+    for (ptr = 0; ptr < this.ranges.length; ptr++) {
+      result[ptr] = this.ranges[ptr].cutOff;
+    }
+    return result;
+  };
+  ColorMapUI.prototype.getRegularColorMap = function () {
+    var regularRanges = [];
+    var ptr;
+    for (ptr = 0; ptr < this.ranges.length; ptr++) {
+      var cmuie = this.ranges[ptr];
+      var cme = new ColorMapEntry(cmuie.cutOff, ColorNumbers.getColorFromComps(cmuie.colorComponents));
+      regularRanges.push(cme);
+    }
+    var result = new ColorMap(regularRanges, ColorNumbers.getColorFromCssColor(this.highColorCss));
+    return result;
+  };
+  ColorMapUI.fromColorMapForExport = function (cmfe, serialNumber) {
+    if (typeof (cmfe.version) === 'undefined') {
+      cmfe.version = 1.0;
+    }
+    //console.log('Got a ColorMapForExport and it has version = ' + cmfe.version + '.');
     var ranges = [];
     var ptr;
     for (ptr = 0; ptr < cmfe.ranges.length; ptr++) {
@@ -767,27 +1555,26 @@ var ColorMapUI = /** @class */ (function (_super) {
       var cme = ColorMapUIEntry.fromOffsetAndCssColor(cmeForExport.cutOff, cmeForExport.cssColor);
       ranges.push(cme);
     }
-    var result = new ColorMapUI(ranges, cmfe.highColor);
+    var result = new ColorMapUI(ranges, cmfe.highColorCss, serialNumber);
     return result;
   };
   return ColorMapUI;
-}(ColorMap));
+}());
 var ColorMapForExport = /** @class */ (function () {
-  function ColorMapForExport(ranges, highColor) {
+  function ColorMapForExport(ranges, highColorCss) {
     this.ranges = ranges;
-    this.highColor = highColor;
+    this.highColorCss = highColorCss;
+    this.version = 1.0;
   }
   ColorMapForExport.FromColorMap = function (colorMap) {
     var ranges = [];
     var ptr;
     for (ptr = 0; ptr < colorMap.ranges.length; ptr++) {
-      var icme = colorMap.ranges[ptr];
-      var cme = ColorMapUIEntry.fromColorMapEntry(icme);
-      var cssColor = cme.rgbHex;
-      var cmeForExport = new ColorMapEntryForExport(cme.cutOff, cssColor);
+      var cme = colorMap.ranges[ptr];
+      var cmeForExport = ColorMapEntryForExport.fromColorMapUIEntry(cme);
       ranges.push(cmeForExport);
     }
-    var result = new ColorMapForExport(ranges, colorMap.highColor);
+    var result = new ColorMapForExport(ranges, colorMap.highColorCss);
     return result;
   };
   return ColorMapForExport;
@@ -812,32 +1599,26 @@ var ColorNumbers = /** @class */ (function () {
       throw new RangeError('G must be between 0 and 255.');
     if (b > 255 || b < 0)
       throw new RangeError('B must be between 0 and 255.');
-    //var result;
-    //if (alpha !== null) {
-    //  if (alpha > 255 || alpha < 0)
-    //    throw new RangeError('Alpha must be between 0 and 255.');
-    //  result = alpha << 24;
-    //  result |= b << 16;
-    //  result |= g << 8;
-    //  result |= r;
-    //}
-    //else {
-    //  result = 65536 * 65280; // FF00 0000 - opaque Black
-    //  result += b << 16;
-    //  result += g << 8;
-    //  result += r;
-    //}
-
     if (alpha === null) {
       alpha = 255;
-    } else {
-      if (alpha > 255 || alpha < 0) throw new RangeError('Alpha must be between 0 and 255.');
     }
-
+    else {
+      if (alpha > 255 || alpha < 0)
+        throw new RangeError('Alpha must be between 0 and 255.');
+    }
     var result = alpha << 24;
     result |= b << 16;
     result |= g << 8;
     result |= r;
+    return result;
+  };
+  ColorNumbers.getColorFromComps = function (comps) {
+    var result = ColorNumbers.getColor(comps[0], comps[1], comps[2], comps[3]);
+    return result;
+  };
+  ColorNumbers.getColorFromCssColor = function (cssColor) {
+    var comps = ColorNumbers.getColorComponentsFromCssColor(cssColor);
+    var result = ColorNumbers.getColorFromComps(comps);
     return result;
   };
   // Returns array of numbers: r,g,b,a Where r,g and b are 0-255 integers and a is 0-1 float.
@@ -910,7 +1691,7 @@ var WebWorkerStartRequest = /** @class */ (function () {
     return result;
   };
   WebWorkerStartRequest.prototype.getMapWorkingData = function () {
-    var result = new MapWorkingData(this.canvasSize, this.mapInfo, this.colorMap, this.sectionAnchor, true);
+    var result = new MapWorkingData(this.canvasSize, this.mapInfo, this.colorMap, this.sectionAnchor);
     return result;
   };
   return WebWorkerStartRequest;
@@ -1103,13 +1884,12 @@ var WebWorkerUpdateColorMapRequest = /** @class */ (function () {
   };
   return WebWorkerUpdateColorMapRequest;
 }());
-//// Only used when the javascript produced from compiling this TypeScript is used to create worker.js
+// Only used when the javascript produced from compiling this TypeScript is used to create worker.js
 var mapWorkingData = null;
 var sectionNumber = 0;
 // Handles messages sent from the window that started this web worker.
 onmessage = function (e) {
   var pixelData;
-  var imageData;
   var imageDataResponse;
   //console.log('Worker received message: ' + e.data + '.');
   var plainMsg = WebWorkerMessage.FromEventData(e.data);

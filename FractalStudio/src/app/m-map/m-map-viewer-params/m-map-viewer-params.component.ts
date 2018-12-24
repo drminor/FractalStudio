@@ -13,6 +13,9 @@ export class MMapViewerParamsComponent implements OnInit {
 
   public mapViewForm: FormGroup;
 
+  public viewSize: string;
+  public printSize: string;
+
   private _virtualMapParams;
   @Input('virtualMapParams')
   set virtualMapParams(value: IVirtualMapParams) {
@@ -53,8 +56,7 @@ export class MMapViewerParamsComponent implements OnInit {
       imageHeightPx: new FormControl(14400),
 
       imageWidth: new FormControl(72),
-      imageHeigth: new FormControl(48),
-
+      imageHeight: new FormControl(48),
 
       printDensity: new FormControl(300),
       zoomFactor: new FormControl(1),
@@ -65,9 +67,9 @@ export class MMapViewerParamsComponent implements OnInit {
       viewHeightPx: new FormControl(14400),
 
       viewWidth: new FormControl(72),
-      viewHeigth: new FormControl(48),
+      viewHeight: new FormControl(48),
 
-      screenToPrintPixRatio: new FormControl(24)
+      screenToPrintPixRatio: new FormControl(24),
     });
 
     return result;
@@ -80,6 +82,7 @@ export class MMapViewerParamsComponent implements OnInit {
 
     // Width of print output in inches.
     this.mapViewForm.controls.imageWidth.setValue(params.imageSizeInInches.width);
+    this.mapViewForm.controls.imageHeight.setValue(params.imageSizeInInches.height);
 
     // Number of print output pixels currently displayed.
     this.mapViewForm.controls.viewWidthPx.setValue(params.viewSize.width);
@@ -87,14 +90,19 @@ export class MMapViewerParamsComponent implements OnInit {
 
     // Number of print output inches currently displayed.
     this.mapViewForm.controls.viewWidth.setValue(params.viewSizeInInches.width);
+    this.mapViewForm.controls.viewHeight.setValue(params.viewSizeInInches.height);
 
     this.mapViewForm.controls.screenToPrintPixRatio.setValue(params.scrToPrnPixRat);
 
     this.mapViewForm.controls.left.setValue(params.left);
     this.mapViewForm.controls.top.setValue(params.top);
 
-    let zoomFactor = params.imageSize.width / params.viewSize.width;
-    this.mapViewForm.controls.zoomFactor.setValue(zoomFactor);
+    //let zoomFactor = params.imageSize.width / params.viewSize.width;
+    let zoomFactor = params.zoomFactor;
+    this.mapViewForm.controls.zoomFactor.setValue(zoomFactor.width);
+
+    this.viewSize = params.viewSizeInInches.width + ' x ' + params.viewSizeInInches.height + ' inches (' + params.viewSize.width + ' x ' + params.viewSize.height + ' pixels)';
+    this.printSize = params.imageSize.width + ' x ' + params.imageSize.height + ' pixels';
 
     //let maxZoomFactor = this.getMaxZoomFactor(imageWidthPx, this.displaySize.width);
     //console.log('User pressed apply. The zoom factor is ' + zoomFactor + ' max zf is ' + maxZoomFactor + ' cw: ' + this.displaySize.width + ' ch: ' + this.displaySize.height + '.');

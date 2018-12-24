@@ -132,7 +132,7 @@ export class ColorMapEditorComponent implements OnInit {
     this.colorMapUpdated.emit(colorMap);
   }
 
-  onAddEntry() {
+  onRemoveLeadingEntries() {
     let secCnt = this.colorMapForm.controls.sectionCnt.value;
     let cntToRemove = parseInt(secCnt, 10);
     console.log('Removing first ' + cntToRemove + ' entries.');
@@ -149,7 +149,14 @@ export class ColorMapEditorComponent implements OnInit {
     }
 
     let newColorMap = new ColorMapUI(newRanges, colorMap.highColorCss, -1);
-    this.colorMapUpdated.emit(newColorMap);
+
+    if (this._lastLoadedColorMap != null) {
+      let recoloredMap = newColorMap.applyColors(this._lastLoadedColorMap.ranges, -1);
+      this.colorMapUpdated.emit(recoloredMap);
+    }
+    else {
+      this.colorMapUpdated.emit(newColorMap);
+    }
   }
 
   onInsertEntry(idx: number) {

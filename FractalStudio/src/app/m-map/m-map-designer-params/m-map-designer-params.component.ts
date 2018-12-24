@@ -49,6 +49,7 @@ export class MMapDesignerParamsComponent implements OnInit {
     startY: new FormControl(),
     endY: new FormControl(),
     maxIterations: new FormControl(),
+    threshold: new FormControl(),
     iterationsPerStep: new FormControl()
   });
 
@@ -61,6 +62,8 @@ export class MMapDesignerParamsComponent implements OnInit {
     this.mapCoordsForm.controls["endY"].setValue(mapInfo.coords.topRight.y);
 
     this.mapCoordsForm.controls["maxIterations"].setValue(mapInfo.maxIterations);
+    this.mapCoordsForm.controls.threshold.setValue(mapInfo.threshold);
+
     this.mapCoordsForm.controls["iterationsPerStep"].setValue(mapInfo.iterationsPerStep);
   }
 
@@ -73,8 +76,9 @@ export class MMapDesignerParamsComponent implements OnInit {
     let coords: IBox = new Box(botLeft, topRight);
 
     let maxIterations = parseInt(frm.controls["maxIterations"].value);
+    let threshold = parseInt(frm.controls.threshold.value);
     let iterationsPerStep = parseInt(frm.controls["iterationsPerStep"].value);
-    result = new MapInfo(coords, maxIterations, iterationsPerStep);
+    result = new MapInfo(coords, maxIterations, threshold, iterationsPerStep);
 
     return result;
   }
@@ -127,7 +131,7 @@ export class MMapDesignerParamsComponent implements OnInit {
       newCoords = mi.coords.getShiftedBox(dir, percent);
     }
 
-    let newMapInfo = new MapInfo(newCoords, mi.maxIterations, mi.iterationsPerStep);
+    let newMapInfo = new MapInfo(newCoords, mi.maxIterations, mi.threshold, mi.iterationsPerStep);
     this.raiseMapInfoUpdated(newMapInfo);
   }
 

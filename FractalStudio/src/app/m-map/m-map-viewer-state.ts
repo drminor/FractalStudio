@@ -8,6 +8,7 @@ export interface IVirtualMapParams {
   imageSize: ICanvasSize;
   printDensity: number;
   scrToPrnPixRat: number;
+  zoomFactor: ICanvasSize;
   left: number,
   top: number,
 
@@ -26,18 +27,28 @@ export interface IVirtualMap {
   getViewSize(): ICanvasSize;
   getCurCoords(left: number, top: number): IBox;
   getOverLayBox(left: number, top: number): IBox;
+
+  scaleFactor: ICanvasSize;
 }
 
 export class VirtualMapParams implements IVirtualMapParams {
 
-  public imageSizeInInches: ICanvasSize;
-  public viewSizeInInches: ICanvasSize;
+  private _imageSizeInInches: ICanvasSize;
+  public get imageSizeInInches(): ICanvasSize {
+    return this._imageSizeInInches;
+  }
+
+  private _viewSizeInInches: ICanvasSize;
+  public get viewSizeInInches(): ICanvasSize {
+    return this._viewSizeInInches
+  }
 
   private _viewSize: ICanvasSize;
   public set viewSize(value: ICanvasSize) {
     this._viewSize = value;
     if (value !== null) {
-      this.viewSizeInInches = this.getSizeInInches(value, this.printDensity);
+      this._viewSizeInInches = this.getSizeInInches(value, this.printDensity);
+      this._zoomFactor = this.getZoomFactor(this.imageSize, value);
     }
   }
   public get viewSize(): ICanvasSize {
@@ -48,18 +59,30 @@ export class VirtualMapParams implements IVirtualMapParams {
     return this._viewSize !== null;
   }
 
+  private _zoomFactor: ICanvasSize;
+  public get zoomFactor(): ICanvasSize {
+    return this._zoomFactor;
+  }
+
   constructor(public imageSize: ICanvasSize, public printDensity: number,
     public scrToPrnPixRat: number, public left: number, public top: number) {
-    this.imageSizeInInches = this.getSizeInInches(imageSize, printDensity);
+    this._imageSizeInInches = this.getSizeInInches(imageSize, printDensity);
 
     this.viewSize = null;
-    this.viewSizeInInches = null;
+    this._viewSizeInInches = null;
+    this._zoomFactor = null;
   }
 
   private getSizeInInches(sz: ICanvasSize, printDensity: number): ICanvasSize {
     let result = new CanvasSize(sz.width / printDensity, sz.height / printDensity);
     return result;
   }
+
+  private getZoomFactor(imageSize: ICanvasSize, viewSize: ICanvasSize): ICanvasSize {
+    let result = new CanvasSize(imageSize.width / viewSize.width, imageSize.height / viewSize.height);
+    return result;
+  }
+
 }
 
 export class VirtualMap implements IVirtualMap {

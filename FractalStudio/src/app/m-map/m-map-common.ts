@@ -51,6 +51,7 @@ export interface IMapInfo {
   bottomLeft: IPoint;
   topRight: IPoint;
   maxIterations: number;
+  threshold: number;
   iterationsPerStep: number;
   upsideDown: boolean;
   isEqual(other: IMapInfo): boolean;
@@ -410,15 +411,15 @@ export class CanvasSize implements ICanvasSize {
 }
 
 export class MapInfo implements IMapInfo {
-  constructor(public coords: IBox, public maxIterations: number, public iterationsPerStep: number) {
+  constructor(public coords: IBox, public maxIterations: number, public threshold: number, public iterationsPerStep: number) {
     if (coords === null) {
       throw new Error('When creating a MapInfo, the coords argument cannot be null.');
     }
   }
 
-  public static fromPoints(bottomLeft: IPoint, topRight: IPoint, maxIterations: number, iterationsPerStep: number): IMapInfo {
+  public static fromPoints(bottomLeft: IPoint, topRight: IPoint, maxIterations: number, threshold: number, iterationsPerStep: number): IMapInfo {
     let coords: IBox = new Box(bottomLeft, topRight);
-    let result: IMapInfo = new MapInfo(coords, maxIterations, iterationsPerStep);
+    let result: IMapInfo = new MapInfo(coords, maxIterations, threshold, iterationsPerStep);
     return result;
   }
 
@@ -427,7 +428,16 @@ export class MapInfo implements IMapInfo {
     let tr = new Point(mi.coords.topRight.x, mi.coords.topRight.y);
 
     let coords: IBox = new Box(bl, tr);
-    let result: IMapInfo = new MapInfo(coords, mi.maxIterations, mi.iterationsPerStep);
+
+    let threshold: number;
+    if (mi.threshold === null) {
+      threshold = 4;
+    }
+    else {
+      threshold = mi.threshold;
+    }
+
+    let result: IMapInfo = new MapInfo(coords, mi.maxIterations, threshold, mi.iterationsPerStep);
     return result;
 
   }
@@ -448,7 +458,8 @@ export class MapInfo implements IMapInfo {
     if (other === null) return false;
     if (!(this.coords.isEqual(other.coords))) return false;
     if (this.maxIterations !== other.maxIterations) return false;
-    if (this.iterationsPerStep != other.iterationsPerStep) return false;
+    if (this.iterationsPerStep !== other.iterationsPerStep) return false;
+    if (this.threshold !== other.threshold) return false;
 
     return true;
   }
@@ -1403,7 +1414,7 @@ export class MapWorkingData implements IMapWorkingData {
       zxSquared = z.x * z.x;
       zySquared = z.y * z.y;
 
-      if (zxSquared + zySquared > 4) {
+      if (zxSquared + zySquared > this.mapInfo.threshold) {
         // This point is done.
         this.flags[ptr] = 1;
         break;
@@ -1501,7 +1512,7 @@ export class MapWorkingData implements IMapWorkingData {
       let secTopRight = new Point(right, secTop);
 
       let coords: IBox = new Box(secBotLeft, secTopRight);
-      let secMapInfo = new MapInfo(coords, mapInfo.maxIterations, mapInfo.iterationsPerStep);
+      let secMapInfo = new MapInfo(coords, mapInfo.maxIterations, mapInfo.threshold, mapInfo.iterationsPerStep);
 
       let yOffset = ptr * sectionHeightWN;
       let secAnchor: IPoint = new Point(0, yOffset);
@@ -1523,7 +1534,7 @@ export class MapWorkingData implements IMapWorkingData {
     let secTopRight = new Point(right, secTop);
 
     let coords: IBox = new Box(secBotLeft, secTopRight);
-    let secMapInfo = new MapInfo(coords, mapInfo.maxIterations, mapInfo.iterationsPerStep);
+    let secMapInfo = new MapInfo(coords, mapInfo.maxIterations, mapInfo.threshold, mapInfo.iterationsPerStep);
 
     let yOffset = ptr * sectionHeightWN;
     let secAnchor: IPoint = new Point(0, yOffset);

@@ -97,8 +97,10 @@ export class MMapDisplayComponent implements AfterViewInit {
       }
       else {
         // The new mapInfo has a value, and we have a working map.
-        if ((this._mapInfo.coords.isEqual(mi.coords))) {
+        if (  this._mapInfo.coords.isEqual(mi.coords) && this._mapInfo.threshold === mi.threshold ) {
           // The coordinates have not changed.
+
+
           this.iterationsPerStep = mi.iterationsPerStep;
           this.maxIterations = mi.maxIterations;
 
@@ -116,7 +118,7 @@ export class MMapDisplayComponent implements AfterViewInit {
           }
         }
         else {
-          // We have a new set of coordinates, rebuild the map.
+          // We have a new set of coordinates or a new threshold, rebuild the map.
           this._colorMap = cm;
           this._mapInfo = mi;
           if (this.viewInitialized) {
