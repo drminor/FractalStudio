@@ -430,7 +430,7 @@ export class MapInfo implements IMapInfo {
     let coords: IBox = new Box(bl, tr);
 
     let threshold: number;
-    if (mi.threshold === null) {
+    if (mi.threshold === undefined) {
       threshold = 4;
     }
     else {
