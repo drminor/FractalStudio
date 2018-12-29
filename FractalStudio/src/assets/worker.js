@@ -312,7 +312,7 @@ var MapInfo = /** @class */ (function () {
     var tr = new Point(mi.coords.topRight.x, mi.coords.topRight.y);
     var coords = new Box(bl, tr);
     var threshold;
-    if (mi.threshold === null) {
+    if (mi.threshold === undefined) {
       threshold = 4;
     }
     else {
@@ -345,7 +345,7 @@ var MapInfo = /** @class */ (function () {
   MapInfo.prototype.isEqual = function (other) {
     if (other === null)
       return false;
-    if (!(this.coords.isEqual(other.coords)))
+    if (!this.coords.isEqual(other.coords))
       return false;
     if (this.maxIterations !== other.maxIterations)
       return false;
@@ -812,9 +812,6 @@ var Histogram = /** @class */ (function () {
         // We did find a large entry near the end, but it was not at the very end.
         var cnt = end - start;
         console.log('The maximum value of the last ' + cnt + ' histogram entries is not the last entry.');
-        {
-          debugger;
-        }
       }
     }
     return result;
@@ -909,7 +906,7 @@ var Histogram = /** @class */ (function () {
     }
   };
   Histogram.prototype.addVals = function (vals) {
-    if (!vals || vals.length === 0)
+    if (vals === undefined || vals.length === 0)
       return;
     var lastVal = vals[0];
     var lastOcc = this.entriesMap.get(lastVal);
@@ -1021,7 +1018,7 @@ var MapInfoWithColorMap = /** @class */ (function () {
     this.colorMapUi = colorMapUi;
   }
   MapInfoWithColorMap.fromForExport = function (miwcmfe, serialNumber) {
-    if (typeof (miwcmfe.version) === 'undefined') {
+    if (typeof miwcmfe.version === 'undefined') {
       miwcmfe.version = 1.0;
     }
     //console.log('Loaded the MapInfoWithColorMapForExport and it has version = ' + miwcmfe.version + '.');
@@ -1042,18 +1039,23 @@ var MapInfoWithColorMapForExport = /** @class */ (function () {
   }
   return MapInfoWithColorMapForExport;
 }());
+var CurWorkVal = /** @class */ (function () {
+  function CurWorkVal() {
+    this.z = new Point(0, 0);
+    this.cnt = 0;
+    this.escapeVel = 0;
+    this.done = false;
+  }
+  return CurWorkVal;
+}());
 var MapWorkingData = /** @class */ (function () {
-  //public pixelData: Uint8ClampedArray;
   function MapWorkingData(canvasSize, mapInfo, colorMap, sectionAnchor) {
     this.canvasSize = canvasSize;
     this.mapInfo = mapInfo;
     this.colorMap = colorMap;
     this.sectionAnchor = sectionAnchor;
     this.elementCount = this.getNumberOfElementsForCanvas(this.canvasSize);
-    this.wAData = new Float64Array(this.elementCount); // All elements now have a value of zero.
-    this.wBData = new Float64Array(this.elementCount); // All elements now have a value of zero.
-    this.cnts = new Uint16Array(this.elementCount);
-    this.flags = new Uint8Array(this.elementCount);
+    this.workingVals = this.buildWorkingVals(this.elementCount);
     // X coordinates get larger as one moves from the left of the map to  the right.
     this.xVals = MapWorkingData.buildVals(this.canvasSize.width, this.mapInfo.bottomLeft.x, this.mapInfo.topRight.x);
     // Y coordinates get larger as one moves from the bottom of the map to the top.
@@ -1064,12 +1066,34 @@ var MapWorkingData = /** @class */ (function () {
     }
     else {
       // if we only have a single section, then we must reverse the y values.
-      // The y coordinates are not reveresed, must use buildValsRev
-      this.yVals = MapWorkingData.buildValsRev(this.canvasSize.height, this.mapInfo.bottomLeft.y, this.mapInfo.topRight.y);
+      // The y coordinates are not reversed, reverse them here.
+      this.yVals = MapWorkingData.buildVals(this.canvasSize.height, this.mapInfo.topRight.y, this.mapInfo.bottomLeft.y);
     }
     this.curIterations = 0;
+    this.log2 = Math.log(2);
     console.log('Constructing MapWorkingData, ColorMap = ' + this.colorMap + '.');
   }
+  Object.defineProperty(MapWorkingData.prototype, "cnts", {
+    // The number of times each point has been iterated.
+    get: function () {
+      var result = new Uint16Array(this.elementCount);
+      var ptr;
+      for (ptr = 0; ptr < this.elementCount; ptr++) {
+        result[ptr] = this.workingVals[ptr].cnt;
+      }
+      return result;
+    },
+    enumerable: true,
+    configurable: true
+  });
+  MapWorkingData.prototype.buildWorkingVals = function (elementCount) {
+    var result = new Array(elementCount);
+    var ptr;
+    for (ptr = 0; ptr < this.elementCount; ptr++) {
+      result[ptr] = new CurWorkVal();
+    }
+    return result;
+  };
   // Calculate the number of elements in our single dimension data array needed to cover the
   // two-dimensional map.
   MapWorkingData.prototype.getNumberOfElementsForCanvas = function (cs) {
@@ -1086,35 +1110,10 @@ var MapWorkingData = /** @class */ (function () {
     }
     return result;
   };
-  // Build the array of 'c' values for one dimension of the map.
-  MapWorkingData.buildValsRev = function (canvasExtent, start, end) {
-    var result = new Array(canvasExtent);
-    var mapExtent = end - start;
-    var unitExtent = mapExtent / canvasExtent;
-    var i;
-    var ptr = 0;
-    for (i = canvasExtent - 1; i > -1; i--) {
-      result[ptr++] = start + i * unitExtent;
-    }
-    return result;
-  };
   // Returns the index to use when accessing wAData, wBData, cnts or flags.
   MapWorkingData.prototype.getLinearIndex = function (c) {
     return c.x + c.y * this.canvasSize.width;
   };
-  //// Calculates z squared + c
-  //getNextVal(z: IPoint, c: IPoint): IPoint {
-  //  const result: IPoint = new Point(
-  //    z.x * z.x - z.y * z.y + c.x,
-  //    2 * z.x * z.y + c.y
-  //  );
-  //  return result;
-  //}
-  //// Returns the square of the magnitude of a complex number where a is the real component and b is the complex component.
-  //private getAbsSizeSquared(z: IPoint): number {
-  //  const result:number = z.x * z.x + z.y * z.y;
-  //  return result;
-  //}
   // Takes the current value of z for a given coordinate,
   // calculates the next value
   // and updates the current value with this next value.
@@ -1124,11 +1123,12 @@ var MapWorkingData = /** @class */ (function () {
   // Returns the (new) value of the 'done' flag for this coordinate.
   MapWorkingData.prototype.iterateElement = function (mapCoordinate, iterCount) {
     var ptr = this.getLinearIndex(mapCoordinate);
-    if (this.flags[ptr] === 1) {
+    var wv = this.workingVals[ptr];
+    if (wv.done) {
       // This point has been flagged, don't iterate.
       return true;
     }
-    var z = new Point(this.wAData[ptr], this.wBData[ptr]);
+    var z = wv.z;
     var c = new Point(this.xVals[mapCoordinate.x], this.yVals[mapCoordinate.y]);
     var cntr;
     var zxSquared = z.x * z.x;
@@ -1136,37 +1136,40 @@ var MapWorkingData = /** @class */ (function () {
     for (cntr = 0; cntr < iterCount; cntr++) {
       z.y = 2 * z.x * z.y + c.y;
       z.x = zxSquared - zySquared + c.x;
-      //z = this.getNextVal(z, c);
       zxSquared = z.x * z.x;
       zySquared = z.y * z.y;
       if (zxSquared + zySquared > this.mapInfo.threshold) {
         // This point is done.
-        this.flags[ptr] = 1;
+        // One more interation
+        z.y = 2 * z.x * z.y + c.y;
+        z.x = zxSquared - zySquared + c.x;
+        zxSquared = z.x * z.x;
+        zySquared = z.y * z.y;
+        // Ok, two more interations
+        z.y = 2 * z.x * z.y + c.y;
+        z.x = zxSquared - zySquared + c.x;
+        zxSquared = z.x * z.x;
+        zySquared = z.y * z.y;
+        var modulus = Math.log(zxSquared + zySquared) / 2;
+        var nu = Math.log(modulus / this.log2) / this.log2;
+        wv.escapeVel = nu / 2;
+        wv.done = true;
         break;
       }
     }
     // Store the new value back to our Working Data.
-    this.wAData[ptr] = z.x;
-    this.wBData[ptr] = z.y;
+    wv.z.x = z.x;
+    wv.z.y = z.y;
     // Increment the number of times this point has been iterated.
-    this.cnts[ptr] = this.cnts[ptr] + cntr;
-    return this.flags[ptr] === 1;
-  };
-  // Updates each element for a given line by performing a single interation.
-  // Returns true if at least one point is not done.
-  MapWorkingData.prototype.doIterationsForLine = function (iterCount, y) {
-    var stillAlive = false; // Assume all done until one is found that is not done.
-    var x;
-    for (x = 0; x < this.canvasSize.width; x++) {
-      var pointIsDone = this.iterateElement(new Point(x, y), iterCount);
-      if (!pointIsDone)
-        stillAlive = true;
-    }
-    return stillAlive;
+    wv.cnt += cntr;
+    this;
+    return wv.done;
   };
   // Updates each element by performing a single interation.
   // Returns true if at least one point is not done.
   MapWorkingData.prototype.doIterationsForAll = function (iterCount) {
+    // The processed values will be old after this completes.
+    //this.isProcessed = false;
     var stillAlive = false; // Assume all done until one is found that is not done.
     var x;
     var y;
@@ -1178,6 +1181,18 @@ var MapWorkingData = /** @class */ (function () {
       }
     }
     return stillAlive;
+  };
+  MapWorkingData.prototype.getPixelData = function () {
+    var imgData = new Uint8ClampedArray(this.elementCount * 4);
+    // Address the image data buffer as Int32's
+    var pixelData = new Uint32Array(imgData.buffer);
+    var ptr;
+    for (ptr = 0; ptr < this.elementCount; ptr++) {
+      var wv = this.workingVals[ptr];
+      var cNum = this.colorMap.getColor(wv.cnt, wv.escapeVel);
+      pixelData[ptr] = cNum;
+    }
+    return imgData;
   };
   // Divides the specified MapWorking data into the specified vertical sections, each having the width of the original Map.
   MapWorkingData.getWorkingDataSections = function (canvasSize, mapInfo, colorMap, numberOfSections) {
@@ -1198,10 +1213,9 @@ var MapWorkingData = /** @class */ (function () {
       yVals = MapWorkingData.buildVals(canvasSize.height, mapInfo.bottomLeft.y, mapInfo.topRight.y);
     }
     else {
-      // The y coordinates are not reveresed, must use buildValsRev
-      yVals = MapWorkingData.buildValsRev(canvasSize.height, mapInfo.bottomLeft.y, mapInfo.topRight.y);
+      // The y coordinates are not reversed, reverse them here.
+      yVals = MapWorkingData.buildVals(canvasSize.height, mapInfo.topRight.y, mapInfo.bottomLeft.y);
     }
-    //yVals = MapWorkingData.buildValsRev(canvasSize.height, mapInfo.bottomLeft.y, mapInfo.topRight.y);
     var ptr = 0;
     // Build all but the last section.
     for (; ptr < numberOfSections - 1; ptr++) {
@@ -1232,25 +1246,6 @@ var MapWorkingData = /** @class */ (function () {
     var secAnchor = new Point(0, yOffset);
     result[ptr] = new MapWorkingData(secCanvasSize, secMapInfo, colorMap, secAnchor);
     return result;
-  };
-  MapWorkingData.prototype.getPixelData = function () {
-    var pixelData = new Uint8ClampedArray(this.elementCount * 4);
-    this.updateImageData(pixelData);
-    return pixelData;
-  };
-  MapWorkingData.prototype.updateImageData = function (imgData) {
-    if (imgData.length !== this.elementCount * 4) {
-      console.log("The imgData data does not have the correct number of elements.");
-      return;
-    }
-    // Address the image data buffer as Int32's
-    var pixelData = new Uint32Array(imgData.buffer);
-    //let colorMap: ColorMap = this.colorMap;
-    var i = 0;
-    for (; i < this.elementCount; i++) {
-      var cnt = this.cnts[i];
-      pixelData[i] = this.colorMap.getColor(cnt);
-    }
   };
   MapWorkingData.prototype.iterationCountForNextStep = function () {
     var result;
@@ -1386,6 +1381,11 @@ var ColorMap = /** @class */ (function () {
   function ColorMap(ranges, highColor) {
     this.ranges = ranges;
     this.highColor = highColor;
+    if (ranges === null || ranges.length === 0) {
+      throw new Error('When creating a ColorMap, the ranges argument must have at least one entry.');
+    }
+    // Update the prevCutOff and bucketWidth values for each of our ColorMapEntries.
+    this.setBucketWidths();
   }
   ColorMap.FromTypedArrays = function (cutOffs, colorNums, highColor) {
     var workRanges = new Array(cutOffs.length);
@@ -1396,17 +1396,87 @@ var ColorMap = /** @class */ (function () {
     var result = new ColorMap(workRanges, highColor);
     return result;
   };
-  ColorMap.prototype.getColor = function (countValue) {
+  ColorMap.prototype.getColor = function (countValue, escapeVel) {
     var result;
     var index = this.searchInsert(countValue);
+
+    if (index === 0) {
+      result = this.ranges[index].colorNum;
+      return result;
+    }
+
     if (index === this.ranges.length) {
       result = this.highColor;
+      return result;
+    }
+    var cme = this.ranges[index];
+    var cNum1 = cme.colorNum;
+
+    if (index % 2 === 0) {
+      result = cme.colorNum;
+      return result;
+    }
+
+    var cNum2;
+    if (index + 1 === this.ranges.length) {
+      cNum2 = this.highColor;
     }
     else {
-      result = this.ranges[index].colorNum;
+      cNum2 = this.ranges[index + 1].colorNum;
     }
+    result = this.blend(cme.prevCutOff, cme.bucketWidth, countValue, cNum1, cNum2, escapeVel);
     return result;
   };
+  ColorMap.prototype.blend = function (botBucketVal, bucketWidth, countValue, cNum1, cNum2, escapeVel) {
+    var c1 = ColorNumbers.getColorComponents(cNum1);
+    var c2 = ColorNumbers.getColorComponents(cNum2);
+
+    var cStart;
+    if (countValue === botBucketVal) {
+      cStart = c1;
+    }
+    else {
+      var stepFactor = (-1 + countValue - botBucketVal) / bucketWidth;
+      cStart = this.simpleBlend(c1, c2, stepFactor);
+    }
+
+    var intraStepFactor = escapeVel / (2 * bucketWidth);
+
+    var r = cStart[0] + (c2[0] - c1[0]) * intraStepFactor;
+    var g = cStart[1] + (c2[1] - c1[1]) * intraStepFactor;
+    var b = cStart[2] + (c2[2] - c1[2]) * intraStepFactor;
+    if (r < 0 || r > 255) {
+      console.log('Bad red value.');
+    }
+    if (g < 0 || g > 255) {
+      console.log('Bad green value.');
+    }
+    if (b < 0 || b > 255) {
+      console.log('Bad blue value.');
+    }
+    var newCNum = ColorNumbers.getColor(r, g, b, 255);
+    return newCNum;
+  };
+  ColorMap.prototype.simpleBlend = function (c1, c2, factor) {
+    var r = c1[0] + (c2[0] - c1[0]) * factor;
+    var g = c1[1] + (c2[1] - c1[1]) * factor;
+    var b = c1[2] + (c2[2] - c1[2]) * factor;
+    if (r < 0 || r > 255) {
+      console.log('Bad red value.');
+    }
+    if (g < 0 || g > 255) {
+      console.log('Bad green value.');
+    }
+    if (b < 0 || b > 255) {
+      console.log('Bad blue value.');
+    }
+    var result = [r, g, b, 255];
+    return result;
+  };
+  // Returns the index of the range entry that either
+  // 1. matches the given countVal
+  // or
+  // 2. contains the first entry with a cutOff value greater than the given countVal.
   ColorMap.prototype.searchInsert = function (countVal) {
     var start = 0;
     var end = this.ranges.length - 1;
@@ -1439,6 +1509,35 @@ var ColorMap = /** @class */ (function () {
     }
     return index;
   };
+  ColorMap.prototype.setBucketWidths = function () {
+    var ptr;
+    this.ranges[0].bucketWidth = this.ranges[0].cutOff;
+    this.ranges[0].prevCutOff = 0;
+
+    var prevCutOff = this.ranges[0].cutOff;
+    for (ptr = 1; ptr < this.ranges.length; ptr++) {
+      this.ranges[ptr].prevCutOff = prevCutOff;
+      this.ranges[ptr].bucketWidth = this.ranges[ptr].cutOff - prevCutOff;
+      prevCutOff = this.ranges[ptr].cutOff;
+    }
+    //this.ranges[this.ranges.length - 1].prevCutOff = prevCutOff;
+  };
+  // Returns the different between the highest possible countValue
+  // and the lowest possible countValue for the given range entry.
+  //private getBucketWidth(index: number): number {
+  //  if (index > this.ranges.length - 1) {
+  //    throw new Error('index must be less than the length of our ranges.');
+  //  }
+  //  let result: number;
+  //  let topCountVal = this.ranges[index].cutOff;
+  //  if (index === 0) {
+  //    result = topCountVal + 1; // For exmple if the topCount is 3, then the bucket contains cnts: [0, 1, 2, 3]
+  //    return result;
+  //  }
+  //  let botCountVal = this.ranges[index - 1].cutOff;
+  //  result = topCountVal - botCountVal;
+  //  return result;
+  //}
   ColorMap.prototype.getCutOffs = function () {
     var result = new Uint16Array(this.ranges.length);
     var i = 0;
@@ -1544,7 +1643,7 @@ var ColorMapUI = /** @class */ (function () {
     return result;
   };
   ColorMapUI.fromColorMapForExport = function (cmfe, serialNumber) {
-    if (typeof (cmfe.version) === 'undefined') {
+    if (typeof cmfe.version === 'undefined') {
       cmfe.version = 1.0;
     }
     //console.log('Got a ColorMapForExport and it has version = ' + cmfe.version + '.');
@@ -1884,6 +1983,7 @@ var WebWorkerUpdateColorMapRequest = /** @class */ (function () {
   };
   return WebWorkerUpdateColorMapRequest;
 }());
+
 // Only used when the javascript produced from compiling this TypeScript is used to create worker.js
 var mapWorkingData = null;
 var sectionNumber = 0;

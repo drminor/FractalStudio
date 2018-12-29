@@ -1,3 +1,4 @@
+
 const MAX_CANVAS_WIDTH: number = 50000;
 const MAX_CANVAS_HEIGHT: number = 50000;
 
@@ -75,18 +76,20 @@ export interface IMapWorkingData {
 
   elementCount: number;
 
-  // Current z values
-  wAData: Float64Array; // Stores the current A (or real component.)
-  wBData: Float64Array; // Stores the current B (or complex component.)
+  workingVals: CurWorkVal[];
 
-  xVals: number[];
-  yVals: number[];
+  //// Current z values
+  //wAData: Float64Array; // Stores the current A (or real component.)
+  //wBData: Float64Array; // Stores the current B (or complex component.)
 
-  // The number of times each point has been iterated.
+  //xVals: number[];
+  //yVals: number[];
+
+  //// The number of times each point has been iterated.
   cnts: Uint16Array;
 
-  // Flag for each point. If set then the point has grown more than 2.
-  flags: Uint8Array;
+  //// Flag for each point. If set then the point has grown more than 2.
+  //flags: Uint8Array;
 
   curIterations: number;
 
@@ -456,7 +459,7 @@ export class MapInfo implements IMapInfo {
 
   public isEqual(other: IMapInfo): boolean {
     if (other === null) return false;
-    if (!(this.coords.isEqual(other.coords))) return false;
+    if (!this.coords.isEqual(other.coords)) return false;
     if (this.maxIterations !== other.maxIterations) return false;
     if (this.iterationsPerStep !== other.iterationsPerStep) return false;
     if (this.threshold !== other.threshold) return false;
@@ -988,7 +991,6 @@ export class Histogram {
         // We did find a large entry near the end, but it was not at the very end.
         let cnt = end - start;
         console.log('The maximum value of the last ' + cnt + ' histogram entries is not the last entry.');
-        { debugger }
       }
     }
 
@@ -1111,7 +1113,7 @@ export class Histogram {
   }
 
   addVals(vals: Uint16Array): void {
-    if (!vals || vals.length === 0) return;
+    if (vals === undefined || vals.length === 0) return;
 
     let lastVal = vals[0];
     let lastOcc = this.entriesMap.get(lastVal);
@@ -1251,7 +1253,7 @@ export class MapInfoWithColorMap {
 
   public static fromForExport(miwcmfe: MapInfoWithColorMapForExport, serialNumber: number): MapInfoWithColorMap {
 
-    if (typeof (miwcmfe.version) === 'undefined') {
+    if (typeof miwcmfe.version === 'undefined') {
       miwcmfe.version = 1.0;
     }
     //console.log('Loaded the MapInfoWithColorMapForExport and it has version = ' + miwcmfe.version + '.');
@@ -1273,36 +1275,48 @@ export class MapInfoWithColorMapForExport {
   constructor(public mapInfo: IMapInfo, public colorMap: ColorMapForExport) { }
 }
 
+export class CurWorkVal {
+  public z: IPoint;
+  public cnt: number;
+  public escapeVel: number;
+  public done: boolean;
+
+  constructor() {
+    this.z = new Point(0, 0);
+    this.cnt = 0;
+    this.escapeVel = 0;
+    this.done = false;
+  }
+}
+
 export class MapWorkingData implements IMapWorkingData {
 
   public elementCount: number;
-
-  // Current z values
-  public wAData: Float64Array; // Stores the current A (or real component.)
-  public wBData: Float64Array; // Stores the current B (or complex component.)
+  public workingVals: CurWorkVal[];
 
   // The number of times each point has been iterated.
-  public cnts: Uint16Array;
+  public get cnts(): Uint16Array {
+    let result = new Uint16Array(this.elementCount);
 
-  // Flag for each point. If set then the point has grown more than 2.
-  public flags: Uint8Array;
+    let ptr: number;
+    for (ptr = 0; ptr < this.elementCount; ptr++) {
+      result[ptr] = this.workingVals[ptr].cnt;
+    }
+
+    return result;
+  }
 
   public xVals: number[];
   public yVals: number[];
 
   public curIterations: number;
 
-  //public pixelData: Uint8ClampedArray;
+  private log2: number;
 
   constructor(public canvasSize: ICanvasSize, public mapInfo: IMapInfo, public colorMap: ColorMap, public sectionAnchor: IPoint) {
 
     this.elementCount = this.getNumberOfElementsForCanvas(this.canvasSize);
-
-    this.wAData = new Float64Array(this.elementCount); // All elements now have a value of zero.
-    this.wBData = new Float64Array(this.elementCount); // All elements now have a value of zero.
-
-    this.cnts = new Uint16Array(this.elementCount);
-    this.flags = new Uint8Array(this.elementCount);
+    this.workingVals = this.buildWorkingVals(this.elementCount);
 
     // X coordinates get larger as one moves from the left of the map to  the right.
     this.xVals = MapWorkingData.buildVals(this.canvasSize.width, this.mapInfo.bottomLeft.x, this.mapInfo.topRight.x);
@@ -1316,13 +1330,25 @@ export class MapWorkingData implements IMapWorkingData {
     }
     else {
       // if we only have a single section, then we must reverse the y values.
-      // The y coordinates are not reveresed, must use buildValsRev
-      this.yVals = MapWorkingData.buildValsRev(this.canvasSize.height, this.mapInfo.bottomLeft.y, this.mapInfo.topRight.y);
+      // The y coordinates are not reversed, reverse them here.
+      this.yVals = MapWorkingData.buildVals(this.canvasSize.height, this.mapInfo.topRight.y, this.mapInfo.bottomLeft.y);
     }
 
     this.curIterations = 0;
+    this.log2 = Math.log(2) as number;
 
     console.log('Constructing MapWorkingData, ColorMap = ' + this.colorMap + '.');
+  }
+
+  private buildWorkingVals(elementCount: number): CurWorkVal[] {
+    let result = new Array<CurWorkVal>(elementCount);
+
+    let ptr: number;
+    for (ptr = 0; ptr < this.elementCount; ptr++) {
+      result[ptr] = new CurWorkVal();
+    }
+
+    return result;
   }
 
   // Calculate the number of elements in our single dimension data array needed to cover the
@@ -1345,41 +1371,10 @@ export class MapWorkingData implements IMapWorkingData {
     return result;
   }
 
-  // Build the array of 'c' values for one dimension of the map.
-  static buildValsRev(canvasExtent: number, start: number, end: number): number[] {
-    let result: number[] = new Array<number>(canvasExtent);
-
-    let mapExtent: number = end - start;
-    let unitExtent: number = mapExtent / canvasExtent;
-
-    var i: number;
-    var ptr: number = 0;
-    for (i = canvasExtent - 1; i > -1; i--) {
-      result[ptr++] = start + i * unitExtent;
-    }
-    return result;
-  }
-
   // Returns the index to use when accessing wAData, wBData, cnts or flags.
   public getLinearIndex(c: IPoint): number {
     return c.x + c.y * this.canvasSize.width;
   }
-
-  //// Calculates z squared + c
-  //getNextVal(z: IPoint, c: IPoint): IPoint {
-  //  const result: IPoint = new Point(
-  //    z.x * z.x - z.y * z.y + c.x,
-  //    2 * z.x * z.y + c.y
-  //  );
-
-  //  return result;
-  //}
-
-  //// Returns the square of the magnitude of a complex number where a is the real component and b is the complex component.
-  //private getAbsSizeSquared(z: IPoint): number {
-  //  const result:number = z.x * z.x + z.y * z.y;
-  //  return result;
-  //}
 
   // Takes the current value of z for a given coordinate,
   // calculates the next value
@@ -1391,12 +1386,14 @@ export class MapWorkingData implements IMapWorkingData {
   private iterateElement(mapCoordinate:IPoint, iterCount:number): boolean {
     const ptr = this.getLinearIndex(mapCoordinate);
 
-    if (this.flags[ptr] === 1) {
+    let wv = this.workingVals[ptr];
+
+    if (wv.done) {
       // This point has been flagged, don't iterate.
       return true;
     }
 
-    let z:IPoint = new Point(this.wAData[ptr], this.wBData[ptr]);
+    let z: IPoint = wv.z;
     const c: IPoint = new Point(this.xVals[mapCoordinate.x], this.yVals[mapCoordinate.y]);
 
     let cntr: number;
@@ -1409,47 +1406,54 @@ export class MapWorkingData implements IMapWorkingData {
       z.y = 2 * z.x * z.y + c.y;
       z.x = zxSquared - zySquared + c.x;
 
-      //z = this.getNextVal(z, c);
-
       zxSquared = z.x * z.x;
       zySquared = z.y * z.y;
 
-      if (zxSquared + zySquared > this.mapInfo.threshold) {
+      if ( zxSquared + zySquared > this.mapInfo.threshold) {
         // This point is done.
-        this.flags[ptr] = 1;
+
+        // One more interation
+        z.y = 2 * z.x * z.y + c.y;
+        z.x = zxSquared - zySquared + c.x;
+        zxSquared = z.x * z.x;
+        zySquared = z.y * z.y;
+
+        // Ok, two more interations
+        z.y = 2 * z.x * z.y + c.y;
+        z.x = zxSquared - zySquared + c.x;
+        zxSquared = z.x * z.x;
+        zySquared = z.y * z.y;
+
+        let modulus: number = Math.log(zxSquared + zySquared) / 2;
+        let nu: number = Math.log(modulus / this.log2) / this.log2;
+        //let nu: number = Math.log(modulus) / this.log2;
+
+        wv.escapeVel = nu / 2;
+        //wv.escapeVel = nu;
+
+        wv.done = true;
         break;
       }
     }
 
     // Store the new value back to our Working Data.
-    this.wAData[ptr] = z.x;
-    this.wBData[ptr] = z.y;
+    wv.z.x = z.x;
+    wv.z.y = z.y;
 
     // Increment the number of times this point has been iterated.
-    this.cnts[ptr] = this.cnts[ptr] + cntr;
+    wv.cnt += cntr;
 
-    return this.flags[ptr] === 1;
-  }
+    this
 
-  // Updates each element for a given line by performing a single interation.
-  // Returns true if at least one point is not done.
-  public doIterationsForLine(iterCount: number, y: number): boolean {
-
-    let stillAlive: boolean = false; // Assume all done until one is found that is not done.
-
-    let x: number;
-
-    for (x = 0; x < this.canvasSize.width; x++) {
-      let pointIsDone = this.iterateElement(new Point(x, y), iterCount);
-      if (!pointIsDone) stillAlive = true;
-    }
-
-    return stillAlive;
+    return wv.done;
   }
 
   // Updates each element by performing a single interation.
   // Returns true if at least one point is not done.
   public doIterationsForAll(iterCount: number): boolean {
+
+    // The processed values will be old after this completes.
+    //this.isProcessed = false;
 
     let stillAlive: boolean = false; // Assume all done until one is found that is not done.
 
@@ -1463,6 +1467,23 @@ export class MapWorkingData implements IMapWorkingData {
       }
     }
     return stillAlive;
+  }
+
+  public getPixelData(): Uint8ClampedArray {
+    let imgData = new Uint8ClampedArray(this.elementCount * 4);
+
+    // Address the image data buffer as Int32's
+    let pixelData = new Uint32Array(imgData.buffer);
+
+    let ptr: number;
+    for (ptr = 0; ptr < this.elementCount; ptr++) {
+      let wv = this.workingVals[ptr];
+
+      let cNum = this.colorMap.getColor(wv.cnt, wv.escapeVel);
+      pixelData[ptr] = cNum;
+    }
+
+    return imgData;
   }
 
   // Divides the specified MapWorking data into the specified vertical sections, each having the width of the original Map.
@@ -1493,10 +1514,9 @@ export class MapWorkingData implements IMapWorkingData {
       yVals = MapWorkingData.buildVals(canvasSize.height, mapInfo.bottomLeft.y, mapInfo.topRight.y);
     }
     else {
-      // The y coordinates are not reveresed, must use buildValsRev
-      yVals = MapWorkingData.buildValsRev(canvasSize.height, mapInfo.bottomLeft.y, mapInfo.topRight.y);
+      // The y coordinates are not reversed, reverse them here.
+      yVals = MapWorkingData.buildVals(canvasSize.height, mapInfo.topRight.y, mapInfo.bottomLeft.y);
     }
-    //yVals = MapWorkingData.buildValsRev(canvasSize.height, mapInfo.bottomLeft.y, mapInfo.topRight.y);
 
     let ptr: number = 0;
 
@@ -1543,31 +1563,7 @@ export class MapWorkingData implements IMapWorkingData {
 
     return result;
   }
-
-  public getPixelData(): Uint8ClampedArray {
-    const pixelData = new Uint8ClampedArray(this.elementCount * 4);
-    this.updateImageData(pixelData);
-    return pixelData;
-  }
  
-  public updateImageData(imgData: Uint8ClampedArray): void {
-    if (imgData.length !== this.elementCount * 4) {
-      console.log("The imgData data does not have the correct number of elements.");
-      return;
-    }
-
-    // Address the image data buffer as Int32's
-    const pixelData = new Uint32Array(imgData.buffer);
-
-    //let colorMap: ColorMap = this.colorMap;
-
-    let i: number = 0;
-    for (; i < this.elementCount; i++) {
-      const cnt = this.cnts[i];
-      pixelData[i] = this.colorMap.getColor(cnt);
-    }
-  }
-  
   public iterationCountForNextStep(): number {
     let result: number;
     let gap = this.mapInfo.maxIterations - this.curIterations;
@@ -1591,6 +1587,10 @@ export class MapWorkingData implements IMapWorkingData {
 } // End Class MapWorkingData
 
 export class ColorMapEntry {
+
+  public prevCutOff: number;
+  public bucketWidth: number;
+
   constructor(public cutOff: number, public colorNum: number) {
   }
 }
@@ -1694,7 +1694,15 @@ export class ColorMapUIEntry {
 
 export class ColorMap {
 
-  constructor(public ranges: ColorMapEntry[], public highColor: number) { }
+  constructor(public ranges: ColorMapEntry[], public highColor: number) {
+
+    if (ranges === null || ranges.length === 0) {
+      throw new Error('When creating a ColorMap, the ranges argument must have at least one entry.');
+    }
+
+    // Update the prevCutOff and bucketWidth values for each of our ColorMapEntries.
+    this.setBucketWidths();
+  }
 
   public static FromTypedArrays(cutOffs: Uint16Array, colorNums: Uint32Array, highColor: number): ColorMap {
     let workRanges: ColorMapEntry[] = new Array<ColorMapEntry>(cutOffs.length);
@@ -1709,18 +1717,108 @@ export class ColorMap {
     return result;
   }
 
-  public getColor(countValue: number): number {
+  public getColor(countValue: number, escapeVel: number): number {
     let result: number;
     let index = this.searchInsert(countValue);
+
+    if (index === 0) {
+      result = this.ranges[index].colorNum;
+      return result;
+    }
+
     if (index === this.ranges.length) {
       result = this.highColor;
+      return result;
+    }
+
+    let cme = this.ranges[index];
+    let cNum1 = cme.colorNum;
+
+    if (index % 2 === 0) {
+      result = cme.colorNum;
+      return result;
+    }
+
+    let cNum2: number;
+
+    if (index + 1 === this.ranges.length) {
+      cNum2 = this.highColor;
     }
     else {
-      result = this.ranges[index].colorNum;
+      cNum2 = this.ranges[index + 1].colorNum;
     }
+
+    result = this.blend(cme.prevCutOff, cme.bucketWidth, countValue, cNum1, cNum2, escapeVel);
+
     return result;
   }
 
+  private blend(botBucketVal: number, bucketWidth: number, countValue: number, cNum1: number, cNum2: number, escapeVel: number): number {
+
+    let c1 = ColorNumbers.getColorComponents(cNum1);
+    let c2 = ColorNumbers.getColorComponents(cNum2);
+
+    let cStart: number[];
+    if (countValue === botBucketVal) {
+      // We're starting at the very bottom.
+      //cStart = new Array<number>(...c1);
+      cStart = c1;
+    }
+    else {
+      let stepFactor = (-1 + countValue - botBucketVal) / bucketWidth;
+      cStart = this.simpleBlend(c1, c2, stepFactor);
+    }
+
+    let intraStepFactor = escapeVel / (2 * bucketWidth);
+
+    let r = cStart[0] + (c2[0] - c1[0]) * intraStepFactor;
+    let g = cStart[1] + (c2[1] - c1[1]) * intraStepFactor;
+    let b = cStart[2] + (c2[2] - c1[2]) * intraStepFactor;
+
+    if (r < 0 || r > 255) {
+      console.log('Bad red value.');
+    }
+
+    if (g < 0 || g > 255) {
+      console.log('Bad green value.');
+    }
+
+    if (b < 0 || b > 255) {
+      console.log('Bad blue value.');
+    }
+
+    let newCNum = ColorNumbers.getColor(r, g, b, 255);
+
+    return newCNum;
+  }
+
+  private simpleBlend(c1: number[], c2: number[], factor: number): number[] {
+
+    let r = c1[0] + (c2[0] - c1[0]) * factor;
+    let g = c1[1] + (c2[1] - c1[1]) * factor;
+    let b = c1[2] + (c2[2] - c1[2]) * factor;
+
+    if (r < 0 || r > 255) {
+      console.log('Bad red value.');
+    }
+
+    if (g < 0 || g > 255) {
+      console.log('Bad green value.');
+    }
+
+    if (b < 0 || b > 255) {
+      console.log('Bad blue value.');
+    }
+
+    let result = [r, g, b, 255];
+
+    return result;
+  }
+
+  // Returns the index of the range entry that either
+  // 1. matches the given countVal
+  // or
+  // 2. contains the first entry with a cutOff value greater than the given countVal.
   private searchInsert(countVal: number): number {
 
     let start = 0;
@@ -1758,6 +1856,47 @@ export class ColorMap {
 
     return index;
   }
+
+  private setBucketWidths(): void {
+    let ptr: number;
+
+    this.ranges[0].bucketWidth = this.ranges[0].cutOff;
+    this.ranges[0].prevCutOff = 0;
+
+    let prevCutOff = this.ranges[0].cutOff;
+
+    for (ptr = 1; ptr < this.ranges.length; ptr++) {
+      this.ranges[ptr].prevCutOff = prevCutOff;
+      this.ranges[ptr].bucketWidth = this.ranges[ptr].cutOff - prevCutOff;
+
+      prevCutOff = this.ranges[ptr].cutOff;
+    }
+
+    //this.ranges[this.ranges.length - 1].prevCutOff = prevCutOff;
+  }
+
+
+  // Returns the different between the highest possible countValue
+  // and the lowest possible countValue for the given range entry.
+  //private getBucketWidth(index: number): number {
+
+  //  if (index > this.ranges.length - 1) {
+  //    throw new Error('index must be less than the length of our ranges.');
+  //  }
+
+  //  let result: number;
+  //  let topCountVal = this.ranges[index].cutOff;
+
+  //  if (index === 0) {
+  //    result = topCountVal + 1; // For exmple if the topCount is 3, then the bucket contains cnts: [0, 1, 2, 3]
+  //    return result;
+  //  }
+
+  //  let botCountVal = this.ranges[index - 1].cutOff;
+  //  result = topCountVal - botCountVal;
+
+  //  return result;
+  //}
 
   public getCutOffs(): Uint16Array {
     let result = new Uint16Array(this.ranges.length);
@@ -1898,7 +2037,7 @@ export class ColorMapUI {
 
   public static fromColorMapForExport(cmfe: ColorMapForExport, serialNumber: number): ColorMapUI {
 
-    if (typeof (cmfe.version) === 'undefined') {
+    if (typeof cmfe.version === 'undefined') {
       cmfe.version = 1.0;
     }
     //console.log('Got a ColorMapForExport and it has version = ' + cmfe.version + '.');
