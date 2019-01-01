@@ -1,8 +1,10 @@
 import { Component, ViewChild, ElementRef } from '@angular/core';
 
+import { ColorNumbers } from '../../m-map/ColorNumbers';
+
 import {
   IPoint, Point, IMapInfo, MapInfo, IBox, Box,
-  ColorMapUI, ColorMapUIEntry, ColorNumbers, MapInfoWithColorMap,
+  ColorMapUI, ColorMapUIEntry, MapInfoWithColorMap,
   Histogram, Divisions
 } from '../../m-map/m-map-common';
 

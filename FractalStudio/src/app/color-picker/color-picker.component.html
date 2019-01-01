@@ -1,6 +1,6 @@
 <div class=color-wrapper>
-  <app-color-palette [hue]="hue" (color)="onColorUpdated($event)"></app-color-palette>
-  <app-color-slider (hueUpdated)="hue=$event" style="margin-left:16px"></app-color-slider>
+  <app-color-palette #palette [initialColor]="rgbaColor" [hue]="hue" (colorUpdated)="onColorUpdated($event)"></app-color-palette>
+  <app-color-slider #slider [initialColor]="rgbaColor" (hueUpdated)="hue=$event" style="margin-left:16px"></app-color-slider>
 </div>
 <div class="input-wrapper">
   <span class="text">{{rgbaColor}}</span>

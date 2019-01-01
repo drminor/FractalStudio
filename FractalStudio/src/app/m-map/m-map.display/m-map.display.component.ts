@@ -1,13 +1,15 @@
 import { Component, AfterViewInit, ElementRef, ViewChild, Input, EventEmitter, Output } from '@angular/core';
 //import { saveAs } from 'file-saver';
 
+//import { ColorNumbers } from '../ColorNumbers';
+
 import {
   IPoint, Point, IBox, Box, ICanvasSize, CanvasSize,
-  IMapInfo, MapInfo, IMapWorkingData, MapWorkingData,
-  WebWorkerImageDataResponse, WebWorkerMessage, WebWorkerStartRequest, WebWorkerImageDataRequest,
+  IMapInfo, IMapWorkingData, MapWorkingData,
+  WebWorkerImageDataResponse, WebWorkerMessage, WebWorkerStartRequest,
   WebWorkerIterateRequest, WebWorkerUpdateColorMapRequest,
-  ColorMap, ColorMapUI, ColorMapEntry, ColorMapUIEntry, ColorNumbers,
-  Histogram, WebWorkerHistogramRequest, WebWorkerHistorgramResponse, HistArrayPair, MapInfoWithColorMap
+  ColorMapUI, Histogram, WebWorkerHistogramRequest, WebWorkerHistorgramResponse,
+  HistArrayPair, MapInfoWithColorMap
 } from '../m-map-common';
 
 @Component({

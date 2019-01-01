@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="src\app\m-map\ColorNumbers.ts" />
     <None Remove="src\app\m-map\m-map-common.ts" />
     <None Remove="src\app\m-map\m-map-viewer-state.ts" />
   </ItemGroup>
@@ -18,6 +19,7 @@
 
   <ItemGroup>
     <TypeScriptCompile Include="src\app\logger.service.ts" />
+    <TypeScriptCompile Include="src\app\m-map\ColorNumbers.ts" />
     <TypeScriptCompile Include="src\app\m-map\m-map-common.ts">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </TypeScriptCompile>

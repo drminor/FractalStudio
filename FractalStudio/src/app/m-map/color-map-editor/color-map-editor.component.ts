@@ -1,5 +1,7 @@
 import { Component, OnInit, Input, Output, EventEmitter, ViewChild, ElementRef } from '@angular/core';
-import { ColorMapUI, ColorMapUIEntry, ColorMapForExport, Histogram, Divisions, ColorNumbers } from '../m-map-common';
+import { ColorMapUI, ColorMapUIEntry, ColorMapForExport, Histogram, Divisions } from '../m-map-common';
+import { ColorNumbers } from '../ColorNumbers';
+
 import { FormGroup, FormControl, FormArray } from '@angular/forms';
 import { ColorItem } from '../../color-picker/color-picker.component';
 
