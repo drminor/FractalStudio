@@ -5,7 +5,7 @@ import { ColorNumbers } from '../../m-map/ColorNumbers';
 import {
   IPoint, Point, IMapInfo, MapInfo, IBox, Box,
   ColorMapUI, ColorMapUIEntry, MapInfoWithColorMap,
-  Histogram, Divisions
+  Histogram, Divisions, ColorMapEntryBlendStyle
 } from '../../m-map/m-map-common';
 
 import { MMapDisplayComponent } from '../../m-map/m-map.display/m-map.display.component';
@@ -218,17 +218,17 @@ export class MMapDesignerComponent {
 
   private buildColorMap(serialNumber: number): ColorMapUI {
 
-    let cNumGenerator = new ColorNumbers();
+    //let cNumGenerator = new ColorNumbers();
 
     let ranges: ColorMapUIEntry[] = new Array<ColorMapUIEntry>(7);
-    ranges[0] = ColorMapUIEntry.fromOffsetAndColorNum(3, cNumGenerator.white);
-    ranges[1] = ColorMapUIEntry.fromOffsetAndColorNum(5, cNumGenerator.red);
-    ranges[2] = ColorMapUIEntry.fromOffsetAndColorNum(8, cNumGenerator.green);
-    ranges[3] = ColorMapUIEntry.fromOffsetAndColorNum(13, cNumGenerator.blue);
+    ranges[0] = ColorMapUIEntry.fromOffsetAndColorNum(3, ColorNumbers.white, ColorMapEntryBlendStyle.none, ColorNumbers.black);
+    ranges[1] = ColorMapUIEntry.fromOffsetAndColorNum(5, ColorNumbers.red, ColorMapEntryBlendStyle.none, ColorNumbers.black);
+    ranges[2] = ColorMapUIEntry.fromOffsetAndColorNum(8, ColorNumbers.green, ColorMapEntryBlendStyle.none, ColorNumbers.black);
+    ranges[3] = ColorMapUIEntry.fromOffsetAndColorNum(13, ColorNumbers.blue, ColorMapEntryBlendStyle.none, ColorNumbers.black);
 
-    ranges[4] = ColorMapUIEntry.fromOffsetAndColorNum(21, cNumGenerator.red);
-    ranges[5] = ColorMapUIEntry.fromOffsetAndColorNum(34, cNumGenerator.green);
-    ranges[6] = ColorMapUIEntry.fromOffsetAndColorNum(55, cNumGenerator.blue);
+    ranges[4] = ColorMapUIEntry.fromOffsetAndColorNum(21, ColorNumbers.red, ColorMapEntryBlendStyle.none, ColorNumbers.black);
+    ranges[5] = ColorMapUIEntry.fromOffsetAndColorNum(34, ColorNumbers.green, ColorMapEntryBlendStyle.none, ColorNumbers.black);
+    ranges[6] = ColorMapUIEntry.fromOffsetAndColorNum(55, ColorNumbers.blue, ColorMapEntryBlendStyle.none, ColorNumbers.black);
 
     let result: ColorMapUI = new ColorMapUI(ranges, '#000000', serialNumber);
     return result;

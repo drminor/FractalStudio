@@ -1,5 +1,5 @@
 import { Component, OnInit, Input, Output, EventEmitter, ViewChild, ElementRef } from '@angular/core';
-import { ColorMapUI, ColorMapUIEntry, ColorMapForExport, Histogram, Divisions } from '../m-map-common';
+import { ColorMapUI, ColorMapUIEntry, ColorMapForExport, Histogram, Divisions, ColorMapEntryBlendStyle } from '../m-map-common';
 import { ColorNumbers } from '../ColorNumbers';
 
 import { FormGroup, FormControl, FormArray } from '@angular/forms';
@@ -98,7 +98,7 @@ export class ColorMapEditorComponent implements OnInit {
     let ranges: ColorMapUIEntry[] = [];
 
     // Add one breakpoint at 50 with color = red.
-    ranges.push(new ColorMapUIEntry(50, ColorNumbers.getColorComponentsFromCssColor("#ff0000")));
+    ranges.push(new ColorMapUIEntry(50, ColorNumbers.getColorComponentsFromCssColor("#ff0000"), ColorMapEntryBlendStyle.none, null));
 
     let highColorCss = "#000000";
 
@@ -106,17 +106,17 @@ export class ColorMapEditorComponent implements OnInit {
     return result;
   }
 
-  getRgbaColor(idx: number): string {
-    console.log('Getting the rgbaColor for item with index = ' + idx + '.');
+  getStartRgbaColor(idx: number): string {
+    console.log('Getting the startRgbaColor for item with index = ' + idx + '.');
     let cEntryForm = this.colorEntryForms[idx];
-    let result: string = cEntryForm.controls.rgbaColor.value as string;
+    let result: string = cEntryForm.controls.startRgbaColor.value as string;
     return result;
   }
 
-  setRgbaColor(colorItem: ColorItem): void {
-    //console.log('Setting color for item: ' + colorItem.itemIdx + ' to ' + colorItem.rgbaColor + '.');
+  setStartRgbaColor(colorItem: ColorItem): void {
+    //console.log('Setting color for item: ' + colorItem.itemIdx + ' to ' + colorItem.startRgbaColor + '.');
     let cEntryForm = this.colorEntryForms[colorItem.itemIdx];
-    cEntryForm.controls.rgbaColor.setValue(colorItem.rgbaColor);
+    cEntryForm.controls.startRgbaColor.setValue(colorItem.rgbaColor);
   }
 
   onEditColor(idx: number) {
@@ -146,7 +146,7 @@ export class ColorMapEditorComponent implements OnInit {
     let ptr: number;
     for (ptr = cntToRemove; ptr < colorMap.ranges.length; ptr++) {
       let cme = colorMap.ranges[ptr];
-      let newCme = new ColorMapUIEntry(cme.cutOff, cme.colorComponents); // ColorMapUIEntry.fromOffsetAndColorNum(cme.cutOff, cme.colorNum);
+      let newCme = new ColorMapUIEntry(cme.cutOff, cme.startColor.colorComponents, ColorMapEntryBlendStyle.none, null);
       newRanges.push(newCme);
     }
 
@@ -166,7 +166,7 @@ export class ColorMapEditorComponent implements OnInit {
 
     let newMap = this.getColorMap();
     let existingEntry = newMap.ranges[idx];
-    let newEntry = new ColorMapUIEntry(existingEntry.cutOff - 1, ColorNumbers.getColorComponents(new ColorNumbers().white));
+    let newEntry = new ColorMapUIEntry(existingEntry.cutOff - 1, ColorNumbers.getColorComponents(ColorNumbers.white), ColorMapEntryBlendStyle.none, null);
 
     newMap.insertColorMapEntry(idx, newEntry);
     this.updateForm(newMap);
@@ -491,10 +491,12 @@ class ColorMapEntryForms {
     for (ptr = 0; ptr < fArray.length; ptr++) {
       let cEntryForm = fArray[ptr] as FormGroup;
 
-      let cme: ColorMapUIEntry = ColorMapUIEntry.fromOffsetAndRgba(
-        cEntryForm.controls.cutOff.value,
-        cEntryForm.controls.rgbaColor.value
-      );
+      //let cme: ColorMapUIEntry = ColorMapUIEntry.fromOffsetAndRgba(
+      //  cEntryForm.controls.cutOff.value,
+      //  cEntryForm.controls.startRgbaColor.value
+      //);
+
+      let cme = ColorMapEntryForm.getColorMapUIEntry(cEntryForm);
 
       result.push(cme);
     }
@@ -570,19 +572,23 @@ class ColorMapEntryForm {
 
     let result = new FormGroup({
       cutOff: new FormControl(''),
-      rgbaColor: new FormControl(''),
+      startRgbaColor: new FormControl(''),
+      endRgbaColor: new FormControl(''),
+      blendStyle: new FormControl('n'),
 
       actualPercentage: new FormControl(''),
       showEditor: new FormControl('')
     });
 
     result.controls.showEditor.disable();
-    result.controls.rgbaColor
 
     if (cme != null) {
-      result.controls.rgbaColor.setValue(cme.rgbaString);
+      result.controls.startRgbaColor.setValue(cme.startColor.rgbaString);
       result.controls.cutOff.setValue(cme.cutOff);
       result.controls.actualPercentage.setValue('0.0%');
+
+      result.controls.blendStyle.setValue(this.getLetterFromBlendStyle(cme.blendStyle));
+      result.controls.endRgbaColor.setValue(cme.endColor.rgbaString);
     }
 
     return result;
@@ -592,8 +598,51 @@ class ColorMapEntryForm {
 
     const result = ColorMapUIEntry.fromOffsetAndRgba(
       form.controls.cutOff.value,
-      form.controls.rgbaColor.value
+      form.controls.startRgbaColor.value,
+      this.getBlendStyleFromLetter(form.controls.blendStyle.value),
+      form.controls.endRgbaColor.value
     );
+
+    return result;
+  }
+
+  private static getLetterFromBlendStyle(blendStyle: ColorMapEntryBlendStyle): string {
+    let result: string;
+
+    switch (blendStyle) {
+      case ColorMapEntryBlendStyle.none:
+        result = 'n';
+        break;
+      case ColorMapEntryBlendStyle.next:
+        result = 'x';
+        break;
+      case ColorMapEntryBlendStyle.endColor:
+        result = 'e';
+        break;
+      default:
+        result = 'n'
+    }
+    return result;
+  }
+
+  private static getBlendStyleFromLetter(letter: string): ColorMapEntryBlendStyle {
+    let result: ColorMapEntryBlendStyle;
+
+    switch (letter) {
+      case 'n':
+        result = ColorMapEntryBlendStyle.none;
+        break;
+      case 'x':
+        result = ColorMapEntryBlendStyle.next;
+        break;
+      case 'e':
+        result = ColorMapEntryBlendStyle.endColor;
+        break;
+
+      default:
+        result = ColorMapEntryBlendStyle.none;
+
+    }
 
     return result;
   }

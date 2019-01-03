@@ -1588,12 +1588,18 @@ export class MapWorkingData implements IMapWorkingData {
 
 } // End Class MapWorkingData
 
+export enum ColorMapEntryBlendStyle {
+  none,
+  next,
+  endColor
+}
+
 export class ColorMapEntry {
 
   public prevCutOff: number;
   public bucketWidth: number;
 
-  constructor(public cutOff: number, public colorNum: number) {
+  constructor(public cutOff: number, public colorNum: number, public blendStyle: ColorMapEntryBlendStyle, public endColorNum) {
   }
 }
 
@@ -1601,21 +1607,24 @@ export class ColorMapEntryForExport {
   constructor(public cutOff: number, public cssColor: string) { }
 
   public static fromColorMapUIEntry(cme: ColorMapUIEntry): ColorMapEntryForExport {
-    let result = new ColorMapEntryForExport(cme.cutOff, cme.rgbHex);
+    let result = new ColorMapEntryForExport(cme.cutOff, cme.startColor.rgbHex);
     return result;
   }
 }
 
-export class ColorMapUIEntry {
-
+export class ColorMapUIColor {
   public colorComponents: number[];
 
-  constructor(public cutOff: number, colorVals: number[]) {
+  constructor(colorVals: number[]) {
 
     this.colorComponents = new Array<number>(4);
     let alpha: number;
 
-    if (colorVals.length === 3) {
+    if (colorVals === null) {
+      colorVals = [0, 0, 0];
+      alpha = 255;
+    }
+    else if (colorVals.length === 3) {
       alpha = 255;
     }
     else if (colorVals.length === 4) {
@@ -1632,69 +1641,88 @@ export class ColorMapUIEntry {
   }
 
   public get r(): number {
-    return this.colorComponents[0];
-  }
+  return this.colorComponents[0];
+}
 
   public get g(): number {
-    return this.colorComponents[1];
-  }
+  return this.colorComponents[1];
+}
 
   public get b(): number {
-    return this.colorComponents[2];
-  }
+  return this.colorComponents[2];
+}
 
   public get alpha(): number {
-    return this.colorComponents[3];
-  }
+  return this.colorComponents[3];
+}
 
   public get rgbHex(): string {
-
-    //let result: string = '#'
-    //  + ('0' + this.colorComponents[0].toString(16)).slice(-2)
-    //  + ('0' + this.colorComponents[1].toString(16)).slice(-2)
-    //  + ('0' + this.colorComponents[2].toString(16)).slice(-2);
-
-    let result = ColorNumbers.getRgbHex(this.colorComponents);
-
-    //return "#FFFF00";
-    return result;
-  }
+  let result = ColorNumbers.getRgbHex(this.colorComponents);
+  return result;
+}
 
   public get rgbaString(): string {
+  let result = ColorNumbers.getRgbaString(this.colorComponents);
+  return result;
+}
 
-    //let result: string = 'rgba('
-    //  + this.colorComponents[0].toString(10) + ','
-    //  + this.colorComponents[1].toString(10) + ','
-    //  + this.colorComponents[2].toString(10) + ','
-    //  + '1'
-    //  + ')';
 
-    let result = ColorNumbers.getRgbaString(this.colorComponents);
+  public static fromColorNum(cNum: number): ColorMapUIColor {
+  let colorComps: number[] = ColorNumbers.getColorComponents(cNum);
+    let result = new ColorMapUIColor(colorComps);
+  return result;
+  }
 
-    //return 'rgba(200,20,40,1)';
-    return result;
+  public static fromCssColor(cssColor: string): ColorMapUIColor {
+  let colorComps: number[] = ColorNumbers.getColorComponentsFromCssColor(cssColor);
+    let result = new ColorMapUIColor(colorComps);
+  return result;
+  }
+
+  public static fromRgba(rgbaColor: string): ColorMapUIColor {
+  let colorComps: number[] = ColorNumbers.getColorComponentsFromRgba(rgbaColor);
+    let result = new ColorMapUIColor(colorComps);
+  return result;
+  }
+}
+
+export class ColorMapUIEntry {
+
+  public startColor: ColorMapUIColor;
+  public endColor: ColorMapUIColor;
+
+  constructor(public cutOff: number, colorVals: number[], public blendStyle: ColorMapEntryBlendStyle, endColorVals: number[]) {
+
+    this.startColor = new ColorMapUIColor(colorVals);
+    this.endColor = new ColorMapUIColor(endColorVals);
   }
 
   public static fromColorMapEntry(cme: ColorMapEntry): ColorMapUIEntry {
-    let result = ColorMapUIEntry.fromOffsetAndColorNum(cme.cutOff, cme.colorNum);
+    let result = ColorMapUIEntry.fromOffsetAndColorNum(cme.cutOff, cme.colorNum, cme.blendStyle, cme.endColorNum);
     return result;
   }
 
-  public static fromOffsetAndColorNum(cutOff: number, cNum: number): ColorMapUIEntry {
-    let colorComps: number[] = ColorNumbers.getColorComponents(cNum);
-    let result = new ColorMapUIEntry(cutOff, colorComps);
+  public static fromOffsetAndColorNum(cutOff: number, startCNum: number, blendStyle: ColorMapEntryBlendStyle, endCNum: number): ColorMapUIEntry {
+    let startColorComps: number[] = ColorNumbers.getColorComponents(startCNum);
+    let endColorComps: number[] = ColorNumbers.getColorComponents(endCNum);
+
+    let result = new ColorMapUIEntry(cutOff, startColorComps, blendStyle, endColorComps);
     return result;
   }
 
-  public static fromOffsetAndCssColor(cutOff: number, cssColor: string): ColorMapUIEntry {
-    let colorComps: number[] = ColorNumbers.getColorComponentsFromCssColor(cssColor);
-    let result = new ColorMapUIEntry(cutOff, colorComps);
+  public static fromOffsetAndCssColor(cutOff: number, startCssColor: string, blendStyle: ColorMapEntryBlendStyle, endCssColor: string): ColorMapUIEntry {
+    let startColorComps: number[] = ColorNumbers.getColorComponentsFromCssColor(startCssColor);
+    let endColorComps: number[] = ColorNumbers.getColorComponentsFromCssColor(endCssColor);
+
+    let result = new ColorMapUIEntry(cutOff, startColorComps, blendStyle, endColorComps);
     return result;
   }
 
-  public static fromOffsetAndRgba(cutOff: number, rgbaColor: string): ColorMapUIEntry {
-    let colorComps: number[] = ColorNumbers.getColorComponentsFromRgba(rgbaColor);
-    let result = new ColorMapUIEntry(cutOff, colorComps);
+  public static fromOffsetAndRgba(cutOff: number, startRgbaColor: string, blendStyle: ColorMapEntryBlendStyle, endRgbaColor: string): ColorMapUIEntry {
+    let startColorComps: number[] = ColorNumbers.getColorComponentsFromRgba(startRgbaColor);
+    let endColorComps: number[] = ColorNumbers.getColorComponentsFromRgba(endRgbaColor);
+
+    let result = new ColorMapUIEntry(cutOff, startColorComps, blendStyle, endColorComps);
     return result;
   }
 }
@@ -1702,7 +1730,6 @@ export class ColorMapUIEntry {
 export class ColorMap {
 
   constructor(public ranges: ColorMapEntry[], public highColor: number) {
-
     if (ranges === null || ranges.length === 0) {
       throw new Error('When creating a ColorMap, the ranges argument must have at least one entry.');
     }
@@ -1716,7 +1743,7 @@ export class ColorMap {
     let i: number = 0;
 
     for (; i < cutOffs.length; i++) {
-      workRanges[i] = new ColorMapEntry(cutOffs[i], colorNums[i]);
+      workRanges[i] = new ColorMapEntry(cutOffs[i], colorNums[i], ColorMapEntryBlendStyle.none, null);
     }
 
     let result: ColorMap = new ColorMap(workRanges, highColor);
@@ -1741,18 +1768,28 @@ export class ColorMap {
     let cme = this.ranges[index];
     let cNum1 = cme.colorNum;
 
-    if (index % 2 === 0) {
+    //if (index % 2 === 0) {
+    //  result = cme.colorNum;
+    //  return result;
+    //}
+
+    if (cme.blendStyle === ColorMapEntryBlendStyle.none) {
       result = cme.colorNum;
       return result;
     }
 
     let cNum2: number;
 
-    if (index + 1 === this.ranges.length) {
-      cNum2 = this.highColor;
+    if (cme.blendStyle === ColorMapEntryBlendStyle.next) {
+      if (index + 1 === this.ranges.length) {
+        cNum2 = this.highColor;
+      }
+      else {
+        cNum2 = this.ranges[index + 1].colorNum;
+      }
     }
     else {
-      cNum2 = this.ranges[index + 1].colorNum;
+      cNum2 = cme.endColorNum;
     }
 
     result = this.blend(cme.prevCutOff, cme.bucketWidth, countValue, cNum1, cNum2, escapeVel);
@@ -1927,6 +1964,11 @@ export class ColorMap {
     return result;
   }
 
+  //public static fromColorMap(data: any) : ColorMap {
+  //  let result = new ColorMap(data.ranges, data.highColor);
+  //  return result;
+  //}
+
   public toString(): string {
     let result = 'ColorMap with ' + this.ranges.length + ' entries.';
     return result;
@@ -1955,9 +1997,9 @@ export class ColorMapUI {
     let ptr: number;
     for (ptr = 0; ptr < this.ranges.length; ptr++) {
       let existingCutOff = this.ranges[ptr].cutOff;
-      let newColorComps = colorMapUiEntries[ptrToNewColorEntry++].colorComponents;
+      let newColorComps = colorMapUiEntries[ptrToNewColorEntry++].startColor.colorComponents;
 
-      ranges.push(new ColorMapUIEntry(existingCutOff, newColorComps));
+      ranges.push(new ColorMapUIEntry(existingCutOff, newColorComps, ColorMapEntryBlendStyle.none, null));
 
       if (ptrToNewColorEntry > colorMapUiEntries.length - 1) {
         ptrToNewColorEntry = 0;
@@ -1977,9 +2019,9 @@ export class ColorMapUI {
 
     let ptr: number;
     for (ptr = 0; ptr < cutOffs.length; ptr++) {
-      let existingColorComps = this.ranges[ptrToExistingCmes++].colorComponents;
+      let existingColorComps = this.ranges[ptrToExistingCmes++].startColor.colorComponents;
 
-      ranges.push(new ColorMapUIEntry(cutOffs[ptr], existingColorComps));
+      ranges.push(new ColorMapUIEntry(cutOffs[ptr], existingColorComps, ColorMapEntryBlendStyle.none, null));
 
       if (ptrToExistingCmes > this.ranges.length - 1) {
         ptrToExistingCmes = 0;
@@ -1993,14 +2035,14 @@ export class ColorMapUI {
   public spliceCutOffs(start: number, numToRemove: number, cutOffs: number[], serialNumber: number): ColorMapUI {
 
     // Create a range of ColorMapUIEntries from the given cutOffs.
-    let white: number = new ColorNumbers().white;
+    let white: number = ColorNumbers.white;
     let whiteComps = ColorNumbers.getColorComponents(white);
 
     let rangesToInsert: ColorMapUIEntry[] = [];
 
     let ptr1: number;
     for (ptr1 = 0; ptr1 < cutOffs.length; ptr1++) {
-      rangesToInsert.push(new ColorMapUIEntry(cutOffs[ptr1], whiteComps)); 
+      rangesToInsert.push(new ColorMapUIEntry(cutOffs[ptr1], whiteComps, ColorMapEntryBlendStyle.none, null)); 
     }
 
     // Create a copy of the existing ranges
@@ -2008,7 +2050,7 @@ export class ColorMapUI {
 
     let ptr2: number;
     for (ptr2 = 0; ptr2 < this.ranges.length; ptr2++) {
-      rangesResult.push(new ColorMapUIEntry(this.ranges[ptr2].cutOff, this.ranges[ptr2].colorComponents));
+      rangesResult.push(new ColorMapUIEntry(this.ranges[ptr2].cutOff, this.ranges[ptr2].startColor.colorComponents, ColorMapEntryBlendStyle.none, null));
     }
 
     rangesResult.splice(start, numToRemove, ...rangesToInsert);
@@ -2034,7 +2076,9 @@ export class ColorMapUI {
     let ptr: number;
     for (ptr = 0; ptr < this.ranges.length; ptr++) {
       let cmuie = this.ranges[ptr];
-      let cme: ColorMapEntry = new ColorMapEntry(cmuie.cutOff, ColorNumbers.getColorFromComps(cmuie.colorComponents));
+      let startCComps = ColorNumbers.getColorFromComps(cmuie.startColor.colorComponents);
+      let endCComps = ColorNumbers.getColorFromComps(cmuie.endColor.colorComponents);
+      let cme: ColorMapEntry = new ColorMapEntry(cmuie.cutOff, startCComps, cmuie.blendStyle, endCComps);
       regularRanges.push(cme);
     }
 
@@ -2054,7 +2098,7 @@ export class ColorMapUI {
     let ptr: number;
     for (ptr = 0; ptr < cmfe.ranges.length; ptr++) {
       let cmeForExport = cmfe.ranges[ptr];
-      let cme: ColorMapUIEntry = ColorMapUIEntry.fromOffsetAndCssColor(cmeForExport.cutOff, cmeForExport.cssColor);
+      let cme: ColorMapUIEntry = ColorMapUIEntry.fromOffsetAndCssColor(cmeForExport.cutOff, cmeForExport.cssColor, ColorMapEntryBlendStyle.none, '#000000');
       ranges.push(cme);
     }
 
@@ -2145,12 +2189,18 @@ export interface IWebWorkerHistogramResponse extends IWebWorkerMessage {
   getHistArrayPair(): HistArrayPair;
 }
 
-export interface IWebWorkerUpdateColorMapRequest extends IWebWorkerMessage {
+export interface IWebWorkerUpdateColorMapRequest_OLD extends IWebWorkerMessage {
   cutOffs: Uint16Array;
   colorNums: Uint32Array;
   highColorNum: number;
 
   getColorMap(): ColorMap;
+}
+
+export interface IWebWorkerUpdateColorMapRequest extends IWebWorkerMessage {
+  colorMap: ColorMap;
+
+  //getColorMap(): ColorMap;
 }
 
 // -- WebWorker Message Implementations
@@ -2378,21 +2428,21 @@ export class WebWorkerHistorgramResponse implements IWebWorkerHistogramResponse 
   }
 }
 
-export class WebWorkerUpdateColorMapRequest implements IWebWorkerUpdateColorMapRequest {
+export class WebWorkerUpdateColorMapRequest_OLD implements IWebWorkerUpdateColorMapRequest_OLD {
   constructor(public messageKind: string, public cutOffs: Uint16Array, public colorNums: Uint32Array, public highColorNum: number) { }
 
-  static FromEventData(data: any): IWebWorkerUpdateColorMapRequest {
-    let result = new WebWorkerUpdateColorMapRequest(data.messageKind, data.cutOffs, data.colorNums, data.highColorNum);
+  static FromEventData(data: any): IWebWorkerUpdateColorMapRequest_OLD {
+    let result = new WebWorkerUpdateColorMapRequest_OLD(data.messageKind, data.cutOffs, data.colorNums, data.highColorNum);
 
     return result;
   }
 
-  static CreateRequest(colorMap: ColorMap): IWebWorkerUpdateColorMapRequest {
+  static CreateRequest(colorMap: ColorMap): IWebWorkerUpdateColorMapRequest_OLD {
 
     let cutOffs = colorMap.getCutOffs();
     let colorNums = colorMap.getColorNums();
 
-    let result = new WebWorkerUpdateColorMapRequest("UpdateColorMap", cutOffs, colorNums, colorMap.highColor);
+    let result = new WebWorkerUpdateColorMapRequest_OLD("UpdateColorMap", cutOffs, colorNums, colorMap.highColor);
     return result;
   }
 
@@ -2400,78 +2450,100 @@ export class WebWorkerUpdateColorMapRequest implements IWebWorkerUpdateColorMapR
     let result: ColorMap = ColorMap.FromTypedArrays(this.cutOffs, this.colorNums, this.highColorNum);
     return result;
   }
+}
+
+export class WebWorkerUpdateColorMapRequest implements IWebWorkerUpdateColorMapRequest {
+
+  constructor(public messageKind: string, public colorMap: ColorMap) { }
+
+  static FromEventData(data: any): IWebWorkerUpdateColorMapRequest {
+
+    // Since the value of data does not contain any of the functions defined for a ColorMap object,
+    // we must create a new ColorMap from the raw data members of the provided 'raw' instance.
+
+    let newColorMap = new ColorMap(data.colorMap.ranges, data.colorMap.highColor);
+    let result = new WebWorkerUpdateColorMapRequest(data.messageKind, newColorMap);
+
+    return result;
+  }
+
+  static CreateRequest(colorMap: ColorMap): IWebWorkerUpdateColorMapRequest {
+
+    let result = new WebWorkerUpdateColorMapRequest("UpdateColorMap", colorMap);
+    return result;
+  }
 
 }
 
-//// Only used when the javascript produced from compiling this TypeScript is used to create worker.js
+// Only used when the javascript produced from compiling this TypeScript is used to create worker.js
 
-//var mapWorkingData: IMapWorkingData = null;
-//var sectionNumber: number = 0;
+var mapWorkingData: IMapWorkingData = null;
+var sectionNumber: number = 0;
 
-//// Handles messages sent from the window that started this web worker.
-//onmessage = function (e) {
+// Handles messages sent from the window that started this web worker.
+onmessage = function (e) {
 
-//  var pixelData: Uint8ClampedArray;
-//  var imageDataResponse: IWebWorkerImageDataResponse;
+  var pixelData: Uint8ClampedArray;
+  var imageDataResponse: IWebWorkerImageDataResponse;
 
-//  //console.log('Worker received message: ' + e.data + '.');
-//  let plainMsg: IWebWorkerMessage = WebWorkerMessage.FromEventData(e.data);
+  //console.log('Worker received message: ' + e.data + '.');
+  let plainMsg: IWebWorkerMessage = WebWorkerMessage.FromEventData(e.data);
 
-//  if (plainMsg.messageKind === 'Start') {
-//    let startMsg = WebWorkerStartRequest.FromEventData(e.data);
+  if (plainMsg.messageKind === 'Start') {
+    let startMsg = WebWorkerStartRequest.FromEventData(e.data);
 
-//    mapWorkingData = startMsg.getMapWorkingData();
-//    sectionNumber = startMsg.sectionNumber;
-//    console.log('Worker created MapWorkingData with element count = ' + mapWorkingData.elementCount);
+    mapWorkingData = startMsg.getMapWorkingData();
+    sectionNumber = startMsg.sectionNumber;
+    console.log('Worker created MapWorkingData with element count = ' + mapWorkingData.elementCount);
 
-//    let responseMsg = new WebWorkerMessage('StartResponse');
-//    console.log('Posting ' + responseMsg.messageKind + ' back to main script');
-//    self.postMessage(responseMsg, "*");
-//  }
-//  else if (plainMsg.messageKind === 'Iterate') {
-//    let iterateRequestMsg = WebWorkerIterateRequest.FromEventData(e.data);
-//    let iterCount = iterateRequestMsg.iterateCount;
-//    mapWorkingData.doIterationsForAll(iterCount);
-//    pixelData = mapWorkingData.getPixelData();
+    let responseMsg = new WebWorkerMessage('StartResponse');
+    console.log('Posting ' + responseMsg.messageKind + ' back to main script');
+    self.postMessage(responseMsg, "*");
+  }
+  else if (plainMsg.messageKind === 'Iterate') {
+    let iterateRequestMsg = WebWorkerIterateRequest.FromEventData(e.data);
+    let iterCount = iterateRequestMsg.iterateCount;
+    mapWorkingData.doIterationsForAll(iterCount);
+    pixelData = mapWorkingData.getPixelData();
 
-//    imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, pixelData);
+    imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, pixelData);
 
-//    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
-//    self.postMessage(imageDataResponse, "*", [pixelData.buffer]);
-//  }
-//  else if (plainMsg.messageKind === 'GetImageData') {
-//    //mapWorkingData.doIterationsForAll(1);
-//    pixelData = mapWorkingData.getPixelData();
-//    imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, pixelData);
+    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
+    self.postMessage(imageDataResponse, "*", [pixelData.buffer]);
+  }
+  else if (plainMsg.messageKind === 'GetImageData') {
+    //mapWorkingData.doIterationsForAll(1);
+    pixelData = mapWorkingData.getPixelData();
+    imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, pixelData);
 
-//    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
-//    self.postMessage(imageDataResponse, "*", [pixelData.buffer]);
-//  }
-//  else if (plainMsg.messageKind === "UpdateColorMap") {
-//    let upColorMapReq = WebWorkerUpdateColorMapRequest.FromEventData(e.data);
+    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
+    self.postMessage(imageDataResponse, "*", [pixelData.buffer]);
+  }
+  else if (plainMsg.messageKind === "UpdateColorMap") {
+    let upColorMapReq = WebWorkerUpdateColorMapRequest.FromEventData(e.data);
 
-//    mapWorkingData.colorMap = upColorMapReq.getColorMap();
-//    console.log('WebWorker received an UpdateColorMapRequest with ' + mapWorkingData.colorMap.ranges.length + ' entries.');
+    mapWorkingData.colorMap = upColorMapReq.colorMap;
+    console.log('WebWorker received an UpdateColorMapRequest with ' + mapWorkingData.colorMap.ranges.length + ' entries.');
 
-//    pixelData = mapWorkingData.getPixelData();
+    pixelData = mapWorkingData.getPixelData();
 
-//    imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, pixelData);
+    imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, pixelData);
 
-//    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
-//    self.postMessage(imageDataResponse, "*", [pixelData.buffer]);
-//  }
-//  else if (plainMsg.messageKind === "GetHistogram") {
-//    let histogram = mapWorkingData.getHistogram();
-//    let histogramResponse = WebWorkerHistorgramResponse.CreateResponse(sectionNumber, histogram);
+    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
+    self.postMessage(imageDataResponse, "*", [pixelData.buffer]);
+  }
+  else if (plainMsg.messageKind === "GetHistogram") {
+    let histogram = mapWorkingData.getHistogram();
+    let histogramResponse = WebWorkerHistorgramResponse.CreateResponse(sectionNumber, histogram);
 
-//    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
-//    self.postMessage(histogramResponse, "*", [histogramResponse.vals.buffer, histogramResponse.occurances.buffer]);
-//  }
-//  else {
-//    console.log('Received unknown message kind: ' + plainMsg.messageKind);
-//  }
+    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
+    self.postMessage(histogramResponse, "*", [histogramResponse.vals.buffer, histogramResponse.occurances.buffer]);
+  }
+  else {
+    console.log('Received unknown message kind: ' + plainMsg.messageKind);
+  }
 
-//};
+};
 
 
 
