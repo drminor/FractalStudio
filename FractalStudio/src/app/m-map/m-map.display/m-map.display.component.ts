@@ -99,69 +99,89 @@ export class MMapDisplayComponent implements AfterViewInit {
       }
       else {
         // The new mapInfo has a value, and we have a working map.
-        if (  this._mapInfo.coords.isEqual(mi.coords) && this._mapInfo.threshold === mi.threshold ) {
-          // The coordinates have not changed.
 
-
-          this.iterationsPerStep = mi.iterationsPerStep;
-          this.maxIterations = mi.maxIterations;
-
-          // Request a color map update, only if the new colorMap is actually new.
-          if (this._colorMap.serialNumber !== cm.serialNumber) {
-            this._colorMap = cm;
-
-            if (this.viewInitialized) {
-              console.log('m-map.display.component is receiving an updated color map.');
-              this.updateWorkersColorMap();
-            }
-          }
-          else {
-            // Do nothing.
-          }
-        }
-        else {
-          // We have a new set of coordinates or a new threshold, rebuild the map.
+        if (!this._mapInfo.coords.isEqual(mi.coords)
+          || this._mapInfo.threshold !== mi.threshold
+          || this._mapInfo.maxIterations > mi.maxIterations
+          || (this._colorMap.serialNumber !== cm.serialNumber && this._mapInfo.maxIterations !== mi.maxIterations))
+        {
+          // The coordinates have changed,
+          // or we are reducing the number of iterations,
+          // or we are increasing the number of iterations and we have a new color map, rebuild.
           this._colorMap = cm;
           this._mapInfo = mi;
           if (this.viewInitialized) {
             this.buildWorkingData();
           }
+          return
+        }
+
+        if (this._colorMap.serialNumber !== cm.serialNumber) {
+          // We would not be here if we have an updated maxIterations.
+          this._mapInfo.iterationsPerStep = mi.iterationsPerStep;
+          this._colorMap = cm;
+
+          if (this.viewInitialized) {
+            console.log('m-map.display.component is receiving an updated color map.');
+            this.updateWorkersColorMap();
+          }
+        }
+        else {
+          if (this._mapInfo.maxIterations !== mi.maxIterations) {
+            this._mapInfo.iterationsPerStep = mi.iterationsPerStep;
+            this._mapInfo.maxIterations = mi.maxIterations;
+            this.doMoreIterations(mi.maxIterations);
+          }
+          else {
+            if (this._mapInfo.iterationsPerStep !== mi.iterationsPerStep) {
+              // The only change is to the iterationsPerStep.
+              // We must force a change so that our caller will get a signal
+              // that the rebuild is complete.
+              this._mapInfo.iterationsPerStep = mi.iterationsPerStep;
+
+              if (this.viewInitialized) {
+                console.log('m-map.display.component is getting an update of only the iterationsPerStep and is forcing a colorMapUpdate.');
+                this.updateWorkersColorMap();
+              }
+            }
+          }
+
         }
       }
     }
   }
 
-  set maxIterations(maxIters: number) {
+  //set maxIterations(maxIters: number) {
 
-    if (this.viewInitialized) {
+  //  if (this.viewInitialized) {
 
-      if (this._mapInfo.maxIterations < maxIters) {
-        this._mapInfo.maxIterations = maxIters;
-        console.log('The Maximum Iterations is being increased. Will perform the additional iterations. The new MapInfo is:' + this._mapInfo.toString());
-        this.doMoreIterations(maxIters);
-      }
-      else if (this._mapInfo.maxIterations > maxIters) {
-        this._mapInfo.maxIterations = maxIters;
-        console.log('The Maximum Iterations is being decreased. Will rebuild the map. The new MapInfo is:' + this._mapInfo.toString());
-        this.buildWorkingData();
-      }
-      else {
-        console.log('The Maximum Iterations is being set to the same value it currently has. The new MapInfo is:' + this._mapInfo.toString());
-      }
-    }
-    else {
-      // The view is not ready, just save the new value.
-      this._mapInfo.maxIterations = maxIters;
-      console.log('The Maximum Iterations is being updated. The view has not been initialized. The new MapInfo is:' + this._mapInfo.toString());
-    }
-  }
+  //    if (this._mapInfo.maxIterations < maxIters) {
+  //      this._mapInfo.maxIterations = maxIters;
+  //      console.log('The Maximum Iterations is being increased. Will perform the additional iterations. The new MapInfo is:' + this._mapInfo.toString());
+  //      this.doMoreIterations(maxIters);
+  //    }
+  //    else if (this._mapInfo.maxIterations > maxIters) {
+  //      this._mapInfo.maxIterations = maxIters;
+  //      console.log('The Maximum Iterations is being decreased. Will rebuild the map. The new MapInfo is:' + this._mapInfo.toString());
+  //      this.buildWorkingData();
+  //    }
+  //    else {
+  //      console.log('The Maximum Iterations is being set to the same value it currently has. The new MapInfo is:' + this._mapInfo.toString());
+  //    }
+  //  }
+  //  else {
+  //    // The view is not ready, just save the new value.
+  //    this._mapInfo.maxIterations = maxIters;
+  //    console.log('The Maximum Iterations is being updated. The view has not been initialized. The new MapInfo is:' + this._mapInfo.toString());
+  //  }
+  //}
 
-  set iterationsPerStep(itersPerStep: number) {
-    if (this._mapInfo.iterationsPerStep != itersPerStep) {
-      this._mapInfo.iterationsPerStep = itersPerStep;
-      console.log('The Iterations Per Step is being updated. The new MapInfo is:' + this._mapInfo.toString());
-    }
-  }
+  //set iterationsPerStep(itersPerStep: number) {
+  //  if (this._mapInfo.iterationsPerStep != itersPerStep) {
+  //    this._mapInfo.iterationsPerStep = itersPerStep;
+  //    console.log('The Iterations Per Step is being updated. The new MapInfo is:' + this._mapInfo.toString());
+  //  }
+  //}
 
   @Input('allowZoom') allowZoom: boolean;
 

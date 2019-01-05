@@ -1604,10 +1604,11 @@ export class ColorMapEntry {
 }
 
 export class ColorMapEntryForExport {
-  constructor(public cutOff: number, public cssColor: string) { }
+  public cssColor: string;
+  constructor(public cutOff: number, public startCssColor: string, public blendStyle: ColorMapEntryBlendStyle, public endCssColor: string) { }
 
   public static fromColorMapUIEntry(cme: ColorMapUIEntry): ColorMapEntryForExport {
-    let result = new ColorMapEntryForExport(cme.cutOff, cme.startColor.rgbHex);
+    let result = new ColorMapEntryForExport(cme.cutOff, cme.startColor.rgbHex, cme.blendStyle, cme.endColor.rgbHex);
     return result;
   }
 }
@@ -1621,6 +1622,7 @@ export class ColorMapUIColor {
     let alpha: number;
 
     if (colorVals === null) {
+      // Use black when we are given a null value.
       colorVals = [0, 0, 0];
       alpha = 255;
     }
@@ -1697,6 +1699,11 @@ export class ColorMapUIEntry {
     this.endColor = new ColorMapUIColor(endColorVals);
   }
 
+  public clone(): ColorMapUIEntry {
+    let result = new ColorMapUIEntry(this.cutOff, this.startColor.colorComponents, this.blendStyle, this.endColor.colorComponents);
+    return result;
+  }
+
   public static fromColorMapEntry(cme: ColorMapEntry): ColorMapUIEntry {
     let result = ColorMapUIEntry.fromOffsetAndColorNum(cme.cutOff, cme.colorNum, cme.blendStyle, cme.endColorNum);
     return result;
@@ -1738,18 +1745,18 @@ export class ColorMap {
     this.setBucketWidths();
   }
 
-  public static FromTypedArrays(cutOffs: Uint16Array, colorNums: Uint32Array, highColor: number): ColorMap {
-    let workRanges: ColorMapEntry[] = new Array<ColorMapEntry>(cutOffs.length);
-    let i: number = 0;
+  //public static FromTypedArrays(cutOffs: Uint16Array, colorNums: Uint32Array, highColor: number): ColorMap {
+  //  let workRanges: ColorMapEntry[] = new Array<ColorMapEntry>(cutOffs.length);
+  //  let i: number = 0;
 
-    for (; i < cutOffs.length; i++) {
-      workRanges[i] = new ColorMapEntry(cutOffs[i], colorNums[i], ColorMapEntryBlendStyle.none, null);
-    }
+  //  for (; i < cutOffs.length; i++) {
+  //    workRanges[i] = new ColorMapEntry(cutOffs[i], colorNums[i], ColorMapEntryBlendStyle.none, null);
+  //  }
 
-    let result: ColorMap = new ColorMap(workRanges, highColor);
+  //  let result: ColorMap = new ColorMap(workRanges, highColor);
 
-    return result;
-  }
+  //  return result;
+  //}
 
   public getColor(countValue: number, escapeVel: number): number {
     let result: number;
@@ -1964,11 +1971,6 @@ export class ColorMap {
     return result;
   }
 
-  //public static fromColorMap(data: any) : ColorMap {
-  //  let result = new ColorMap(data.ranges, data.highColor);
-  //  return result;
-  //}
-
   public toString(): string {
     let result = 'ColorMap with ' + this.ranges.length + ' entries.';
     return result;
@@ -1997,9 +1999,11 @@ export class ColorMapUI {
     let ptr: number;
     for (ptr = 0; ptr < this.ranges.length; ptr++) {
       let existingCutOff = this.ranges[ptr].cutOff;
-      let newColorComps = colorMapUiEntries[ptrToNewColorEntry++].startColor.colorComponents;
+      let sourceCme = colorMapUiEntries[ptrToNewColorEntry++];
+      let startCComps = sourceCme.startColor.colorComponents;
+      let endCComps = sourceCme.endColor.colorComponents;
 
-      ranges.push(new ColorMapUIEntry(existingCutOff, newColorComps, ColorMapEntryBlendStyle.none, null));
+      ranges.push(new ColorMapUIEntry(existingCutOff, startCComps, sourceCme.blendStyle, endCComps));
 
       if (ptrToNewColorEntry > colorMapUiEntries.length - 1) {
         ptrToNewColorEntry = 0;
@@ -2012,16 +2016,18 @@ export class ColorMapUI {
 
   public mergeCutoffs(cutOffs: number[], serialNumber: number): ColorMapUI {
 
-    //let test: BigInt(42);
-
     let ranges: ColorMapUIEntry[] = [];
     let ptrToExistingCmes = 0;
 
     let ptr: number;
     for (ptr = 0; ptr < cutOffs.length; ptr++) {
-      let existingColorComps = this.ranges[ptrToExistingCmes++].startColor.colorComponents;
+      //let existingColorComps = this.ranges[ptrToExistingCmes++].startColor.colorComponents;
 
-      ranges.push(new ColorMapUIEntry(cutOffs[ptr], existingColorComps, ColorMapEntryBlendStyle.none, null));
+      let existingCme = this.ranges[ptrToExistingCmes++];
+      let startCComps = existingCme.startColor.colorComponents;
+      let endCComps = existingCme.endColor.colorComponents;
+
+      ranges.push(new ColorMapUIEntry(cutOffs[ptr], startCComps, existingCme.blendStyle, endCComps));
 
       if (ptrToExistingCmes > this.ranges.length - 1) {
         ptrToExistingCmes = 0;
@@ -2046,16 +2052,21 @@ export class ColorMapUI {
     }
 
     // Create a copy of the existing ranges
-    let rangesResult: ColorMapUIEntry[] = [];
-
-    let ptr2: number;
-    for (ptr2 = 0; ptr2 < this.ranges.length; ptr2++) {
-      rangesResult.push(new ColorMapUIEntry(this.ranges[ptr2].cutOff, this.ranges[ptr2].startColor.colorComponents, ColorMapEntryBlendStyle.none, null));
-    }
-
+    let rangesResult = this.cloneRanges();
     rangesResult.splice(start, numToRemove, ...rangesToInsert);
 
     let result: ColorMapUI = new ColorMapUI(rangesResult, this.highColorCss, serialNumber);
+    return result;
+  }
+
+  public cloneRanges(): ColorMapUIEntry[] {
+    let result: ColorMapUIEntry[] = [];
+
+    let ptr: number;
+    for (ptr = 0; ptr < this.ranges.length; ptr++) {
+      result.push(this.ranges[ptr].clone());
+    }
+
     return result;
   }
 
@@ -2093,6 +2104,17 @@ export class ColorMapUI {
     }
     //console.log('Got a ColorMapForExport and it has version = ' + cmfe.version + '.');
 
+    let result: ColorMapUI;
+    if (cmfe.version === 1.0) {
+      result = this.fromColorMapForExportV1(cmfe, serialNumber);
+    }
+    else {
+      result = this.fromColorMapForExportV2(cmfe, serialNumber);
+    }
+    return result;
+  }
+
+  private static fromColorMapForExportV1(cmfe: ColorMapForExport, serialNumber: number): ColorMapUI {
     let ranges: ColorMapUIEntry[] = [];
 
     let ptr: number;
@@ -2105,11 +2127,25 @@ export class ColorMapUI {
     let result = new ColorMapUI(ranges, cmfe.highColorCss, serialNumber);
     return result;
   }
+
+  private static fromColorMapForExportV2(cmfe: ColorMapForExport, serialNumber: number): ColorMapUI {
+    let ranges: ColorMapUIEntry[] = [];
+
+    let ptr: number;
+    for (ptr = 0; ptr < cmfe.ranges.length; ptr++) {
+      let cmeForExport = cmfe.ranges[ptr];
+      let cme: ColorMapUIEntry = ColorMapUIEntry.fromOffsetAndCssColor(cmeForExport.cutOff, cmeForExport.startCssColor, cmeForExport.blendStyle, cmeForExport.endCssColor);
+      ranges.push(cme);
+    }
+
+    let result = new ColorMapUI(ranges, cmfe.highColorCss, serialNumber);
+    return result;
+  }
 }
 
 export class ColorMapForExport {
 
-  public version: number = 1.0;
+  public version: number = 2.0;
 
   constructor(public ranges: ColorMapEntryForExport[], public highColorCss: string) { }
 
@@ -2189,13 +2225,13 @@ export interface IWebWorkerHistogramResponse extends IWebWorkerMessage {
   getHistArrayPair(): HistArrayPair;
 }
 
-export interface IWebWorkerUpdateColorMapRequest_OLD extends IWebWorkerMessage {
-  cutOffs: Uint16Array;
-  colorNums: Uint32Array;
-  highColorNum: number;
+//export interface IWebWorkerUpdateColorMapRequest_OLD extends IWebWorkerMessage {
+//  cutOffs: Uint16Array;
+//  colorNums: Uint32Array;
+//  highColorNum: number;
 
-  getColorMap(): ColorMap;
-}
+//  getColorMap(): ColorMap;
+//}
 
 export interface IWebWorkerUpdateColorMapRequest extends IWebWorkerMessage {
   colorMap: ColorMap;
@@ -2428,29 +2464,29 @@ export class WebWorkerHistorgramResponse implements IWebWorkerHistogramResponse 
   }
 }
 
-export class WebWorkerUpdateColorMapRequest_OLD implements IWebWorkerUpdateColorMapRequest_OLD {
-  constructor(public messageKind: string, public cutOffs: Uint16Array, public colorNums: Uint32Array, public highColorNum: number) { }
+//export class WebWorkerUpdateColorMapRequest_OLD implements IWebWorkerUpdateColorMapRequest_OLD {
+//  constructor(public messageKind: string, public cutOffs: Uint16Array, public colorNums: Uint32Array, public highColorNum: number) { }
 
-  static FromEventData(data: any): IWebWorkerUpdateColorMapRequest_OLD {
-    let result = new WebWorkerUpdateColorMapRequest_OLD(data.messageKind, data.cutOffs, data.colorNums, data.highColorNum);
+//  static FromEventData(data: any): IWebWorkerUpdateColorMapRequest_OLD {
+//    let result = new WebWorkerUpdateColorMapRequest_OLD(data.messageKind, data.cutOffs, data.colorNums, data.highColorNum);
 
-    return result;
-  }
+//    return result;
+//  }
 
-  static CreateRequest(colorMap: ColorMap): IWebWorkerUpdateColorMapRequest_OLD {
+//  static CreateRequest(colorMap: ColorMap): IWebWorkerUpdateColorMapRequest_OLD {
 
-    let cutOffs = colorMap.getCutOffs();
-    let colorNums = colorMap.getColorNums();
+//    let cutOffs = colorMap.getCutOffs();
+//    let colorNums = colorMap.getColorNums();
 
-    let result = new WebWorkerUpdateColorMapRequest_OLD("UpdateColorMap", cutOffs, colorNums, colorMap.highColor);
-    return result;
-  }
+//    let result = new WebWorkerUpdateColorMapRequest_OLD("UpdateColorMap", cutOffs, colorNums, colorMap.highColor);
+//    return result;
+//  }
 
-  public getColorMap(): ColorMap {
-    let result: ColorMap = ColorMap.FromTypedArrays(this.cutOffs, this.colorNums, this.highColorNum);
-    return result;
-  }
-}
+//  public getColorMap(): ColorMap {
+//    let result: ColorMap = ColorMap.FromTypedArrays(this.cutOffs, this.colorNums, this.highColorNum);
+//    return result;
+//  }
+//}
 
 export class WebWorkerUpdateColorMapRequest implements IWebWorkerUpdateColorMapRequest {
 

@@ -361,25 +361,6 @@ export class ColorMapEditorComponent implements OnInit {
     return result;
   }
 
-  //private buildColorMapByDivision_Old(curColorMap: ColorMapUI,
-  //  histogram: Histogram,
-  //  secStart: number,
-  //  secEnd: number,
-  //  sectionCnt: number,
-  //  serialNumber: number): ColorMapUI {
-
-  //  let breakPoints = histogram.getEqualGroupsForAll(sectionCnt);
-  //  let bpDisplay = Histogram.getBreakPointsDisplay(breakPoints);
-  //  console.log('Dividing all entries into ' + sectionCnt + ' equal groups gives:');
-  //  console.log(bpDisplay);
-
-  //  let result = curColorMap.mergeCutoffs(breakPoints, serialNumber);
-  //  let cosMergeWhole = result.getOffsets();
-  //  console.log('The new updated map dividing all entries has offsets: ' + cosMergeWhole + '.');
-
-  //  return result;
-  //}
-
   private buildColorMapByDivision(curColorMap: ColorMapUI,
     histogram: Histogram,
     secStart: number,
@@ -447,36 +428,6 @@ export class ColorMapEditorComponent implements OnInit {
     }
 
     return result;
-  }
-
-  private createDivisions(): Divisions {
-    // 5 Pieces
-    // Piece 0 - 1 section
-    // Piece 1 - 4 section
-    // Piece 2 - 1 section
-    // Piece 3 - 1 section
-    // Piece 4 - 3 sections
-
-    let topDiv: Divisions = new Divisions(5);
-
-    topDiv.children[1].numberOfDivs = 4;
-    topDiv.children[4].numberOfDivs = 3;
-
-    //let divPlace1 = new Divisions(1);
-    //topDiv.children[4].insertChild(divPlace1, 1);
-
-    //let divEnd: Divisions = new Divisions(2);
-    //divEnd.children[1].numberOfDivs = 2;
-
-    //topDiv.insertChild(divEnd, 5);
-
-    let startingVals = topDiv.getStartingValsAsPercentages();
-    console.log('The starting vals are ' + startingVals + '.');
-
-    let divDisplay = topDiv.toString();
-    console.log('The divisions are: ' + divDisplay);
-
-    return topDiv;
   }
 
 }

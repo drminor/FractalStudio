@@ -9,6 +9,7 @@ import {
 } from '../../m-map/m-map-common';
 
 import { MMapDisplayComponent } from '../../m-map/m-map.display/m-map.display.component';
+import { templateJitUrl } from '@angular/compiler';
 
 @Component({
   selector: 'app-m-map-designer',
@@ -211,7 +212,7 @@ export class MMapDesignerComponent {
     let maxIterations = 100;
     let threshold = 4;
     let iterationsPerStep = 10;
-    let result = new MapInfo(mapCoords, maxIterations, 4, iterationsPerStep);
+    let result = new MapInfo(mapCoords, maxIterations, threshold, iterationsPerStep);
 
     return result;
   }
@@ -232,26 +233,6 @@ export class MMapDesignerComponent {
 
     let result: ColorMapUI = new ColorMapUI(ranges, '#000000', serialNumber);
     return result;
-  }
-
-  private doDivisionsTest() {
-    let div: Divisions = new Divisions(5);
-    div.children[0].numberOfDivs = 3;
-    div.children[4].numberOfDivs = 3;
-
-    div.children[4].insertChild(new Divisions(1), 1);
-    div.children[0].deleteChild(1);
-
-    let div2: Divisions = new Divisions(2);
-    div2.children[1].numberOfDivs = 2;
-
-    div.insertChild(div2, 5);
-
-    let startingVals = div.getStartingValsAsPercentages();
-    console.log('The starting vals are ' + startingVals + '.');
-
-    let divDisplay = div.toString();
-    console.log('The divisions are: ' + divDisplay);
   }
 
 }
