@@ -51,8 +51,8 @@
           <label style="float:right; margin-right:5px">{{i}}</label>
 
           <!-- Clickable Color Block -->
-          <div style="position:relative; width:55px; height:25px; margin:5px;">
-            <div [ngStyle]="{'position': 'absolute',
+          <div style="position:relative; width:90px; height:25px; margin:5px;">
+            <div *ngIf="colEntry.controls.blendStyle.value === 'n'" [ngStyle]="{'position': 'absolute',
                                         'width': '100%',
                                         'height': '100%',
                                         'background-color': colEntry.controls.startRgbaColor.value || 'white',
@@ -61,13 +61,37 @@
                  (click)="onEditColor(i)">
 
             </div>
+            <div *ngIf="colEntry.controls.blendStyle.value === 'e'" [ngStyle]="{'position': 'absolute',
+                                        'width': '100%',
+                                        'height': '100%',
+                                        'background-image': 'linear-gradient(to right, ' + colEntry.controls.startRgbaColor.value + ', ' + colEntry.controls.endRgbaColor.value + ')',
+                                        'border': '1px solid black'
+                 }"
+                 (click)="onEditColor(i)">
+
+            </div>
+            <div *ngIf="colEntry.controls.blendStyle.value === 'x'" [ngStyle]="{'position': 'absolute',
+                                        'width': '100%',
+                                        'height': '100%',
+                                        'background-image': 'linear-gradient(to right, ' + colEntry.controls.startRgbaColor.value + ', ' + colEntry.controls.nextRgbaColor.value + ')',
+                                        'border': '1px solid black'
+                 }"
+                 (click)="onEditColor(i)">
+
+            </div>
           </div>
+
+          <!--background-image: linear-gradient(to right, red , yellow-->
 
           <label style="margin-left:2px">Percentage: {{colEntry.controls.actualPercentage.value || '0'}}</label>
 
           <div *ngIf="colEntry.controls.showEditor.enabled">
             <app-color-picker [item]="i" [rgbaColor]="colEntry.controls.startRgbaColor.value" (colorUpdated)="setStartRgbaColor($event)"></app-color-picker>
-            <!--<span class="text">{{colorMapForm.controls.cEntries.controls[i].controls.rgbaColor.value}}</span>-->
+
+            <div *ngIf="colEntry.controls.blendStyle.value === 'e'">
+              <app-color-picker [item]="i" [rgbaColor]="colEntry.controls.endRgbaColor.value" (colorUpdated)="setEndRgbaColor($event)"></app-color-picker>
+            </div>
+
           </div>
 
         </div> <!-- End Color Map Entry Form Group -->

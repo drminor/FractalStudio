@@ -77,34 +77,18 @@ export interface IMapWorkingData {
   sectionAnchor: IPoint;
 
   elementCount: number;
-
+  curIterations: number;
   workingVals: CurWorkVal[];
 
-  //// Current z values
-  //wAData: Float64Array; // Stores the current A (or real component.)
-  //wBData: Float64Array; // Stores the current B (or complex component.)
-
-  //xVals: number[];
-  //yVals: number[];
-
-  //// The number of times each point has been iterated.
+  // The number of times each point has been iterated.
   cnts: Uint16Array;
-
-  //// Flag for each point. If set then the point has grown more than 2.
-  //flags: Uint8Array;
-
-  curIterations: number;
-
   colorMap: ColorMap;
 
   getLinearIndex(c: IPoint): number;
   doIterationsForAll(iterCount: number): boolean;
-  //doIterationsForLine(iterCount: number, y: number): boolean;
 
   getPixelData(): Uint8ClampedArray;
-  //getImageDataForLine(y: number): ImageData;
 
-  //updateImageData(imgData: Uint8ClampedArray): void;
   iterationCountForNextStep(): number;
   getHistogram(): Histogram;
 }
@@ -747,12 +731,6 @@ export class Divisions {
       let percentX1000: number = parseInt((100000 * val + 0.5).toString(), 10);
       let p = percentX1000 / 1000;
 
-      //let s = percentX1000.toString();
-      //let res = s.slice(0, s.length - 3) + '.' + s.slice(s.length - 3);
-      //if (percentX1000 < 100) {
-      //  res = '0' + res;
-      //}
-      //return parseFloat(res);
       return p;
     }
   }
@@ -769,11 +747,6 @@ export class Divisions {
     else {
       let percentX1000: number = parseInt((100000 * val + 0.5).toString(), 10);
       let p = percentX1000 / 1000;
-      //let s = percentX1000.toString();
-      //let res = s.slice(0, s.length - 3) + '.' + s.slice(s.length - 3) + '%';
-      //if (percentX1000 < 1000) {
-      //  res = '0' + res;
-      //}
       let res = p.toString() + '%';
       return res;
     }
@@ -952,16 +925,6 @@ export class Histogram {
 
     return avg;
   }
-
-  //private getFirstLargerThan(hes: HistEntry[], cutOff: number): number {
-  //  let ptr: number;
-  //  for (ptr = 0; ptr < hes.length; ptr++) {
-  //    if (hes[ptr].val > cutOff) {
-  //      break;
-  //    }
-  //  }
-  //  return ptr;
-  //}
 
   private getIndexOfMaxIter(hes: HistEntry[], numberOfEntriesToCheck: number): number {
 
@@ -1430,7 +1393,7 @@ export class MapWorkingData implements IMapWorkingData {
         let nu: number = Math.log(modulus / this.log2) / this.log2;
         //let nu: number = Math.log(modulus) / this.log2;
 
-        wv.escapeVel = nu / 2;
+        wv.escapeVel = 1 - nu / 4;
         //wv.escapeVel = nu;
 
         wv.done = true;
@@ -1762,11 +1725,6 @@ export class ColorMap {
     let result: number;
     let index = this.searchInsert(countValue);
 
-    if (index === 0) {
-      result = this.ranges[index].colorNum;
-      return result;
-    }
-
     if (index === this.ranges.length) {
       result = this.highColor;
       return result;
@@ -1774,11 +1732,6 @@ export class ColorMap {
 
     let cme = this.ranges[index];
     let cNum1 = cme.colorNum;
-
-    //if (index % 2 === 0) {
-    //  result = cme.colorNum;
-    //  return result;
-    //}
 
     if (cme.blendStyle === ColorMapEntryBlendStyle.none) {
       result = cme.colorNum;
@@ -1820,7 +1773,7 @@ export class ColorMap {
       cStart = this.simpleBlend(c1, c2, stepFactor);
     }
 
-    let intraStepFactor = escapeVel / (2 * bucketWidth);
+    let intraStepFactor = escapeVel / bucketWidth; // 1 / bucketWidth; //
 
     let r = cStart[0] + (c2[0] - c1[0]) * intraStepFactor;
     let g = cStart[1] + (c2[1] - c1[1]) * intraStepFactor;
@@ -1844,6 +1797,10 @@ export class ColorMap {
   }
 
   private simpleBlend(c1: number[], c2: number[], factor: number): number[] {
+
+    if (factor === 0) {
+      return c1;
+    }
 
     let r = c1[0] + (c2[0] - c1[0]) * factor;
     let g = c1[1] + (c2[1] - c1[1]) * factor;
@@ -1925,29 +1882,6 @@ export class ColorMap {
 
     //this.ranges[this.ranges.length - 1].prevCutOff = prevCutOff;
   }
-
-
-  // Returns the different between the highest possible countValue
-  // and the lowest possible countValue for the given range entry.
-  //private getBucketWidth(index: number): number {
-
-  //  if (index > this.ranges.length - 1) {
-  //    throw new Error('index must be less than the length of our ranges.');
-  //  }
-
-  //  let result: number;
-  //  let topCountVal = this.ranges[index].cutOff;
-
-  //  if (index === 0) {
-  //    result = topCountVal + 1; // For exmple if the topCount is 3, then the bucket contains cnts: [0, 1, 2, 3]
-  //    return result;
-  //  }
-
-  //  let botCountVal = this.ranges[index - 1].cutOff;
-  //  result = topCountVal - botCountVal;
-
-  //  return result;
-  //}
 
   public getCutOffs(): Uint16Array {
     let result = new Uint16Array(this.ranges.length);
@@ -2164,7 +2098,6 @@ export class ColorMapForExport {
   }
 }
 
-
 // ---- WebWorker Message Interfaces ----
 
 export interface IWebWorkerMessage {
@@ -2225,18 +2158,8 @@ export interface IWebWorkerHistogramResponse extends IWebWorkerMessage {
   getHistArrayPair(): HistArrayPair;
 }
 
-//export interface IWebWorkerUpdateColorMapRequest_OLD extends IWebWorkerMessage {
-//  cutOffs: Uint16Array;
-//  colorNums: Uint32Array;
-//  highColorNum: number;
-
-//  getColorMap(): ColorMap;
-//}
-
 export interface IWebWorkerUpdateColorMapRequest extends IWebWorkerMessage {
   colorMap: ColorMap;
-
-  //getColorMap(): ColorMap;
 }
 
 // -- WebWorker Message Implementations
@@ -2463,30 +2386,6 @@ export class WebWorkerHistorgramResponse implements IWebWorkerHistogramResponse 
     return result;
   }
 }
-
-//export class WebWorkerUpdateColorMapRequest_OLD implements IWebWorkerUpdateColorMapRequest_OLD {
-//  constructor(public messageKind: string, public cutOffs: Uint16Array, public colorNums: Uint32Array, public highColorNum: number) { }
-
-//  static FromEventData(data: any): IWebWorkerUpdateColorMapRequest_OLD {
-//    let result = new WebWorkerUpdateColorMapRequest_OLD(data.messageKind, data.cutOffs, data.colorNums, data.highColorNum);
-
-//    return result;
-//  }
-
-//  static CreateRequest(colorMap: ColorMap): IWebWorkerUpdateColorMapRequest_OLD {
-
-//    let cutOffs = colorMap.getCutOffs();
-//    let colorNums = colorMap.getColorNums();
-
-//    let result = new WebWorkerUpdateColorMapRequest_OLD("UpdateColorMap", cutOffs, colorNums, colorMap.highColor);
-//    return result;
-//  }
-
-//  public getColorMap(): ColorMap {
-//    let result: ColorMap = ColorMap.FromTypedArrays(this.cutOffs, this.colorNums, this.highColorNum);
-//    return result;
-//  }
-//}
 
 export class WebWorkerUpdateColorMapRequest implements IWebWorkerUpdateColorMapRequest {
 

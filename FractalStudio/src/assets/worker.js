@@ -1281,7 +1281,7 @@ var MapWorkingData = /** @class */ (function () {
         var modulus = Math.log(zxSquared + zySquared) / 2;
         var nu = Math.log(modulus / this.log2) / this.log2;
         //let nu: number = Math.log(modulus) / this.log2;
-        wv.escapeVel = nu / 2;
+        wv.escapeVel = 1 - nu / 4;
         //wv.escapeVel = nu;
         wv.done = true;
         break;
@@ -1556,10 +1556,10 @@ var ColorMap = /** @class */ (function () {
   ColorMap.prototype.getColor = function (countValue, escapeVel) {
     var result;
     var index = this.searchInsert(countValue);
-    if (index === 0) {
-      result = this.ranges[index].colorNum;
-      return result;
-    }
+    //if (index === 0) {
+    //  result = this.ranges[index].colorNum;
+    //  return result;
+    //}
     if (index === this.ranges.length) {
       result = this.highColor;
       return result;
@@ -1615,7 +1615,7 @@ var ColorMap = /** @class */ (function () {
       var stepFactor = (-1 + countValue - botBucketVal) / bucketWidth;
       cStart = this.simpleBlend(c1, c2, stepFactor);
     }
-    var intraStepFactor = escapeVel / (2 * bucketWidth);
+    var intraStepFactor = escapeVel / bucketWidth; //1 / bucketWidth; //
     var r = cStart[0] + (c2[0] - c1[0]) * intraStepFactor;
     var g = cStart[1] + (c2[1] - c1[1]) * intraStepFactor;
     var b = cStart[2] + (c2[2] - c1[2]) * intraStepFactor;
@@ -1632,6 +1632,11 @@ var ColorMap = /** @class */ (function () {
     return newCNum;
   };
   ColorMap.prototype.simpleBlend = function (c1, c2, factor) {
+
+    if (factor === 0) {
+      return c1;
+    }
+
     var r = c1[0] + (c2[0] - c1[0]) * factor;
     var g = c1[1] + (c2[1] - c1[1]) * factor;
     var b = c1[2] + (c2[2] - c1[2]) * factor;

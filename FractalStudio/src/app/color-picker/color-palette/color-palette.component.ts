@@ -117,31 +117,6 @@ export class ColorPaletteComponent implements OnChanges {
     return result;
   }
 
-  
-  //private get1DPos(imageData: Uint8ClampedArray, cComps: number[]): number {
-
-  //  let result = 0;
-
-  //  let minDiff = 1000;
-
-  //  let ptr: number;
-  //  for (ptr = 0; ptr < imageData.length; ptr += 4) {
-  //    let curDiff = Math.abs(cComps[0] - imageData[ptr])
-  //      + Math.abs(cComps[1] - imageData[ptr + 1])
-  //      + Math.abs(cComps[2] - imageData[ptr + 2]);
-
-  //    if (curDiff < minDiff) {
-  //      minDiff = curDiff;
-  //      result = ptr;
-  //    }
-
-  //  }
-
-  //  result = result / 4;
-
-  //  return result;
-  //}
-
   @HostListener('window:mouseup', ['$event'])
   onMouseUp(evt: MouseEvent) {
     this.mousedown = false;

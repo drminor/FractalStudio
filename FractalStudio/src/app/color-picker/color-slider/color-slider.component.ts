@@ -74,34 +74,6 @@ export class ColorSliderComponent implements AfterViewInit {
     context.closePath();
   }
 
-  //private getPos(context: CanvasRenderingContext2D, rgbaColor: string): number {
-
-  //  let result = 0;
-
-  //  let minDiff = 1000;
-
-  //  let cComps = ColorNumbers.getColorComponentsFromRgba(rgbaColor);
-
-  //  const imageData = this.ctx.getImageData(0, 0, 1, context.canvas.height).data;
-
-  //  let ptr: number;
-  //  for (ptr = 0; ptr < imageData.length; ptr += 4) {
-  //    let curDiff = Math.abs(cComps[0] - imageData[ptr])
-  //      + Math.abs(cComps[1] - imageData[ptr + 1])
-  //      + Math.abs(cComps[2] - imageData[ptr + 2]);
-
-  //    if (curDiff < minDiff) {
-  //      minDiff = curDiff;
-  //      result = ptr;
-  //    }
-
-  //  }
-
-  //  result = result / 4;
-
-  //  return result;
-  //}
-
   private getPos(context: CanvasRenderingContext2D, rgbaColor: string): number {
 
     let cComps = ColorNumbers.getColorComponentsFromRgba(rgbaColor);

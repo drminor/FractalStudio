@@ -15,7 +15,6 @@ export class ColorMapEditorComponent implements OnInit {
   _colorMap: ColorMapUI;
   _lastLoadedColorMap: ColorMapUI;
   _histogram: Histogram;
-  //_divs: Divisions;
 
   @ViewChild('download') downloadRef: ElementRef;
   @ViewChild('fileSelector') fileSelectorRef: ElementRef;
@@ -29,6 +28,10 @@ export class ColorMapEditorComponent implements OnInit {
     }
 
     this._colorMap = value;
+    if (this._lastLoadedColorMap === undefined || this._lastLoadedColorMap === null) {
+      console.log('Setting the last loaded color map because we don\'t have one yet.');
+      this._lastLoadedColorMap = value;
+    }
 
     this.updateForm(value);
     this.updatePercentages();
@@ -88,10 +91,6 @@ export class ColorMapEditorComponent implements OnInit {
     this._histogram = null;
     this.colorMap = null;
     this._lastLoadedColorMap = null;
-
-    //this._divs = this.createDivisions();
-    //let ps = this._divs.getStartingVals();
-    //ColorMapEntryForms.setActualPercentages(this.colorEntryForms, ps);
   }
 
   private buildDefaultColorMap(): ColorMapUI {
@@ -119,14 +118,16 @@ export class ColorMapEditorComponent implements OnInit {
     cEntryForm.controls.startRgbaColor.setValue(colorItem.rgbaColor);
   }
 
+  setEndRgbaColor(colorItem: ColorItem): void {
+    //console.log('Setting color for item: ' + colorItem.itemIdx + ' to ' + colorItem.startRgbaColor + '.');
+    let cEntryForm = this.colorEntryForms[colorItem.itemIdx];
+    cEntryForm.controls.endRgbaColor.setValue(colorItem.rgbaColor);
+  }
+
   onEditColor(idx: number) {
     console.log('Got onEditColor' + 'for item ' + idx + '.');
     this.toggleShowEditor(idx);
   }
-
-  //onCEntryEditorBlur(idx: number) {
-  //  console.log('CEntry blur just occured.' + 'for item ' + idx + '.');
-  //}
 
   onSubmit() {
     let colorMap = this.getColorMap();
@@ -279,14 +280,18 @@ export class ColorMapEditorComponent implements OnInit {
 
     let newColorMap = this.buildColorMapByDivision(cm, this._histogram, secStartNum, secEndNum, secCntNum, -1);
 
-    if (this.colorMapForm.controls.applyColorsAfterDivide.value
-      && this._lastLoadedColorMap !== null) {
-      let recoloredMap = newColorMap.applyColors(this._lastLoadedColorMap.ranges, -1);
-      this.colorMapUpdated.emit(recoloredMap);
-    }
-    else {
-      this.colorMapUpdated.emit(newColorMap);
-    }
+    //if (this.colorMapForm.controls.applyColorsAfterDivide.value
+    //  && this._lastLoadedColorMap !== null) {
+    //  let recoloredMap = newColorMap.applyColors(this._lastLoadedColorMap.ranges, -1);
+    //  this.colorMapUpdated.emit(recoloredMap);
+    //}
+    //else {
+    //  this.colorMapUpdated.emit(newColorMap);
+    //}
+
+    let recoloredMap = newColorMap.applyColors(cm.ranges, -1);
+    this.colorMapUpdated.emit(recoloredMap);
+
   }
 
   private isInteger(x: string): boolean {
@@ -441,14 +446,7 @@ class ColorMapEntryForms {
     let ptr: number;
     for (ptr = 0; ptr < fArray.length; ptr++) {
       let cEntryForm = fArray[ptr] as FormGroup;
-
-      //let cme: ColorMapUIEntry = ColorMapUIEntry.fromOffsetAndRgba(
-      //  cEntryForm.controls.cutOff.value,
-      //  cEntryForm.controls.startRgbaColor.value
-      //);
-
       let cme = ColorMapEntryForm.getColorMapUIEntry(cEntryForm);
-
       result.push(cme);
     }
     return result;
@@ -462,10 +460,14 @@ class ColorMapEntryForms {
     }
 
     let ptr: number;
-    for (ptr = 0; ptr < colorMapUIEntries.length; ptr++) {
-      let cmef = ColorMapEntryForm.buildForm(colorMapUIEntries[ptr]);
+    for (ptr = 0; ptr < colorMapUIEntries.length - 1; ptr++) {
+      let cmef = ColorMapEntryForm.buildForm(colorMapUIEntries[ptr], colorMapUIEntries[ptr + 1].startColor.rgbaString);
       fArray.controls.push(cmef);
     }
+
+    let highColorRgbaString = ColorNumbers.getRgbaString([0, 0, 0, 0]);
+    let cmef = ColorMapEntryForm.buildForm(colorMapUIEntries[ptr], highColorRgbaString);
+    fArray.controls.push(cmef);
   }
 
   public static getTargetPercentages(fArray: FormGroup[]): number[] {
@@ -519,12 +521,14 @@ class ColorMapEntryForms {
 
 class ColorMapEntryForm {
 
-  public static buildForm(cme: ColorMapUIEntry): FormGroup {
+  public static buildForm(cme: ColorMapUIEntry, nextRgbaColor: string): FormGroup {
 
     let result = new FormGroup({
       cutOff: new FormControl(''),
       startRgbaColor: new FormControl(''),
       endRgbaColor: new FormControl(''),
+      nextRgbaColor: new FormControl(''),
+
       blendStyle: new FormControl('n'),
 
       actualPercentage: new FormControl(''),
@@ -540,6 +544,8 @@ class ColorMapEntryForm {
 
       result.controls.blendStyle.setValue(this.getLetterFromBlendStyle(cme.blendStyle));
       result.controls.endRgbaColor.setValue(cme.endColor.rgbaString);
+      result.controls.nextRgbaColor.setValue(nextRgbaColor);
+
     }
 
     return result;
