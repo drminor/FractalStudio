@@ -1,24 +1,11 @@
 export class ColorNumbers {
 
-  //black: number = 65536 * 65280; // FF00 0000
-  //white: number; // = -1 + 65536 * 65536; // FFFF FFFF
-  //red: number;
-  //green: number;
-  //blue: number;
 
   public static white: number = ColorNumbers.getColor(255, 255, 255);
   public static black: number = ColorNumbers.getColor(0, 0, 0);
   public static red: number = ColorNumbers.getColor(255, 0, 0);
   public static green: number = ColorNumbers.getColor(0, 255, 0);
   public static blue: number = ColorNumbers.getColor(0, 0, 255);
-
-
-  //constructor() {
-  //  this.white = ColorNumbers.getColor(255, 255, 255);
-  //  this.red = ColorNumbers.getColor(255, 0, 0);
-  //  this.green = ColorNumbers.getColor(0, 255, 0);
-  //  this.blue = ColorNumbers.getColor(0, 0, 255);
-  //}
 
   //data[y * canvasWidth + x] =
   //  (255 << 24) |	// alpha
@@ -149,12 +136,9 @@ export class ColorNumbers {
         minDiff = curDiff;
         result = ptr;
       }
-
     }
 
     result = result / 4;
-
     return result;
   }
-
 }

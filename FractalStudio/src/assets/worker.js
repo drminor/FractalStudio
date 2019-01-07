@@ -1,18 +1,7 @@
-//import { ColorNumbers } from './ColorNumbers';
 var ColorNumbers = /** @class */ (function () {
   function ColorNumbers() {
   }
-  //constructor() {
-  //  this.white = ColorNumbers.getColor(255, 255, 255);
-  //  this.red = ColorNumbers.getColor(255, 0, 0);
-  //  this.green = ColorNumbers.getColor(0, 255, 0);
-  //  this.blue = ColorNumbers.getColor(0, 0, 255);
-  //}
-  //data[y * canvasWidth + x] =
-  //  (255 << 24) |	// alpha
-  //  (value << 16) |	// blue
-  //  (value << 8) |	// green
-  //  value;		// red
+
   ColorNumbers.getColor = function (r, g, b, alpha) {
     if (r > 255 || r < 0)
       throw new RangeError('R must be between 0 and 255.');
@@ -114,11 +103,7 @@ var ColorNumbers = /** @class */ (function () {
     result = result / 4;
     return result;
   };
-  //black: number = 65536 * 65280; // FF00 0000
-  //white: number; // = -1 + 65536 * 65536; // FFFF FFFF
-  //red: number;
-  //green: number;
-  //blue: number;
+
   ColorNumbers.white = ColorNumbers.getColor(255, 255, 255);
   ColorNumbers.black = ColorNumbers.getColor(0, 0, 0);
   ColorNumbers.red = ColorNumbers.getColor(255, 0, 0);
@@ -126,6 +111,7 @@ var ColorNumbers = /** @class */ (function () {
   ColorNumbers.blue = ColorNumbers.getColor(0, 0, 255);
   return ColorNumbers;
 }());
+
 var MAX_CANVAS_WIDTH = 50000;
 var MAX_CANVAS_HEIGHT = 50000;
 var Point = /** @class */ (function () {
@@ -726,12 +712,6 @@ var Divisions = /** @class */ (function () {
     else {
       var percentX1000 = parseInt((100000 * val + 0.5).toString(), 10);
       var p = percentX1000 / 1000;
-      //let s = percentX1000.toString();
-      //let res = s.slice(0, s.length - 3) + '.' + s.slice(s.length - 3);
-      //if (percentX1000 < 100) {
-      //  res = '0' + res;
-      //}
-      //return parseFloat(res);
       return p;
     }
   };
@@ -746,11 +726,6 @@ var Divisions = /** @class */ (function () {
     else {
       var percentX1000 = parseInt((100000 * val + 0.5).toString(), 10);
       var p = percentX1000 / 1000;
-      //let s = percentX1000.toString();
-      //let res = s.slice(0, s.length - 3) + '.' + s.slice(s.length - 3) + '%';
-      //if (percentX1000 < 1000) {
-      //  res = '0' + res;
-      //}
       var res = p.toString() + '%';
       return res;
     }
@@ -905,15 +880,6 @@ var Histogram = /** @class */ (function () {
     var avg = total / cnt;
     return avg;
   };
-  //private getFirstLargerThan(hes: HistEntry[], cutOff: number): number {
-  //  let ptr: number;
-  //  for (ptr = 0; ptr < hes.length; ptr++) {
-  //    if (hes[ptr].val > cutOff) {
-  //      break;
-  //    }
-  //  }
-  //  return ptr;
-  //}
   Histogram.prototype.getIndexOfMaxIter = function (hes, numberOfEntriesToCheck) {
     var result = 0;
     var curMaxVal = -1;
@@ -1395,14 +1361,12 @@ var MapWorkingData = /** @class */ (function () {
   };
   return MapWorkingData;
 }()); // End Class MapWorkingData
-
 var ColorMapEntryBlendStyle;
 (function (ColorMapEntryBlendStyle) {
   ColorMapEntryBlendStyle[ColorMapEntryBlendStyle["none"] = 0] = "none";
   ColorMapEntryBlendStyle[ColorMapEntryBlendStyle["next"] = 1] = "next";
   ColorMapEntryBlendStyle[ColorMapEntryBlendStyle["endColor"] = 2] = "endColor";
 })(ColorMapEntryBlendStyle || (ColorMapEntryBlendStyle = {}));
-
 var ColorMapEntry = /** @class */ (function () {
   function ColorMapEntry(cutOff, colorNum, blendStyle, endColorNum) {
     this.cutOff = cutOff;
@@ -1413,12 +1377,14 @@ var ColorMapEntry = /** @class */ (function () {
   return ColorMapEntry;
 }());
 var ColorMapEntryForExport = /** @class */ (function () {
-  function ColorMapEntryForExport(cutOff, cssColor) {
+  function ColorMapEntryForExport(cutOff, startCssColor, blendStyle, endCssColor) {
     this.cutOff = cutOff;
-    this.cssColor = cssColor;
+    this.startCssColor = startCssColor;
+    this.blendStyle = blendStyle;
+    this.endCssColor = endCssColor;
   }
   ColorMapEntryForExport.fromColorMapUIEntry = function (cme) {
-    var result = new ColorMapEntryForExport(cme.cutOff, cme.startColor.rgbHex);
+    var result = new ColorMapEntryForExport(cme.cutOff, cme.startColor.rgbHex, cme.blendStyle, cme.endColor.rgbHex);
     return result;
   };
   return ColorMapEntryForExport;
@@ -1428,6 +1394,7 @@ var ColorMapUIColor = /** @class */ (function () {
     this.colorComponents = new Array(4);
     var alpha;
     if (colorVals === null) {
+      // Use black when we are given a null value.
       colorVals = [0, 0, 0];
       alpha = 255;
     }
@@ -1513,23 +1480,30 @@ var ColorMapUIEntry = /** @class */ (function () {
     this.startColor = new ColorMapUIColor(colorVals);
     this.endColor = new ColorMapUIColor(endColorVals);
   }
+  ColorMapUIEntry.prototype.clone = function () {
+    var result = new ColorMapUIEntry(this.cutOff, this.startColor.colorComponents, this.blendStyle, this.endColor.colorComponents);
+    return result;
+  };
   ColorMapUIEntry.fromColorMapEntry = function (cme) {
-    var result = ColorMapUIEntry.fromOffsetAndColorNum(cme.cutOff, cme.colorNum);
+    var result = ColorMapUIEntry.fromOffsetAndColorNum(cme.cutOff, cme.colorNum, cme.blendStyle, cme.endColorNum);
     return result;
   };
-  ColorMapUIEntry.fromOffsetAndColorNum = function (cutOff, cNum) {
-    var colorComps = ColorNumbers.getColorComponents(cNum);
-    var result = new ColorMapUIEntry(cutOff, colorComps, ColorMapEntryBlendStyle.none, null);
+  ColorMapUIEntry.fromOffsetAndColorNum = function (cutOff, startCNum, blendStyle, endCNum) {
+    var startColorComps = ColorNumbers.getColorComponents(startCNum);
+    var endColorComps = ColorNumbers.getColorComponents(endCNum);
+    var result = new ColorMapUIEntry(cutOff, startColorComps, blendStyle, endColorComps);
     return result;
   };
-  ColorMapUIEntry.fromOffsetAndCssColor = function (cutOff, cssColor) {
-    var colorComps = ColorNumbers.getColorComponentsFromCssColor(cssColor);
-    var result = new ColorMapUIEntry(cutOff, colorComps, ColorMapEntryBlendStyle.none, null);
+  ColorMapUIEntry.fromOffsetAndCssColor = function (cutOff, startCssColor, blendStyle, endCssColor) {
+    var startColorComps = ColorNumbers.getColorComponentsFromCssColor(startCssColor);
+    var endColorComps = ColorNumbers.getColorComponentsFromCssColor(endCssColor);
+    var result = new ColorMapUIEntry(cutOff, startColorComps, blendStyle, endColorComps);
     return result;
   };
-  ColorMapUIEntry.fromOffsetAndRgba = function (cutOff, rgbaColor) {
-    var colorComps = ColorNumbers.getColorComponentsFromRgba(rgbaColor);
-    var result = new ColorMapUIEntry(cutOff, colorComps, ColorMapEntryBlendStyle.none, null);
+  ColorMapUIEntry.fromOffsetAndRgba = function (cutOff, startRgbaColor, blendStyle, endRgbaColor) {
+    var startColorComps = ColorNumbers.getColorComponentsFromRgba(startRgbaColor);
+    var endColorComps = ColorNumbers.getColorComponentsFromRgba(endRgbaColor);
+    var result = new ColorMapUIEntry(cutOff, startColorComps, blendStyle, endColorComps);
     return result;
   };
   return ColorMapUIEntry;
@@ -1544,49 +1518,29 @@ var ColorMap = /** @class */ (function () {
     // Update the prevCutOff and bucketWidth values for each of our ColorMapEntries.
     this.setBucketWidths();
   }
-  ColorMap.FromTypedArrays = function (cutOffs, colorNums, highColor) {
-    var workRanges = new Array(cutOffs.length);
-    var i = 0;
-    for (; i < cutOffs.length; i++) {
-      workRanges[i] = new ColorMapEntry(cutOffs[i], colorNums[i], ColorMapEntryBlendStyle.none, null);
-    }
-    var result = new ColorMap(workRanges, highColor);
-    return result;
-  };
+  //public static FromTypedArrays(cutOffs: Uint16Array, colorNums: Uint32Array, highColor: number): ColorMap {
+  //  let workRanges: ColorMapEntry[] = new Array<ColorMapEntry>(cutOffs.length);
+  //  let i: number = 0;
+  //  for (; i < cutOffs.length; i++) {
+  //    workRanges[i] = new ColorMapEntry(cutOffs[i], colorNums[i], ColorMapEntryBlendStyle.none, null);
+  //  }
+  //  let result: ColorMap = new ColorMap(workRanges, highColor);
+  //  return result;
+  //}
   ColorMap.prototype.getColor = function (countValue, escapeVel) {
     var result;
     var index = this.searchInsert(countValue);
-    //if (index === 0) {
-    //  result = this.ranges[index].colorNum;
-    //  return result;
-    //}
     if (index === this.ranges.length) {
       result = this.highColor;
       return result;
     }
     var cme = this.ranges[index];
     var cNum1 = cme.colorNum;
-
-
-    //if (index % 2 === 0) {
-    //  result = cme.colorNum;
-    //  return result;
-    //}
-    //var cNum2;
-    //if (index + 1 === this.ranges.length) {
-    //  cNum2 = this.highColor;
-    //}
-    //else {
-    //  cNum2 = this.ranges[index + 1].colorNum;
-    //}
-
     if (cme.blendStyle === ColorMapEntryBlendStyle.none) {
       result = cme.colorNum;
       return result;
     }
-
     var cNum2;
-
     if (cme.blendStyle === ColorMapEntryBlendStyle.next) {
       if (index + 1 === this.ranges.length) {
         cNum2 = this.highColor;
@@ -1598,7 +1552,6 @@ var ColorMap = /** @class */ (function () {
     else {
       cNum2 = cme.endColorNum;
     }
-
     result = this.blend(cme.prevCutOff, cme.bucketWidth, countValue, cNum1, cNum2, escapeVel);
     return result;
   };
@@ -1615,7 +1568,7 @@ var ColorMap = /** @class */ (function () {
       var stepFactor = (-1 + countValue - botBucketVal) / bucketWidth;
       cStart = this.simpleBlend(c1, c2, stepFactor);
     }
-    var intraStepFactor = escapeVel / bucketWidth; //1 / bucketWidth; //
+    var intraStepFactor = escapeVel / bucketWidth; // 1 / bucketWidth; //
     var r = cStart[0] + (c2[0] - c1[0]) * intraStepFactor;
     var g = cStart[1] + (c2[1] - c1[1]) * intraStepFactor;
     var b = cStart[2] + (c2[2] - c1[2]) * intraStepFactor;
@@ -1632,11 +1585,9 @@ var ColorMap = /** @class */ (function () {
     return newCNum;
   };
   ColorMap.prototype.simpleBlend = function (c1, c2, factor) {
-
     if (factor === 0) {
       return c1;
     }
-
     var r = c1[0] + (c2[0] - c1[0]) * factor;
     var g = c1[1] + (c2[1] - c1[1]) * factor;
     var b = c1[2] + (c2[2] - c1[2]) * factor;
@@ -1700,22 +1651,6 @@ var ColorMap = /** @class */ (function () {
     }
     //this.ranges[this.ranges.length - 1].prevCutOff = prevCutOff;
   };
-  // Returns the different between the highest possible countValue
-  // and the lowest possible countValue for the given range entry.
-  //private getBucketWidth(index: number): number {
-  //  if (index > this.ranges.length - 1) {
-  //    throw new Error('index must be less than the length of our ranges.');
-  //  }
-  //  let result: number;
-  //  let topCountVal = this.ranges[index].cutOff;
-  //  if (index === 0) {
-  //    result = topCountVal + 1; // For exmple if the topCount is 3, then the bucket contains cnts: [0, 1, 2, 3]
-  //    return result;
-  //  }
-  //  let botCountVal = this.ranges[index - 1].cutOff;
-  //  result = topCountVal - botCountVal;
-  //  return result;
-  //}
   ColorMap.prototype.getCutOffs = function () {
     var result = new Uint16Array(this.ranges.length);
     var i = 0;
@@ -1732,10 +1667,6 @@ var ColorMap = /** @class */ (function () {
     }
     return result;
   };
-  //public static fromColorMap(data: any) : ColorMap {
-  //  let result = new ColorMap(data.ranges, data.highColor);
-  //  return result;
-  //}
   ColorMap.prototype.toString = function () {
     var result = 'ColorMap with ' + this.ranges.length + ' entries.';
     return result;
@@ -1762,8 +1693,10 @@ var ColorMapUI = /** @class */ (function () {
     var ptr;
     for (ptr = 0; ptr < this.ranges.length; ptr++) {
       var existingCutOff = this.ranges[ptr].cutOff;
-      var newColorComps = colorMapUiEntries[ptrToNewColorEntry++].startColor.colorComponents;
-      ranges.push(new ColorMapUIEntry(existingCutOff, newColorComps, ColorMapEntryBlendStyle.none, null));
+      var sourceCme = colorMapUiEntries[ptrToNewColorEntry++];
+      var startCComps = sourceCme.startColor.colorComponents;
+      var endCComps = sourceCme.endColor.colorComponents;
+      ranges.push(new ColorMapUIEntry(existingCutOff, startCComps, sourceCme.blendStyle, endCComps));
       if (ptrToNewColorEntry > colorMapUiEntries.length - 1) {
         ptrToNewColorEntry = 0;
       }
@@ -1772,13 +1705,15 @@ var ColorMapUI = /** @class */ (function () {
     return result;
   };
   ColorMapUI.prototype.mergeCutoffs = function (cutOffs, serialNumber) {
-    //let test: BigInt(42);
     var ranges = [];
     var ptrToExistingCmes = 0;
     var ptr;
     for (ptr = 0; ptr < cutOffs.length; ptr++) {
-      var existingColorComps = this.ranges[ptrToExistingCmes++].startColor.colorComponents;
-      ranges.push(new ColorMapUIEntry(cutOffs[ptr], existingColorComps, ColorMapEntryBlendStyle.none, null));
+      //let existingColorComps = this.ranges[ptrToExistingCmes++].startColor.colorComponents;
+      var existingCme = this.ranges[ptrToExistingCmes++];
+      var startCComps = existingCme.startColor.colorComponents;
+      var endCComps = existingCme.endColor.colorComponents;
+      ranges.push(new ColorMapUIEntry(cutOffs[ptr], startCComps, existingCme.blendStyle, endCComps));
       if (ptrToExistingCmes > this.ranges.length - 1) {
         ptrToExistingCmes = 0;
       }
@@ -1796,13 +1731,17 @@ var ColorMapUI = /** @class */ (function () {
       rangesToInsert.push(new ColorMapUIEntry(cutOffs[ptr1], whiteComps, ColorMapEntryBlendStyle.none, null));
     }
     // Create a copy of the existing ranges
-    var rangesResult = [];
-    var ptr2;
-    for (ptr2 = 0; ptr2 < this.ranges.length; ptr2++) {
-      rangesResult.push(new ColorMapUIEntry(this.ranges[ptr2].cutOff, this.ranges[ptr2].startColor.colorComponents, ColorMapEntryBlendStyle.none, null));
-    }
+    var rangesResult = this.cloneRanges();
     rangesResult.splice.apply(rangesResult, [start, numToRemove].concat(rangesToInsert));
     var result = new ColorMapUI(rangesResult, this.highColorCss, serialNumber);
+    return result;
+  };
+  ColorMapUI.prototype.cloneRanges = function () {
+    var result = [];
+    var ptr;
+    for (ptr = 0; ptr < this.ranges.length; ptr++) {
+      result.push(this.ranges[ptr].clone());
+    }
     return result;
   };
   ColorMapUI.prototype.getOffsets = function () {
@@ -1818,7 +1757,9 @@ var ColorMapUI = /** @class */ (function () {
     var ptr;
     for (ptr = 0; ptr < this.ranges.length; ptr++) {
       var cmuie = this.ranges[ptr];
-      var cme = new ColorMapEntry(cmuie.cutOff, ColorNumbers.getColorFromComps(cmuie.startColor.colorComponents), ColorMapEntryBlendStyle.none, null);
+      var startCComps = ColorNumbers.getColorFromComps(cmuie.startColor.colorComponents);
+      var endCComps = ColorNumbers.getColorFromComps(cmuie.endColor.colorComponents);
+      var cme = new ColorMapEntry(cmuie.cutOff, startCComps, cmuie.blendStyle, endCComps);
       regularRanges.push(cme);
     }
     var result = new ColorMap(regularRanges, ColorNumbers.getColorFromCssColor(this.highColorCss));
@@ -1829,11 +1770,32 @@ var ColorMapUI = /** @class */ (function () {
       cmfe.version = 1.0;
     }
     //console.log('Got a ColorMapForExport and it has version = ' + cmfe.version + '.');
+    var result;
+    if (cmfe.version === 1.0) {
+      result = this.fromColorMapForExportV1(cmfe, serialNumber);
+    }
+    else {
+      result = this.fromColorMapForExportV2(cmfe, serialNumber);
+    }
+    return result;
+  };
+  ColorMapUI.fromColorMapForExportV1 = function (cmfe, serialNumber) {
     var ranges = [];
     var ptr;
     for (ptr = 0; ptr < cmfe.ranges.length; ptr++) {
       var cmeForExport = cmfe.ranges[ptr];
-      var cme = ColorMapUIEntry.fromOffsetAndCssColor(cmeForExport.cutOff, cmeForExport.cssColor);
+      var cme = ColorMapUIEntry.fromOffsetAndCssColor(cmeForExport.cutOff, cmeForExport.cssColor, ColorMapEntryBlendStyle.none, '#000000');
+      ranges.push(cme);
+    }
+    var result = new ColorMapUI(ranges, cmfe.highColorCss, serialNumber);
+    return result;
+  };
+  ColorMapUI.fromColorMapForExportV2 = function (cmfe, serialNumber) {
+    var ranges = [];
+    var ptr;
+    for (ptr = 0; ptr < cmfe.ranges.length; ptr++) {
+      var cmeForExport = cmfe.ranges[ptr];
+      var cme = ColorMapUIEntry.fromOffsetAndCssColor(cmeForExport.cutOff, cmeForExport.startCssColor, cmeForExport.blendStyle, cmeForExport.endCssColor);
       ranges.push(cme);
     }
     var result = new ColorMapUI(ranges, cmfe.highColorCss, serialNumber);
@@ -1845,7 +1807,7 @@ var ColorMapForExport = /** @class */ (function () {
   function ColorMapForExport(ranges, highColorCss) {
     this.ranges = ranges;
     this.highColorCss = highColorCss;
-    this.version = 1.0;
+    this.version = 2.0;
   }
   ColorMapForExport.FromColorMap = function (colorMap) {
     var ranges = [];
@@ -2062,41 +2024,16 @@ var WebWorkerHistorgramResponse = /** @class */ (function () {
   };
   return WebWorkerHistorgramResponse;
 }());
-var WebWorkerUpdateColorMapRequest_OLD = /** @class */ (function () {
-  function WebWorkerUpdateColorMapRequest_OLD(messageKind, cutOffs, colorNums, highColorNum) {
-    this.messageKind = messageKind;
-    this.cutOffs = cutOffs;
-    this.colorNums = colorNums;
-    this.highColorNum = highColorNum;
-  }
-  WebWorkerUpdateColorMapRequest_OLD.FromEventData = function (data) {
-    var result = new WebWorkerUpdateColorMapRequest_OLD(data.messageKind, data.cutOffs, data.colorNums, data.highColorNum);
-    return result;
-  };
-  WebWorkerUpdateColorMapRequest_OLD.CreateRequest = function (colorMap) {
-    var cutOffs = colorMap.getCutOffs();
-    var colorNums = colorMap.getColorNums();
-    var result = new WebWorkerUpdateColorMapRequest_OLD("UpdateColorMap", cutOffs, colorNums, colorMap.highColor);
-    return result;
-  };
-  WebWorkerUpdateColorMapRequest_OLD.prototype.getColorMap = function () {
-    var result = ColorMap.FromTypedArrays(this.cutOffs, this.colorNums, this.highColorNum);
-    return result;
-  };
-  return WebWorkerUpdateColorMapRequest_OLD;
-}());
 var WebWorkerUpdateColorMapRequest = /** @class */ (function () {
   function WebWorkerUpdateColorMapRequest(messageKind, colorMap) {
     this.messageKind = messageKind;
     this.colorMap = colorMap;
   }
   WebWorkerUpdateColorMapRequest.FromEventData = function (data) {
-
     // Since the value of data does not contain any of the functions defined for a ColorMap object,
     // we must create a new ColorMap from the raw data members of the provided 'raw' instance.
     var newColorMap = new ColorMap(data.colorMap.ranges, data.colorMap.highColor);
     var result = new WebWorkerUpdateColorMapRequest(data.messageKind, newColorMap);
-
     return result;
   };
   WebWorkerUpdateColorMapRequest.CreateRequest = function (colorMap) {
