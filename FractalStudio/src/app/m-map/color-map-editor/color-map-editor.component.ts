@@ -1,5 +1,9 @@
 import { Component, OnInit, Input, Output, EventEmitter, ViewChild, ElementRef } from '@angular/core';
-import { ColorMapUI, ColorMapUIEntry, ColorMapForExport, Histogram, Divisions, ColorMapEntryBlendStyle } from '../m-map-common';
+
+import { Histogram, ColorMapEntryBlendStyle } from '../m-map-common';
+
+import { ColorMapUI, ColorMapUIEntry, ColorMapForExport } from '../m-map-common-ui';
+
 import { ColorNumbers } from '../ColorNumbers';
 
 import { FormGroup, FormControl, FormArray } from '@angular/forms';
@@ -153,13 +157,16 @@ export class ColorMapEditorComponent implements OnInit {
 
     let newColorMap = new ColorMapUI(newRanges, colorMap.highColorCss, -1);
 
-    if (this._lastLoadedColorMap != null) {
-      let recoloredMap = newColorMap.applyColors(this._lastLoadedColorMap.ranges, -1);
-      this.colorMapUpdated.emit(recoloredMap);
-    }
-    else {
-      this.colorMapUpdated.emit(newColorMap);
-    }
+    //if (this._lastLoadedColorMap != null) {
+    //  let recoloredMap = newColorMap.applyColors(this._lastLoadedColorMap.ranges, -1);
+    //  this.colorMapUpdated.emit(recoloredMap);
+    //}
+    //else {
+    //  this.colorMapUpdated.emit(newColorMap);
+    //}
+
+    let recoloredMap = newColorMap.applyColors(colorMap.ranges, -1);
+    this.colorMapUpdated.emit(recoloredMap);
   }
 
   onInsertEntry(idx: number) {
@@ -331,8 +338,9 @@ export class ColorMapEditorComponent implements OnInit {
 
     // Set our form's high color cut off and percentage.
     this.colorMapForm.controls.hcCutOff.setValue(hcCutOff);
-    this.colorMapForm.controls.hcCutOffPercentage.setValue(Divisions.formatAsPercentage(hcPercentage));
+    this.colorMapForm.controls.hcCutOffPercentage.setValue(ColorMapEditorComponent.formatAsPercentage(hcPercentage));
   }
+
 
   private toggleShowEditor(idx: number): void {
     let cfg = this.getCEntryFromGroup(idx);
@@ -435,6 +443,18 @@ export class ColorMapEditorComponent implements OnInit {
     return result;
   }
 
+  public static formatAsPercentage(val: number): string {
+    if (val === 0) {
+      return '0.0%';
+    }
+    else {
+      let percentX1000: number = parseInt((100000 * val + 0.5).toString(), 10);
+      let p = percentX1000 / 1000;
+      let res = p.toString() + '%';
+      return res;
+    }
+  }
+
 }
 
 class ColorMapEntryForms {
@@ -487,7 +507,7 @@ class ColorMapEntryForms {
     let ptr: number;
     for (ptr = 0; ptr < fArray.length; ptr++) {
       let cEntryForm = fArray[ptr];
-      cEntryForm.controls.actualPercentage.setValue(Divisions.formatAsPercentage(aps[ptr]));
+      cEntryForm.controls.actualPercentage.setValue(ColorMapEditorComponent.formatAsPercentage(aps[ptr]));
     }
   }
 

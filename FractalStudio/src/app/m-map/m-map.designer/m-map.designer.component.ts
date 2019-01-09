@@ -3,13 +3,15 @@ import { Component, ViewChild, ElementRef } from '@angular/core';
 import { ColorNumbers } from '../../m-map/ColorNumbers';
 
 import {
-  IPoint, Point, IMapInfo, MapInfo, IBox, Box,
-  ColorMapUI, ColorMapUIEntry, MapInfoWithColorMap,
-  Histogram, Divisions, ColorMapEntryBlendStyle
+  IPoint, Point, IBox, Box,
+  ColorMapEntryBlendStyle,
+  IMapInfo, MapInfo, Histogram
 } from '../../m-map/m-map-common';
 
+import { ColorMapUI, ColorMapUIEntry, ColorMapForExport, MapInfoWithColorMap, MapInfoWithColorMapForExport } from '../m-map-common-ui';
+
+
 import { MMapDisplayComponent } from '../../m-map/m-map.display/m-map.display.component';
-import { templateJitUrl } from '@angular/compiler';
 
 @Component({
   selector: 'app-m-map-designer',

@@ -1,5 +1,147 @@
 
-import { ColorNumbers } from './ColorNumbers';
+export class ColorNumbers {
+
+  public static white: number = ColorNumbers.getColor(255, 255, 255);
+  public static black: number = ColorNumbers.getColor(0, 0, 0);
+  public static red: number = ColorNumbers.getColor(255, 0, 0);
+  public static green: number = ColorNumbers.getColor(0, 255, 0);
+  public static blue: number = ColorNumbers.getColor(0, 0, 255);
+
+  //data[y * canvasWidth + x] =
+  //  (255 << 24) |	// alpha
+  //  (value << 16) |	// blue
+  //  (value << 8) |	// green
+  //  value;		// red
+
+  public static getColor(r: number, g: number, b: number, alpha?: number): number {
+
+    if (r > 255 || r < 0) throw new RangeError('R must be between 0 and 255.');
+    if (g > 255 || g < 0) throw new RangeError('G must be between 0 and 255.');
+    if (b > 255 || b < 0) throw new RangeError('B must be between 0 and 255.');
+
+    if (alpha === undefined) {
+      alpha = 255;
+    } else {
+      if (alpha > 255 || alpha < 0) throw new RangeError('Alpha must be between 0 and 255.');
+    }
+
+    let result: number = alpha << 24;
+    result |= b << 16;
+    result |= g << 8;
+    result |= r;
+
+    return result;
+  }
+
+  public static getColorFromComps(comps: number[]): number {
+    let result = ColorNumbers.getColor(comps[0], comps[1], comps[2], comps[3]);
+    return result;
+  }
+
+  public static getColorFromCssColor(cssColor: string): number {
+    let comps = ColorNumbers.getColorComponentsFromCssColor(cssColor);
+    let result = ColorNumbers.getColorFromComps(comps);
+    return result;
+  }
+
+  // Returns array of numbers: r,g,b,a Where r,g and b are 0-255 integers and a is 0-1 float.
+  public static getColorComponents(cNum: number): number[] {
+    let result: number[] = new Array<number>(4);
+
+    // Mask all but the lower 8 bits.
+    result[0] = cNum & 0x000000FF;
+
+    // Shift down by 8 bits and then mask.
+    result[1] = cNum >> 8 & 0x000000FF;
+    result[2] = cNum >> 16 & 0x000000FF;
+    result[3] = 255; //cNum >> 24 & 0x000000FF;
+
+    return result;
+  }
+
+  // Returns array of numbers: r,g,b,a Where r,g and b are 0-255 integers and a is 0-1 float.
+  public static getColorComponentsFromCssColor(cssColor: string): number[] {
+    let result: number[] = new Array<number>(4);
+
+    let bs = cssColor.slice(1, 3);
+    let gs = cssColor.slice(3, 5);
+    let rs = cssColor.slice(5, 7);
+
+    result[0] = parseInt(bs, 16);
+    result[1] = parseInt(gs, 16);
+    result[2] = parseInt(rs, 16);
+    result[3] = 255; //parseInt(cssColor.slice(7,8), 16);
+
+    return result;
+  }
+
+  // TODO: handle conversion from Alpha in range from 0.0 to 1.0 to range: 0 to 255.
+  public static getColorComponentsFromRgba(rgbaColor: string): number[] {
+    let result: number[] = new Array<number>(4);
+
+    //let rgbaObject: object = JSON.parse(rgbaColor);
+
+    //return 'rgba(200,20,40,1)';
+
+    let lst = rgbaColor.replace('rgba(', '');
+    lst = lst.replace(')', '');
+
+    let comps: string[] = lst.split(',');
+
+    result[0] = parseInt(comps[0], 10);
+    result[1] = parseInt(comps[1], 10);
+    result[2] = parseInt(comps[2], 10);
+    result[3] = 255; //parseInt(comps[3], 10);
+
+    return result;
+  }
+
+  public static getRgbHex(comps: number[]): string {
+
+    let result: string = '#'
+      + ('0' + comps[0].toString(16)).slice(-2)
+      + ('0' + comps[1].toString(16)).slice(-2)
+      + ('0' + comps[2].toString(16)).slice(-2);
+
+    //return "#FFFF00";
+    return result;
+  }
+
+  // TODO: handle conversion from Alpha in range from 0.0 to 1.0 to range: 0 to 255.
+  public static getRgbaString(comps: number[]): string {
+    let result: string = 'rgba('
+      + comps[0].toString(10) + ','
+      + comps[1].toString(10) + ','
+      + comps[2].toString(10) + ','
+      + '1'
+      + ')';
+
+    //return 'rgba(200,20,40,1)';
+    return result;
+  }
+
+  public static get1DPos(imageData: Uint8ClampedArray, cComps: number[]): number {
+
+    let result = 0;
+
+    let minDiff = 1000;
+
+    let ptr: number;
+    for (ptr = 0; ptr < imageData.length; ptr += 4) {
+      let curDiff = Math.abs(cComps[0] - imageData[ptr])
+        + Math.abs(cComps[1] - imageData[ptr + 1])
+        + Math.abs(cComps[2] - imageData[ptr + 2]);
+
+      if (curDiff < minDiff) {
+        minDiff = curDiff;
+        result = ptr;
+      }
+    }
+
+    result = result / 4;
+    return result;
+  }
+}
 
 const MAX_CANVAS_WIDTH: number = 50000;
 const MAX_CANVAS_HEIGHT: number = 50000;
@@ -15,6 +157,14 @@ export interface IPoint {
   translate(factor: IPoint): IPoint;
 
   isEqual(p: IPoint): boolean;
+}
+
+export interface ICanvasSize {
+  width: number;
+  height: number;
+
+  mult(amount: number): ICanvasSize;
+  scale(factor: ICanvasSize): ICanvasSize;
 }
 
 export interface IBox {
@@ -60,15 +210,6 @@ export interface IMapInfo {
   isEqual(other: IMapInfo): boolean;
 
   toString(): string
-}
-
-export interface ICanvasSize {
-  width: number;
-  height: number;
-
-  //getScaledCanvas(amount: number): ICanvasSize;
-  mult(amount: number): ICanvasSize;
-  scale(factor: ICanvasSize): ICanvasSize;
 }
 
 export interface IMapWorkingData {
@@ -457,303 +598,6 @@ export class MapInfo implements IMapInfo {
     return 'sx:' + this.coords.botLeft.x + ' ex:' + this.coords.topRight.x + ' sy:' + this.coords.botLeft.y + ' ey:' + this.coords.topRight.y + ' mi:' + this.maxIterations + ' ips:' + this.iterationsPerStep + '.';
   }
 }
-
-export class Divisions {
-
-  public children: Divisions[];
-
-  //constructor(total: number, startVal: number, startIdx: number, numberOfDivs: number) {
-  //  this._numberOfDivs = 1;
-  //  this.total = total;
-  //  this.startVal = startVal;
-  //  this.startIdx = startIdx;
-  //  this.numberOfDivs = numberOfDivs;
-  //}
-
-  constructor(numberOfDivs: number) {
-    this._numberOfDivs = 1;
-    this.total = 1;
-    this.startVal = 0;
-    this.startIdx = 0;
-    this.numberOfDivs = numberOfDivs;
-  }
-
-  protected static createWithStartVal(total: number, startVal: number, startIdx: number, numberOfDivs: number): Divisions {
-    let result = new Divisions(numberOfDivs);
-    result.setTotalAndStart(total, startVal, startIdx);
-
-    return result;
-  }
-
-  private _total: number;
-  public get total(): number {
-    return this._total;
-  }
-
-  public set total(value: number) {
-    this._total = value;
-    if (this._numberOfDivs > 1) {
-      let workDivs = this.buildDivisions(this._total, this._startVal, this._startIdx, this._numberOfDivs);
-
-      let curStartIdx = this._startIdx + 1;
-      let ptr: number;
-      for (ptr = 0; ptr < this.children.length; ptr++) {
-        curStartIdx = this.children[ptr].setTotalAndStart(workDivs[ptr].total, workDivs[ptr].startVal, curStartIdx);
-      }
-    }
-  }
-
-  private _startVal: number;
-  public get startVal(): number {
-    return this._startVal;
-  }
-
-  public set startVal(value: number) {
-    this._startVal = value;
-    if (this._numberOfDivs > 1) {
-      let workDivs = this.buildDivisions(this._total, this._startVal, this._startIdx, this._numberOfDivs);
-
-      let curStartIdx = this._startIdx + 1;
-      let ptr: number;
-      for (ptr = 0; ptr < this.children.length; ptr++) {
-        curStartIdx = this.children[ptr].setTotalAndStart(workDivs[ptr].total, workDivs[ptr].startVal, curStartIdx);
-      }    }
-  }
-
-  private _startIdx: number;
-  public get startIdx(): number {
-    return this._startIdx;
-  }
-
-  public set startIdx(value: number) {
-    this._startIdx = value;
-    if (this._numberOfDivs > 1) {
-      let curStartIdx = value + 1;
-
-      let ptr: number;
-      for (ptr = 0; ptr < this.children.length; ptr++) {
-        curStartIdx = this.children[ptr].setTotalAndStart(this.total, this.startVal, curStartIdx);
-      }
-    }
-  }
-
-  private _numberOfDivs: number;
-  public get numberOfDivs(): number {
-    return this._numberOfDivs;
-  }
-
-  public set numberOfDivs(value: number) {
-    if (value < 1 || parseInt(value.toString()) !== value) {
-      throw new RangeError('The numberOfDivs must be a whole number greater than 0.');
-    }
-
-    this._numberOfDivs = value;
-
-    if (value === 1) {
-      this.children = null;
-    }
-    else {
-      this.children = this.buildDivisions(this.total, this.startVal, this._startIdx, value);
-    }
-  }
-
-  public setTotalAndStart(total: number, startVal: number, startIdx: number): number {
-    this._total = total;
-    this._startVal = startVal;
-    this._startIdx = startIdx;
-
-    let curStartIdx = startIdx + 1;
-    if (this._numberOfDivs > 1) {
-      let workDivs = this.buildDivisions(this._total, this._startVal, this._startIdx, this._numberOfDivs);
-
-      let ptr: number;
-      for (ptr = 0; ptr < this.children.length; ptr++) {
-        curStartIdx = this.children[ptr].setTotalAndStart(workDivs[ptr].total, workDivs[ptr].startVal, curStartIdx);
-      }
-    }
-
-    return curStartIdx;
-
-  }
-
-  public insertChild(newChild: Divisions, index: number): void {
-    if (index < 0 || index > this._numberOfDivs) {
-      throw new RangeError('The index is out of bounds.');
-    }
-
-    this._numberOfDivs++;
-    let workDivs = this.buildDivisions(this._total, this._startVal, this._startIdx, this._numberOfDivs);
-
-    if (this._numberOfDivs === 2) {
-      this.children = new Array<Divisions>(2);
-      if (index === 0) {
-        newChild.setTotalAndStart(this._total, this._startVal, this._startIdx + 1);
-        this.children.push(newChild);
-        this.children.push(workDivs[1]);
-      }
-      else {
-        newChild.setTotalAndStart(this._total, this._startVal, this._startIdx + 2);
-        this.children.push(workDivs[0]);
-        this.children.push(newChild);
-      }
-    }
-    else {
-      this.children.splice(index, 0, newChild);
-
-      let curStartIdx = this._startIdx + 1;
-      let ptr: number;
-      for (ptr = 0; ptr < this.children.length; ptr++) {
-        curStartIdx = this.children[ptr].setTotalAndStart(workDivs[ptr].total, workDivs[ptr].startVal, curStartIdx);
-      }
-    }
-  }
-
-  public deleteChild(index: number): void {
-    if (index < 0 || index > this._numberOfDivs) {
-      throw new RangeError('The index is out of bounds.');
-    }
-
-    this._numberOfDivs--;
-    let workDivs = this.buildDivisions(this._total, this._startVal, this._startIdx, this._numberOfDivs);
-
-    this.children.splice(index, 1);
-
-    let curStartIdx = this._startIdx + 1;
-    let ptr: number;
-    for (ptr = 0; ptr < this.children.length; ptr++) {
-      curStartIdx = this.children[ptr].setTotalAndStart(workDivs[ptr].total, workDivs[ptr].startVal, curStartIdx);
-    }
-
-  }
-
-  private buildDivisions(total: number, startVal: number, startIdx: number, divs: number): Divisions[] {
-    let result = new Array<Divisions>(divs);
-    let unit = total / divs;
-    let curStartVal = startVal;
-    let firstChildStartIdx = startIdx + 1;
-
-    let ptr: number;
-    for (ptr = 0; ptr < divs; ptr++) {
-      result[ptr] = new Divisions(1);
-      result[ptr].setTotalAndStart(unit, curStartVal, firstChildStartIdx++);
-      curStartVal += unit;
-    }
-
-    return result;
-  }
-
-  public getStartingValsAsPercentages(): string[] {
-    let result: string[] = [];
-    let startingVals = this.getStartingVals();
-
-    let ptr: number;
-    for (ptr = 0; ptr < startingVals.length; ptr++) {
-      result.push(Divisions.formatAsPercentage(startingVals[ptr]));
-    }
-    return result;
-  }
-
-  // Running percentages
-  // Returns a list of numeric values, each value is between 0 and 1.
-  public getStartingVals(): number[] {
-    let curResult: number[] = [];
-    let result = this.getStartingValsInternal(curResult);
-    return result;
-  }
-
-  private getStartingValsInternal(curResult: number[]): number[] {
-    if (this._numberOfDivs === 1) {
-      curResult.push(this.startVal);
-    }
-    else {
-      let ptr: number;
-      for (ptr = 0; ptr < this.children.length; ptr++) {
-        curResult = this.children[ptr].getStartingValsInternal(curResult);
-      }
-    }
-    return curResult;
-  }
-
-  // Individual percentage values
-  // Returns a list of numeric values, each value is between 0 and 1.
-  public getVals(): number[] {
-    let curResult: number[] = [];
-    let result = this.getValsInternal(curResult);
-    return result;
-  }
-
-  private getValsInternal(curResult: number[]): number[] {
-    if (this._numberOfDivs === 1) {
-      curResult.push(this.total);
-    }
-    else {
-      let ptr: number;
-      for (ptr = 0; ptr < this.children.length; ptr++) {
-        curResult = this.children[ptr].getValsInternal(curResult);
-      }
-    }
-    return curResult;
-  }
-
-  public toString(): string {
-    return this.toStringInternal('');
-  }
-
-  private toStringInternal(curResult: string): string {
-    let result = curResult;
-
-    if (this._numberOfDivs === 1) {
-      if (result !== '') {
-        result += ', ';
-      }
-      result = '\n(entry:' + this.startIdx + '-' + this.startVal + ':' + this.total + ')';
-    }
-    else {
-      result = '';
-      let ptr: number;
-      for (ptr = 0; ptr < this.children.length; ptr++) {
-        if (result !== '') {
-          result += ', ';
-        }
-        result += this.children[ptr].toStringInternal(result);
-      }
-      result = '\n(entry:' + this.startIdx + '-' + this.startVal + ':' + this.total + ')' + '[' + result + ']';
-    }
-
-    return result;
-  }
-
-  public static X100With3DecPlaces (val: number): number {
-    if (val === 0) {
-      return 0;
-    }
-    else {
-      let percentX1000: number = parseInt((100000 * val + 0.5).toString(), 10);
-      let p = percentX1000 / 1000;
-
-      return p;
-    }
-  }
-
-  public staticFormatX100AsPercentage(val: number): string {
-    let result = val.toString() + '%';
-    return result;
-  }
-
-  public static formatAsPercentage(val: number): string {
-    if (val === 0) {
-      return '0.0%';
-    }
-    else {
-      let percentX1000: number = parseInt((100000 * val + 0.5).toString(), 10);
-      let p = percentX1000 / 1000;
-      let res = p.toString() + '%';
-      return res;
-    }
-  }
-
-}
-
 
 class IndexAndRunningSum {
   constructor(public idx: number, public runningSum: number) { }
@@ -1213,33 +1057,6 @@ export class Histogram {
   }
 }
 
-export class MapInfoWithColorMap {
-  constructor(public mapInfo: IMapInfo, public colorMapUi: ColorMapUI) { }
-
-  public static fromForExport(miwcmfe: MapInfoWithColorMapForExport, serialNumber: number): MapInfoWithColorMap {
-
-    if (typeof miwcmfe.version === 'undefined') {
-      miwcmfe.version = 1.0;
-    }
-    //console.log('Loaded the MapInfoWithColorMapForExport and it has version = ' + miwcmfe.version + '.');
-
-    // Create a new MapInfo from the loaded data.
-    let mapInfo = MapInfo.fromIMapInfo(miwcmfe.mapInfo);
-
-    // Create a new ColorMapUI from the loaded data.
-    let colorMap = ColorMapUI.fromColorMapForExport(miwcmfe.colorMap, serialNumber);
-
-    let result = new MapInfoWithColorMap(mapInfo, colorMap);
-    return result;
-  }
-}
-
-export class MapInfoWithColorMapForExport {
-  public version: number = 1.0;
-
-  constructor(public mapInfo: IMapInfo, public colorMap: ColorMapForExport) { }
-}
-
 export class CurWorkVal {
   public z: IPoint;
   public cnt: number;
@@ -1566,137 +1383,6 @@ export class ColorMapEntry {
   }
 }
 
-export class ColorMapEntryForExport {
-  public cssColor: string;
-  constructor(public cutOff: number, public startCssColor: string, public blendStyle: ColorMapEntryBlendStyle, public endCssColor: string) { }
-
-  public static fromColorMapUIEntry(cme: ColorMapUIEntry): ColorMapEntryForExport {
-    let result = new ColorMapEntryForExport(cme.cutOff, cme.startColor.rgbHex, cme.blendStyle, cme.endColor.rgbHex);
-    return result;
-  }
-}
-
-export class ColorMapUIColor {
-  public colorComponents: number[];
-
-  constructor(colorVals: number[]) {
-
-    this.colorComponents = new Array<number>(4);
-    let alpha: number;
-
-    if (colorVals === null) {
-      // Use black when we are given a null value.
-      colorVals = [0, 0, 0];
-      alpha = 255;
-    }
-    else if (colorVals.length === 3) {
-      alpha = 255;
-    }
-    else if (colorVals.length === 4) {
-      alpha = colorVals[3];
-    }
-    else {
-      throw new RangeError('colorVals must have exactly 3 or 4 elements.');
-    }
-
-    this.colorComponents[0] = colorVals[0];
-    this.colorComponents[1] = colorVals[1];
-    this.colorComponents[2] = colorVals[2];
-    this.colorComponents[3] = alpha;
-  }
-
-  public get r(): number {
-  return this.colorComponents[0];
-}
-
-  public get g(): number {
-  return this.colorComponents[1];
-}
-
-  public get b(): number {
-  return this.colorComponents[2];
-}
-
-  public get alpha(): number {
-  return this.colorComponents[3];
-}
-
-  public get rgbHex(): string {
-  let result = ColorNumbers.getRgbHex(this.colorComponents);
-  return result;
-}
-
-  public get rgbaString(): string {
-  let result = ColorNumbers.getRgbaString(this.colorComponents);
-  return result;
-}
-
-
-  public static fromColorNum(cNum: number): ColorMapUIColor {
-  let colorComps: number[] = ColorNumbers.getColorComponents(cNum);
-    let result = new ColorMapUIColor(colorComps);
-  return result;
-  }
-
-  public static fromCssColor(cssColor: string): ColorMapUIColor {
-  let colorComps: number[] = ColorNumbers.getColorComponentsFromCssColor(cssColor);
-    let result = new ColorMapUIColor(colorComps);
-  return result;
-  }
-
-  public static fromRgba(rgbaColor: string): ColorMapUIColor {
-  let colorComps: number[] = ColorNumbers.getColorComponentsFromRgba(rgbaColor);
-    let result = new ColorMapUIColor(colorComps);
-  return result;
-  }
-}
-
-export class ColorMapUIEntry {
-
-  public startColor: ColorMapUIColor;
-  public endColor: ColorMapUIColor;
-
-  constructor(public cutOff: number, colorVals: number[], public blendStyle: ColorMapEntryBlendStyle, endColorVals: number[]) {
-
-    this.startColor = new ColorMapUIColor(colorVals);
-    this.endColor = new ColorMapUIColor(endColorVals);
-  }
-
-  public clone(): ColorMapUIEntry {
-    let result = new ColorMapUIEntry(this.cutOff, this.startColor.colorComponents, this.blendStyle, this.endColor.colorComponents);
-    return result;
-  }
-
-  public static fromColorMapEntry(cme: ColorMapEntry): ColorMapUIEntry {
-    let result = ColorMapUIEntry.fromOffsetAndColorNum(cme.cutOff, cme.colorNum, cme.blendStyle, cme.endColorNum);
-    return result;
-  }
-
-  public static fromOffsetAndColorNum(cutOff: number, startCNum: number, blendStyle: ColorMapEntryBlendStyle, endCNum: number): ColorMapUIEntry {
-    let startColorComps: number[] = ColorNumbers.getColorComponents(startCNum);
-    let endColorComps: number[] = ColorNumbers.getColorComponents(endCNum);
-
-    let result = new ColorMapUIEntry(cutOff, startColorComps, blendStyle, endColorComps);
-    return result;
-  }
-
-  public static fromOffsetAndCssColor(cutOff: number, startCssColor: string, blendStyle: ColorMapEntryBlendStyle, endCssColor: string): ColorMapUIEntry {
-    let startColorComps: number[] = ColorNumbers.getColorComponentsFromCssColor(startCssColor);
-    let endColorComps: number[] = ColorNumbers.getColorComponentsFromCssColor(endCssColor);
-
-    let result = new ColorMapUIEntry(cutOff, startColorComps, blendStyle, endColorComps);
-    return result;
-  }
-
-  public static fromOffsetAndRgba(cutOff: number, startRgbaColor: string, blendStyle: ColorMapEntryBlendStyle, endRgbaColor: string): ColorMapUIEntry {
-    let startColorComps: number[] = ColorNumbers.getColorComponentsFromRgba(startRgbaColor);
-    let endColorComps: number[] = ColorNumbers.getColorComponentsFromRgba(endRgbaColor);
-
-    let result = new ColorMapUIEntry(cutOff, startColorComps, blendStyle, endColorComps);
-    return result;
-  }
-}
-
 export class ColorMap {
 
   constructor(public ranges: ColorMapEntry[], public highColor: number) {
@@ -1907,193 +1593,6 @@ export class ColorMap {
 
   public toString(): string {
     let result = 'ColorMap with ' + this.ranges.length + ' entries.';
-    return result;
-  }
-}
-
-export class ColorMapUI {
-
-  constructor(public ranges: ColorMapUIEntry[], public highColorCss: string, public serialNumber: number) { }
-
-  public insertColorMapEntry(index: number, entry: ColorMapUIEntry) {
-    this.ranges.splice(index, 0, entry);
-  }
-
-  public removeColorMapEntry(index: number): ColorMapUIEntry {
-    let result = this.ranges[index];
-    this.ranges.splice(index, 1);
-    return result;
-  }
-
-  public applyColors(colorMapUiEntries: ColorMapUIEntry[], serialNumber: number): ColorMapUI {
-
-    let ranges: ColorMapUIEntry[] = [];
-    let ptrToNewColorEntry = 0;
-
-    let ptr: number;
-    for (ptr = 0; ptr < this.ranges.length; ptr++) {
-      let existingCutOff = this.ranges[ptr].cutOff;
-      let sourceCme = colorMapUiEntries[ptrToNewColorEntry++];
-      let startCComps = sourceCme.startColor.colorComponents;
-      let endCComps = sourceCme.endColor.colorComponents;
-
-      ranges.push(new ColorMapUIEntry(existingCutOff, startCComps, sourceCme.blendStyle, endCComps));
-
-      if (ptrToNewColorEntry > colorMapUiEntries.length - 1) {
-        ptrToNewColorEntry = 0;
-      }
-    }
-
-    let result: ColorMapUI = new ColorMapUI(ranges, this.highColorCss, serialNumber);
-    return result;
-  }
-
-  public mergeCutoffs(cutOffs: number[], serialNumber: number): ColorMapUI {
-
-    let ranges: ColorMapUIEntry[] = [];
-    let ptrToExistingCmes = 0;
-
-    let ptr: number;
-    for (ptr = 0; ptr < cutOffs.length; ptr++) {
-      //let existingColorComps = this.ranges[ptrToExistingCmes++].startColor.colorComponents;
-
-      let existingCme = this.ranges[ptrToExistingCmes++];
-      let startCComps = existingCme.startColor.colorComponents;
-      let endCComps = existingCme.endColor.colorComponents;
-
-      ranges.push(new ColorMapUIEntry(cutOffs[ptr], startCComps, existingCme.blendStyle, endCComps));
-
-      if (ptrToExistingCmes > this.ranges.length - 1) {
-        ptrToExistingCmes = 0;
-      }
-    }
-
-    let result: ColorMapUI = new ColorMapUI(ranges, this.highColorCss, serialNumber);
-    return result;
-  }
-
-  public spliceCutOffs(start: number, numToRemove: number, cutOffs: number[], serialNumber: number): ColorMapUI {
-
-    // Create a range of ColorMapUIEntries from the given cutOffs.
-    let white: number = ColorNumbers.white;
-    let whiteComps = ColorNumbers.getColorComponents(white);
-
-    let rangesToInsert: ColorMapUIEntry[] = [];
-
-    let ptr1: number;
-    for (ptr1 = 0; ptr1 < cutOffs.length; ptr1++) {
-      rangesToInsert.push(new ColorMapUIEntry(cutOffs[ptr1], whiteComps, ColorMapEntryBlendStyle.none, null)); 
-    }
-
-    // Create a copy of the existing ranges
-    let rangesResult = this.cloneRanges();
-    rangesResult.splice(start, numToRemove, ...rangesToInsert);
-
-    let result: ColorMapUI = new ColorMapUI(rangesResult, this.highColorCss, serialNumber);
-    return result;
-  }
-
-  public cloneRanges(): ColorMapUIEntry[] {
-    let result: ColorMapUIEntry[] = [];
-
-    let ptr: number;
-    for (ptr = 0; ptr < this.ranges.length; ptr++) {
-      result.push(this.ranges[ptr].clone());
-    }
-
-    return result;
-  }
-
-  public getOffsets(): number[] {
-    let result = new Array<number>(this.ranges.length);
-
-    let ptr: number;
-    for (ptr = 0; ptr < this.ranges.length; ptr++) {
-      result[ptr] = this.ranges[ptr].cutOff;
-    }
-
-    return result;
-  }
-
-  public getRegularColorMap(): ColorMap {
-    let regularRanges: ColorMapEntry[] = [];
-
-    let ptr: number;
-    for (ptr = 0; ptr < this.ranges.length; ptr++) {
-      let cmuie = this.ranges[ptr];
-      let startCComps = ColorNumbers.getColorFromComps(cmuie.startColor.colorComponents);
-      let endCComps = ColorNumbers.getColorFromComps(cmuie.endColor.colorComponents);
-      let cme: ColorMapEntry = new ColorMapEntry(cmuie.cutOff, startCComps, cmuie.blendStyle, endCComps);
-      regularRanges.push(cme);
-    }
-
-    let result = new ColorMap(regularRanges, ColorNumbers.getColorFromCssColor(this.highColorCss));
-    return result;
-  }
-
-  public static fromColorMapForExport(cmfe: ColorMapForExport, serialNumber: number): ColorMapUI {
-
-    if (typeof cmfe.version === 'undefined') {
-      cmfe.version = 1.0;
-    }
-    //console.log('Got a ColorMapForExport and it has version = ' + cmfe.version + '.');
-
-    let result: ColorMapUI;
-    if (cmfe.version === 1.0) {
-      result = this.fromColorMapForExportV1(cmfe, serialNumber);
-    }
-    else {
-      result = this.fromColorMapForExportV2(cmfe, serialNumber);
-    }
-    return result;
-  }
-
-  private static fromColorMapForExportV1(cmfe: ColorMapForExport, serialNumber: number): ColorMapUI {
-    let ranges: ColorMapUIEntry[] = [];
-
-    let ptr: number;
-    for (ptr = 0; ptr < cmfe.ranges.length; ptr++) {
-      let cmeForExport = cmfe.ranges[ptr];
-      let cme: ColorMapUIEntry = ColorMapUIEntry.fromOffsetAndCssColor(cmeForExport.cutOff, cmeForExport.cssColor, ColorMapEntryBlendStyle.none, '#000000');
-      ranges.push(cme);
-    }
-
-    let result = new ColorMapUI(ranges, cmfe.highColorCss, serialNumber);
-    return result;
-  }
-
-  private static fromColorMapForExportV2(cmfe: ColorMapForExport, serialNumber: number): ColorMapUI {
-    let ranges: ColorMapUIEntry[] = [];
-
-    let ptr: number;
-    for (ptr = 0; ptr < cmfe.ranges.length; ptr++) {
-      let cmeForExport = cmfe.ranges[ptr];
-      let cme: ColorMapUIEntry = ColorMapUIEntry.fromOffsetAndCssColor(cmeForExport.cutOff, cmeForExport.startCssColor, cmeForExport.blendStyle, cmeForExport.endCssColor);
-      ranges.push(cme);
-    }
-
-    let result = new ColorMapUI(ranges, cmfe.highColorCss, serialNumber);
-    return result;
-  }
-}
-
-export class ColorMapForExport {
-
-  public version: number = 2.0;
-
-  constructor(public ranges: ColorMapEntryForExport[], public highColorCss: string) { }
-
-  public static FromColorMap(colorMap: ColorMapUI): ColorMapForExport {
-    let ranges: ColorMapEntryForExport[] = [];
-
-    let ptr: number;
-    for (ptr = 0; ptr < colorMap.ranges.length; ptr++) {
-      let cme: ColorMapUIEntry = colorMap.ranges[ptr];
-      let cmeForExport = ColorMapEntryForExport.fromColorMapUIEntry(cme);
-      ranges.push(cmeForExport);
-    }
-
-    const result = new ColorMapForExport(ranges, colorMap.highColorCss);
     return result;
   }
 }

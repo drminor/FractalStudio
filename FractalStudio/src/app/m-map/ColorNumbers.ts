@@ -1,6 +1,5 @@
 export class ColorNumbers {
 
-
   public static white: number = ColorNumbers.getColor(255, 255, 255);
   public static black: number = ColorNumbers.getColor(0, 0, 0);
   public static red: number = ColorNumbers.getColor(255, 0, 0);

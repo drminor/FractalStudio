@@ -8,9 +8,12 @@ import {
   IMapInfo, IMapWorkingData, MapWorkingData,
   WebWorkerImageDataResponse, WebWorkerMessage, WebWorkerStartRequest,
   WebWorkerIterateRequest, WebWorkerUpdateColorMapRequest,
-  ColorMapUI, Histogram, WebWorkerHistogramRequest, WebWorkerHistorgramResponse,
-  HistArrayPair, MapInfoWithColorMap
+  Histogram, WebWorkerHistogramRequest, WebWorkerHistorgramResponse,
+  HistArrayPair
 } from '../m-map-common';
+
+
+import { ColorMapUI, ColorMapUIEntry, ColorMapForExport, MapInfoWithColorMap } from '../m-map-common-ui';
 
 @Component({
   selector: 'app-m-map-display',

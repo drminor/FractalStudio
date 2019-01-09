@@ -8,9 +8,28 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="src\app\m-map\BigRatTest.ts" />
     <None Remove="src\app\m-map\ColorNumbers.ts" />
+    <None Remove="src\app\m-map\m-map-common-ui.ts" />
     <None Remove="src\app\m-map\m-map-common.ts" />
+    <None Remove="src\app\m-map\m-map-divisions.ts" />
     <None Remove="src\app\m-map\m-map-viewer-state.ts" />
+    <None Remove="src\assets\ColorNumbers.js" />
+    <None Remove="src\assets\ColorNumbers.js.map" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="src\assets\ColorNumbers.js">
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Include="src\assets\ColorNumbers.js.map">
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="wwwroot\assets\ColorNumbers.js" />
+    <None Include="wwwroot\assets\ColorNumbers.js.map" />
   </ItemGroup>
 
   <ItemGroup>
@@ -19,10 +38,13 @@
 
   <ItemGroup>
     <TypeScriptCompile Include="src\app\logger.service.ts" />
+    <TypeScriptCompile Include="src\app\m-map\BigRatTest.ts" />
     <TypeScriptCompile Include="src\app\m-map\ColorNumbers.ts" />
+    <TypeScriptCompile Include="src\app\m-map\m-map-common-ui.ts" />
     <TypeScriptCompile Include="src\app\m-map\m-map-common.ts">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </TypeScriptCompile>
+    <TypeScriptCompile Include="src\app\m-map\m-map-divisions.ts" />
     <TypeScriptCompile Include="src\app\m-map\m-map-viewer-state.ts" />
     <TypeScriptCompile Include="src\app\SampleClassTypeDeclarations\file.ts" />
   </ItemGroup>

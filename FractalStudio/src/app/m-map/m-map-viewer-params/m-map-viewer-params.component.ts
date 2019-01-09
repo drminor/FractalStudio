@@ -1,8 +1,11 @@
 import { Component, EventEmitter, Output, Input, ViewChild, ElementRef, OnInit } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 
-import { IBox, IMapInfo, MapInfo, MapInfoWithColorMap, MapInfoWithColorMapForExport, ICanvasSize, CanvasSize } from '../m-map-common';
+import { IBox, IMapInfo, MapInfo, ICanvasSize, CanvasSize } from '../m-map-common';
 import { IVirtualMapParams, VirtualMapParams } from '../m-map-viewer-state';
+
+import { ColorMapUI, ColorMapUIEntry, ColorMapForExport, MapInfoWithColorMap, MapInfoWithColorMapForExport } from '../m-map-common-ui';
+
 
 @Component({
   selector: 'app-m-map-viewer-params',

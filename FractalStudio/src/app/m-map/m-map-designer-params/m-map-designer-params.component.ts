@@ -2,9 +2,10 @@ import { Component, EventEmitter, Output, Input, ViewChild, ElementRef, OnInit }
 import { FormControl, FormGroup } from '@angular/forms';
 
 import {
-  IPoint, Point, IBox, Box, IMapInfo, MapInfo,
-  ColorMapForExport, MapInfoWithColorMap, MapInfoWithColorMapForExport
-} from '../m-map-common';
+  IPoint, Point, IBox, Box, IMapInfo, MapInfo } from '../m-map-common';
+
+import { ColorMapUI, ColorMapUIEntry, ColorMapForExport, MapInfoWithColorMap, MapInfoWithColorMapForExport } from '../m-map-common-ui';
+
 
 @Component({
   selector: 'app-m-map-designer-params',
@@ -72,12 +73,12 @@ export class MMapDesignerParamsComponent implements OnInit {
 
     let botLeft: IPoint = Point.fromStringVals(frm.controls["startX"].value, frm.controls["startY"].value);
     let topRight: IPoint = Point.fromStringVals(frm.controls["endX"].value, frm.controls["endY"].value);
-
     let coords: IBox = new Box(botLeft, topRight);
 
     let maxIterations = parseInt(frm.controls["maxIterations"].value);
     let threshold = parseInt(frm.controls.threshold.value);
     let iterationsPerStep = parseInt(frm.controls["iterationsPerStep"].value);
+
     result = new MapInfo(coords, maxIterations, threshold, iterationsPerStep);
 
     return result;
@@ -90,7 +91,7 @@ export class MMapDesignerParamsComponent implements OnInit {
     }
     else {
       console.log('Params is handling form submit with changes.');
-      this.raiseMapInfoUpdated(mapInfo);
+      this.mapInfoUpdated.emit(mapInfo);
     }
   }
 
@@ -132,11 +133,7 @@ export class MMapDesignerParamsComponent implements OnInit {
     }
 
     let newMapInfo = new MapInfo(newCoords, mi.maxIterations, mi.threshold, mi.iterationsPerStep);
-    this.raiseMapInfoUpdated(newMapInfo);
-  }
-
-  private raiseMapInfoUpdated(mapInfo: IMapInfo): void {
-    this.mapInfoUpdated.emit(mapInfo);
+    this.mapInfoUpdated.emit(newMapInfo);
   }
 
   onGoBack() {
@@ -186,19 +183,11 @@ export class MMapDesignerParamsComponent implements OnInit {
     fr.onload = (ev => {
       let rawResult: string = fr.result as string;
       let miwcmfe: MapInfoWithColorMapForExport = JSON.parse(rawResult) as MapInfoWithColorMapForExport;
-
-
       let miwcm = MapInfoWithColorMap.fromForExport(miwcmfe, -1);
-
       this.mapInfoLoaded.emit(miwcm);
     });
 
     fr.readAsText(files.item(0));
-
-  }
-
-  onTest() {
-    this.goBack.emit(2);
   }
 
 }

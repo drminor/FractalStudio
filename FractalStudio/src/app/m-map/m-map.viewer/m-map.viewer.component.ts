@@ -2,8 +2,11 @@ import { Component, ViewChild, ElementRef } from '@angular/core';
 
 import {
   IPoint, Point, IMapInfo, MapInfo, IBox, Box,
-  ColorMapUI,  MapInfoWithColorMap, Histogram, ICanvasSize, CanvasSize
+  Histogram, ICanvasSize, CanvasSize
 } from '../../m-map/m-map-common';
+
+import { ColorMapUI, ColorMapUIEntry, ColorMapForExport, MapInfoWithColorMap, MapInfoWithColorMapForExport } from '../m-map-common-ui';
+
 
 import { IVirtualMap, VirtualMap, IVirtualMapParams, VirtualMapParams } from '../m-map-viewer-state';
 
