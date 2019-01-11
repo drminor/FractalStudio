@@ -21,10 +21,11 @@ namespace FractalServer
             Version = -1;
         }
 
-        public MapInfoWithColorMapForExport(MapInfo mapInfo, ColorMapForExport colorMapForExport)
+        public MapInfoWithColorMapForExport(MapInfo mapInfo, ColorMapForExport colorMapForExport, double version)
         {
             MapInfo = mapInfo ?? throw new ArgumentNullException(nameof(mapInfo));
             ColorMapForExport = colorMapForExport ?? throw new ArgumentNullException(nameof(colorMapForExport));
+            Version = version;
         }
     }
 }

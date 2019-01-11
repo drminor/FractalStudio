@@ -16,7 +16,7 @@
                 _cutOffs[ptr] = colorMapEntries[ptr].CutOff;
             }
 
-            HighColorEntry = new ColorMapEntry(-1, highColor);
+            HighColorEntry = new ColorMapEntry(-1, highColor, ColorMapBlendStyle.None, highColor);
         }
 
         public ColorMapEntry GetColorMapEntry(int countVal)
@@ -43,11 +43,44 @@
 
         public static ColorMap GetFromColorMapForExport(ColorMapForExport cmfe)
         {
+            ColorMap result;
+            if (cmfe.Version == 1 || cmfe.Version == -1)
+            {
+                result = GetFromColorMapForExportV1(cmfe);
+            }
+            else
+            {
+                result = GetFromColorMapForExportV2(cmfe);
+            }
+
+            return result;
+        }
+
+        private static ColorMap GetFromColorMapForExportV1(ColorMapForExport cmfe)
+        {
             ColorMapEntry[] newRanges = new ColorMapEntry[cmfe.Ranges.Length];
 
-            for(int ptr = 0; ptr < cmfe.Ranges.Length; ptr++)
+            for (int ptr = 0; ptr < cmfe.Ranges.Length; ptr++)
             {
-                newRanges[ptr] = new ColorMapEntry(cmfe.Ranges[ptr].CutOff, cmfe.Ranges[ptr].CssColor);
+                ColorMapEntryForExport sourceCme = cmfe.Ranges[ptr];
+
+                newRanges[ptr] = new ColorMapEntry(sourceCme.CutOff, sourceCme.CssColor);
+            }
+
+            ColorMap result = new ColorMap(newRanges, cmfe.HighColorCss);
+
+            return result;
+        }
+
+        private static ColorMap GetFromColorMapForExportV2(ColorMapForExport cmfe)
+        {
+            ColorMapEntry[] newRanges = new ColorMapEntry[cmfe.Ranges.Length];
+
+            for (int ptr = 0; ptr < cmfe.Ranges.Length; ptr++)
+            {
+                ColorMapEntryForExport sourceCme = cmfe.Ranges[ptr];
+
+                newRanges[ptr] = new ColorMapEntry(sourceCme.CutOff, sourceCme.StartCssColor, sourceCme.BlendStyle, sourceCme.EndCssColor);
             }
 
             ColorMap result = new ColorMap(newRanges, cmfe.HighColorCss);

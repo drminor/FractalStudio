@@ -49,6 +49,8 @@
   <ItemGroup>
     <Compile Include="BigFloat.cs" />
     <Compile Include="ColorMap.cs" />
+    <Compile Include="ColorMapBlendStyle.cs" />
+    <Compile Include="ColorMapColor.cs" />
     <Compile Include="ColorMapEntry.cs" />
     <Compile Include="ColorMapEntryForExport.cs" />
     <Compile Include="ColorMapForExport.cs" />

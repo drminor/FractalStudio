@@ -40,17 +40,17 @@ namespace FractalServerTests
         {
             //string path = @"C:\MandlebrodtMapInfo.json";
 
-            int fn = 45;
+            string fn = "x18";
             string path = Path.Combine(BasePath, $"MandlebrodtMapInfo ({fn}).json");
 
             JsonReader jr = new JsonReader();
             MapInfoWithColorMap miwcm = jr.Read(path);
 
-            //Size canvasSize = new Size(1440, 960);
+            Size canvasSize = new Size(1440, 960);
             //Size canvasSize = new Size(7200, 4800);
             //Size canvasSize = new Size(10800, 7200);
             //Size canvasSize = new Size(14400, 9600);
-            Size canvasSize = new Size(21600, 14400);
+            //Size canvasSize = new Size(21600, 14400);
 
             // Double the size of an 11 x 7.33 at 300 DPI
             //Size canvasSize = new Size(6600, 4400);

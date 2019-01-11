@@ -3,51 +3,24 @@
     public class ColorMapEntry
     {
         public readonly int CutOff;
-        public readonly int ColorNum;
-        public readonly int[] ColorComps;
+        public readonly ColorMapColor StartColor;
+        public readonly ColorMapBlendStyle BlendStyle;
+        public readonly ColorMapColor EndColor;
 
-        public ColorMapEntry(int cutOff, string cssColor)
+        public ColorMapEntry(int cutOff, string startCssColor, ColorMapBlendStyle blendStyle, string endCssColor)
         {
             CutOff = cutOff;
-            ColorComps = GetColorComps(cssColor);
-            ColorNum = GetColorNum(ColorComps);
+            StartColor = new ColorMapColor(startCssColor);
+            BlendStyle = blendStyle;
+            EndColor = new ColorMapColor(endCssColor);
         }
 
-        private int[] GetColorComps(string cssColor)
+        public ColorMapEntry(int cutOff, string startCssColor)
         {
-            int[] result = new int[3];
-
-            result[0] = int.Parse(cssColor.Substring(1, 2), System.Globalization.NumberStyles.HexNumber);
-            result[1] = int.Parse(cssColor.Substring(3, 2), System.Globalization.NumberStyles.HexNumber);
-            result[2] = int.Parse(cssColor.Substring(5, 2), System.Globalization.NumberStyles.HexNumber);
-
-            return result;
+            CutOff = cutOff;
+            StartColor = new ColorMapColor(startCssColor);
+            BlendStyle = ColorMapBlendStyle.None;
+            EndColor = new ColorMapColor(startCssColor);
         }
-
-        private int GetColorNum(int[] cComps)
-        {
-            int result = 255 << 24;
-            result |= cComps[2] << 16;
-            result |= cComps[1] << 8;
-            result |= cComps[0];
-
-            return result;
-        }
-
-        //public static int GetColorNumFromCss(string cssColor)
-        //{
-        //    int r = int.Parse(cssColor.Substring(1, 2), System.Globalization.NumberStyles.HexNumber);
-        //    int g = int.Parse(cssColor.Substring(3, 2), System.Globalization.NumberStyles.HexNumber);
-        //    int b = int.Parse(cssColor.Substring(5, 2), System.Globalization.NumberStyles.HexNumber);
-        //    int a = 255;
-
-        //    int result = a << 24;
-        //    result |= b << 16;
-        //    result |= g << 8;
-        //    result |= r;
-
-        //    return result;
-        //}
-
     }
 }
