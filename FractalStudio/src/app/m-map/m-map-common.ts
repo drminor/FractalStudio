@@ -1,5 +1,5 @@
 
-export class ColorNumbers {
+class ColorNumbers {
 
   public static white: number = ColorNumbers.getColor(255, 255, 255);
   public static black: number = ColorNumbers.getColor(0, 0, 0);
@@ -235,6 +235,7 @@ export interface IMapWorkingData {
 }
 
 export class Point implements IPoint {
+
   constructor(public x: number, public y: number) { }
 
   public static fromStringVals(strX: string, strY: string): IPoint {
@@ -1117,7 +1118,7 @@ export class MapWorkingData implements IMapWorkingData {
     }
 
     this.curIterations = 0;
-    this.log2 = Math.log(2) as number;
+    this.log2 = Math.log10(2) as number;
 
     console.log('Constructing MapWorkingData, ColorMap = ' + this.colorMap + '.');
   }
@@ -1206,11 +1207,11 @@ export class MapWorkingData implements IMapWorkingData {
         zxSquared = z.x * z.x;
         zySquared = z.y * z.y;
 
-        let modulus: number = Math.log(zxSquared + zySquared) / 2;
-        let nu: number = Math.log(modulus / this.log2) / this.log2;
+        let modulus: number = Math.log10(zxSquared + zySquared) / 2;
+        let nu: number = Math.log10(modulus / this.log2) / this.log2;
         //let nu: number = Math.log(modulus) / this.log2;
 
-        wv.escapeVel = 1 - nu / 4;
+        wv.escapeVel = 1 - nu / 2; // / 4;
         //wv.escapeVel = nu;
 
         wv.done = true;
@@ -1392,6 +1393,8 @@ export class ColorMap {
 
     // Update the prevCutOff and bucketWidth values for each of our ColorMapEntries.
     this.setBucketWidths();
+
+    
   }
 
   //public static FromTypedArrays(cutOffs: Uint16Array, colorNums: Uint32Array, highColor: number): ColorMap {
@@ -1938,18 +1941,17 @@ onmessage = function (e) {
     let iterateRequestMsg = WebWorkerIterateRequest.FromEventData(e.data);
     let iterCount = iterateRequestMsg.iterateCount;
     mapWorkingData.doIterationsForAll(iterCount);
+
     pixelData = mapWorkingData.getPixelData();
-
     imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, pixelData);
-
     //console.log('Posting ' + workerResult.messageKind + ' back to main script');
     self.postMessage(imageDataResponse, "*", [pixelData.buffer]);
   }
   else if (plainMsg.messageKind === 'GetImageData') {
     //mapWorkingData.doIterationsForAll(1);
+
     pixelData = mapWorkingData.getPixelData();
     imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, pixelData);
-
     //console.log('Posting ' + workerResult.messageKind + ' back to main script');
     self.postMessage(imageDataResponse, "*", [pixelData.buffer]);
   }
@@ -1960,9 +1962,7 @@ onmessage = function (e) {
     console.log('WebWorker received an UpdateColorMapRequest with ' + mapWorkingData.colorMap.ranges.length + ' entries.');
 
     pixelData = mapWorkingData.getPixelData();
-
     imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, pixelData);
-
     //console.log('Posting ' + workerResult.messageKind + ' back to main script');
     self.postMessage(imageDataResponse, "*", [pixelData.buffer]);
   }
@@ -1978,6 +1978,7 @@ onmessage = function (e) {
   }
 
 };
+
 
 
 

@@ -1,11 +1,5 @@
-//import { ColorNumbers } from "./ColorNumbers";
-//import { Big } from "big.js";
-
-
-//importScripts(['big.js', 'ColorNumbers']);
-
 importScripts('ColorNumbers.js');
-
+//importScripts('BigInteger.js');
 
 var MAX_CANVAS_WIDTH = 50000;
 var MAX_CANVAS_HEIGHT = 50000;
@@ -368,6 +362,264 @@ var MapInfo = /** @class */ (function () {
     return 'sx:' + this.coords.botLeft.x + ' ex:' + this.coords.topRight.x + ' sy:' + this.coords.botLeft.y + ' ey:' + this.coords.topRight.y + ' mi:' + this.maxIterations + ' ips:' + this.iterationsPerStep + '.';
   };
   return MapInfo;
+}());
+var Divisions = /** @class */ (function () {
+  //constructor(total: number, startVal: number, startIdx: number, numberOfDivs: number) {
+  //  this._numberOfDivs = 1;
+  //  this.total = total;
+  //  this.startVal = startVal;
+  //  this.startIdx = startIdx;
+  //  this.numberOfDivs = numberOfDivs;
+  //}
+  function Divisions(numberOfDivs) {
+    this._numberOfDivs = 1;
+    this.total = 1;
+    this.startVal = 0;
+    this.startIdx = 0;
+    this.numberOfDivs = numberOfDivs;
+  }
+  Divisions.createWithStartVal = function (total, startVal, startIdx, numberOfDivs) {
+    var result = new Divisions(numberOfDivs);
+    result.setTotalAndStart(total, startVal, startIdx);
+    return result;
+  };
+  Object.defineProperty(Divisions.prototype, "total", {
+    get: function () {
+      return this._total;
+    },
+    set: function (value) {
+      this._total = value;
+      if (this._numberOfDivs > 1) {
+        var workDivs = this.buildDivisions(this._total, this._startVal, this._startIdx, this._numberOfDivs);
+        var curStartIdx = this._startIdx + 1;
+        var ptr = void 0;
+        for (ptr = 0; ptr < this.children.length; ptr++) {
+          curStartIdx = this.children[ptr].setTotalAndStart(workDivs[ptr].total, workDivs[ptr].startVal, curStartIdx);
+        }
+      }
+    },
+    enumerable: true,
+    configurable: true
+  });
+  Object.defineProperty(Divisions.prototype, "startVal", {
+    get: function () {
+      return this._startVal;
+    },
+    set: function (value) {
+      this._startVal = value;
+      if (this._numberOfDivs > 1) {
+        var workDivs = this.buildDivisions(this._total, this._startVal, this._startIdx, this._numberOfDivs);
+        var curStartIdx = this._startIdx + 1;
+        var ptr = void 0;
+        for (ptr = 0; ptr < this.children.length; ptr++) {
+          curStartIdx = this.children[ptr].setTotalAndStart(workDivs[ptr].total, workDivs[ptr].startVal, curStartIdx);
+        }
+      }
+    },
+    enumerable: true,
+    configurable: true
+  });
+  Object.defineProperty(Divisions.prototype, "startIdx", {
+    get: function () {
+      return this._startIdx;
+    },
+    set: function (value) {
+      this._startIdx = value;
+      if (this._numberOfDivs > 1) {
+        var curStartIdx = value + 1;
+        var ptr = void 0;
+        for (ptr = 0; ptr < this.children.length; ptr++) {
+          curStartIdx = this.children[ptr].setTotalAndStart(this.total, this.startVal, curStartIdx);
+        }
+      }
+    },
+    enumerable: true,
+    configurable: true
+  });
+  Object.defineProperty(Divisions.prototype, "numberOfDivs", {
+    get: function () {
+      return this._numberOfDivs;
+    },
+    set: function (value) {
+      if (value < 1 || parseInt(value.toString()) !== value) {
+        throw new RangeError('The numberOfDivs must be a whole number greater than 0.');
+      }
+      this._numberOfDivs = value;
+      if (value === 1) {
+        this.children = null;
+      }
+      else {
+        this.children = this.buildDivisions(this.total, this.startVal, this._startIdx, value);
+      }
+    },
+    enumerable: true,
+    configurable: true
+  });
+  Divisions.prototype.setTotalAndStart = function (total, startVal, startIdx) {
+    this._total = total;
+    this._startVal = startVal;
+    this._startIdx = startIdx;
+    var curStartIdx = startIdx + 1;
+    if (this._numberOfDivs > 1) {
+      var workDivs = this.buildDivisions(this._total, this._startVal, this._startIdx, this._numberOfDivs);
+      var ptr = void 0;
+      for (ptr = 0; ptr < this.children.length; ptr++) {
+        curStartIdx = this.children[ptr].setTotalAndStart(workDivs[ptr].total, workDivs[ptr].startVal, curStartIdx);
+      }
+    }
+    return curStartIdx;
+  };
+  Divisions.prototype.insertChild = function (newChild, index) {
+    if (index < 0 || index > this._numberOfDivs) {
+      throw new RangeError('The index is out of bounds.');
+    }
+    this._numberOfDivs++;
+    var workDivs = this.buildDivisions(this._total, this._startVal, this._startIdx, this._numberOfDivs);
+    if (this._numberOfDivs === 2) {
+      this.children = new Array(2);
+      if (index === 0) {
+        newChild.setTotalAndStart(this._total, this._startVal, this._startIdx + 1);
+        this.children.push(newChild);
+        this.children.push(workDivs[1]);
+      }
+      else {
+        newChild.setTotalAndStart(this._total, this._startVal, this._startIdx + 2);
+        this.children.push(workDivs[0]);
+        this.children.push(newChild);
+      }
+    }
+    else {
+      this.children.splice(index, 0, newChild);
+      var curStartIdx = this._startIdx + 1;
+      var ptr = void 0;
+      for (ptr = 0; ptr < this.children.length; ptr++) {
+        curStartIdx = this.children[ptr].setTotalAndStart(workDivs[ptr].total, workDivs[ptr].startVal, curStartIdx);
+      }
+    }
+  };
+  Divisions.prototype.deleteChild = function (index) {
+    if (index < 0 || index > this._numberOfDivs) {
+      throw new RangeError('The index is out of bounds.');
+    }
+    this._numberOfDivs--;
+    var workDivs = this.buildDivisions(this._total, this._startVal, this._startIdx, this._numberOfDivs);
+    this.children.splice(index, 1);
+    var curStartIdx = this._startIdx + 1;
+    var ptr;
+    for (ptr = 0; ptr < this.children.length; ptr++) {
+      curStartIdx = this.children[ptr].setTotalAndStart(workDivs[ptr].total, workDivs[ptr].startVal, curStartIdx);
+    }
+  };
+  Divisions.prototype.buildDivisions = function (total, startVal, startIdx, divs) {
+    var result = new Array(divs);
+    var unit = total / divs;
+    var curStartVal = startVal;
+    var firstChildStartIdx = startIdx + 1;
+    var ptr;
+    for (ptr = 0; ptr < divs; ptr++) {
+      result[ptr] = new Divisions(1);
+      result[ptr].setTotalAndStart(unit, curStartVal, firstChildStartIdx++);
+      curStartVal += unit;
+    }
+    return result;
+  };
+  Divisions.prototype.getStartingValsAsPercentages = function () {
+    var result = [];
+    var startingVals = this.getStartingVals();
+    var ptr;
+    for (ptr = 0; ptr < startingVals.length; ptr++) {
+      result.push(Divisions.formatAsPercentage(startingVals[ptr]));
+    }
+    return result;
+  };
+  // Running percentages
+  // Returns a list of numeric values, each value is between 0 and 1.
+  Divisions.prototype.getStartingVals = function () {
+    var curResult = [];
+    var result = this.getStartingValsInternal(curResult);
+    return result;
+  };
+  Divisions.prototype.getStartingValsInternal = function (curResult) {
+    if (this._numberOfDivs === 1) {
+      curResult.push(this.startVal);
+    }
+    else {
+      var ptr = void 0;
+      for (ptr = 0; ptr < this.children.length; ptr++) {
+        curResult = this.children[ptr].getStartingValsInternal(curResult);
+      }
+    }
+    return curResult;
+  };
+  // Individual percentage values
+  // Returns a list of numeric values, each value is between 0 and 1.
+  Divisions.prototype.getVals = function () {
+    var curResult = [];
+    var result = this.getValsInternal(curResult);
+    return result;
+  };
+  Divisions.prototype.getValsInternal = function (curResult) {
+    if (this._numberOfDivs === 1) {
+      curResult.push(this.total);
+    }
+    else {
+      var ptr = void 0;
+      for (ptr = 0; ptr < this.children.length; ptr++) {
+        curResult = this.children[ptr].getValsInternal(curResult);
+      }
+    }
+    return curResult;
+  };
+  Divisions.prototype.toString = function () {
+    return this.toStringInternal('');
+  };
+  Divisions.prototype.toStringInternal = function (curResult) {
+    var result = curResult;
+    if (this._numberOfDivs === 1) {
+      if (result !== '') {
+        result += ', ';
+      }
+      result = '\n(entry:' + this.startIdx + '-' + this.startVal + ':' + this.total + ')';
+    }
+    else {
+      result = '';
+      var ptr = void 0;
+      for (ptr = 0; ptr < this.children.length; ptr++) {
+        if (result !== '') {
+          result += ', ';
+        }
+        result += this.children[ptr].toStringInternal(result);
+      }
+      result = '\n(entry:' + this.startIdx + '-' + this.startVal + ':' + this.total + ')' + '[' + result + ']';
+    }
+    return result;
+  };
+  Divisions.X100With3DecPlaces = function (val) {
+    if (val === 0) {
+      return 0;
+    }
+    else {
+      var percentX1000 = parseInt((100000 * val + 0.5).toString(), 10);
+      var p = percentX1000 / 1000;
+      return p;
+    }
+  };
+  Divisions.prototype.staticFormatX100AsPercentage = function (val) {
+    var result = val.toString() + '%';
+    return result;
+  };
+  Divisions.formatAsPercentage = function (val) {
+    if (val === 0) {
+      return '0.0%';
+    }
+    else {
+      var percentX1000 = parseInt((100000 * val + 0.5).toString(), 10);
+      var p = percentX1000 / 1000;
+      var res = p.toString() + '%';
+      return res;
+    }
+  };
+  return Divisions;
 }());
 var IndexAndRunningSum = /** @class */ (function () {
   function IndexAndRunningSum(idx, runningSum) {
@@ -743,6 +995,33 @@ var Histogram = /** @class */ (function () {
   };
   return Histogram;
 }());
+var MapInfoWithColorMap = /** @class */ (function () {
+  function MapInfoWithColorMap(mapInfo, colorMapUi) {
+    this.mapInfo = mapInfo;
+    this.colorMapUi = colorMapUi;
+  }
+  MapInfoWithColorMap.fromForExport = function (miwcmfe, serialNumber) {
+    if (typeof miwcmfe.version === 'undefined') {
+      miwcmfe.version = 1.0;
+    }
+    //console.log('Loaded the MapInfoWithColorMapForExport and it has version = ' + miwcmfe.version + '.');
+    // Create a new MapInfo from the loaded data.
+    var mapInfo = MapInfo.fromIMapInfo(miwcmfe.mapInfo);
+    // Create a new ColorMapUI from the loaded data.
+    var colorMap = ColorMapUI.fromColorMapForExport(miwcmfe.colorMap, serialNumber);
+    var result = new MapInfoWithColorMap(mapInfo, colorMap);
+    return result;
+  };
+  return MapInfoWithColorMap;
+}());
+var MapInfoWithColorMapForExport = /** @class */ (function () {
+  function MapInfoWithColorMapForExport(mapInfo, colorMap) {
+    this.mapInfo = mapInfo;
+    this.colorMap = colorMap;
+    this.version = 1.0;
+  }
+  return MapInfoWithColorMapForExport;
+}());
 var CurWorkVal = /** @class */ (function () {
   function CurWorkVal() {
     this.z = new Point(0, 0);
@@ -857,7 +1136,7 @@ var MapWorkingData = /** @class */ (function () {
         var modulus = Math.log10(zxSquared + zySquared) / 2;
         var nu = Math.log10(modulus / this.log2) / this.log2;
         //let nu: number = Math.log(modulus) / this.log2;
-        wv.escapeVel = 1 - nu / 2; // / 4;
+        wv.escapeVel = 1 - nu / 4; // / 4;
         //wv.escapeVel = nu;
         wv.done = true;
         break;
@@ -985,6 +1264,138 @@ var ColorMapEntry = /** @class */ (function () {
     this.endColorNum = endColorNum;
   }
   return ColorMapEntry;
+}());
+var ColorMapEntryForExport = /** @class */ (function () {
+  function ColorMapEntryForExport(cutOff, startCssColor, blendStyle, endCssColor) {
+    this.cutOff = cutOff;
+    this.startCssColor = startCssColor;
+    this.blendStyle = blendStyle;
+    this.endCssColor = endCssColor;
+  }
+  ColorMapEntryForExport.fromColorMapUIEntry = function (cme) {
+    var result = new ColorMapEntryForExport(cme.cutOff, cme.startColor.rgbHex, cme.blendStyle, cme.endColor.rgbHex);
+    return result;
+  };
+  return ColorMapEntryForExport;
+}());
+var ColorMapUIColor = /** @class */ (function () {
+  function ColorMapUIColor(colorVals) {
+    this.colorComponents = new Array(4);
+    var alpha;
+    if (colorVals === null) {
+      // Use black when we are given a null value.
+      colorVals = [0, 0, 0];
+      alpha = 255;
+    }
+    else if (colorVals.length === 3) {
+      alpha = 255;
+    }
+    else if (colorVals.length === 4) {
+      alpha = colorVals[3];
+    }
+    else {
+      throw new RangeError('colorVals must have exactly 3 or 4 elements.');
+    }
+    this.colorComponents[0] = colorVals[0];
+    this.colorComponents[1] = colorVals[1];
+    this.colorComponents[2] = colorVals[2];
+    this.colorComponents[3] = alpha;
+  }
+  Object.defineProperty(ColorMapUIColor.prototype, "r", {
+    get: function () {
+      return this.colorComponents[0];
+    },
+    enumerable: true,
+    configurable: true
+  });
+  Object.defineProperty(ColorMapUIColor.prototype, "g", {
+    get: function () {
+      return this.colorComponents[1];
+    },
+    enumerable: true,
+    configurable: true
+  });
+  Object.defineProperty(ColorMapUIColor.prototype, "b", {
+    get: function () {
+      return this.colorComponents[2];
+    },
+    enumerable: true,
+    configurable: true
+  });
+  Object.defineProperty(ColorMapUIColor.prototype, "alpha", {
+    get: function () {
+      return this.colorComponents[3];
+    },
+    enumerable: true,
+    configurable: true
+  });
+  Object.defineProperty(ColorMapUIColor.prototype, "rgbHex", {
+    get: function () {
+      var result = ColorNumbers.getRgbHex(this.colorComponents);
+      return result;
+    },
+    enumerable: true,
+    configurable: true
+  });
+  Object.defineProperty(ColorMapUIColor.prototype, "rgbaString", {
+    get: function () {
+      var result = ColorNumbers.getRgbaString(this.colorComponents);
+      return result;
+    },
+    enumerable: true,
+    configurable: true
+  });
+  ColorMapUIColor.fromColorNum = function (cNum) {
+    var colorComps = ColorNumbers.getColorComponents(cNum);
+    var result = new ColorMapUIColor(colorComps);
+    return result;
+  };
+  ColorMapUIColor.fromCssColor = function (cssColor) {
+    var colorComps = ColorNumbers.getColorComponentsFromCssColor(cssColor);
+    var result = new ColorMapUIColor(colorComps);
+    return result;
+  };
+  ColorMapUIColor.fromRgba = function (rgbaColor) {
+    var colorComps = ColorNumbers.getColorComponentsFromRgba(rgbaColor);
+    var result = new ColorMapUIColor(colorComps);
+    return result;
+  };
+  return ColorMapUIColor;
+}());
+var ColorMapUIEntry = /** @class */ (function () {
+  function ColorMapUIEntry(cutOff, colorVals, blendStyle, endColorVals) {
+    this.cutOff = cutOff;
+    this.blendStyle = blendStyle;
+    this.startColor = new ColorMapUIColor(colorVals);
+    this.endColor = new ColorMapUIColor(endColorVals);
+  }
+  ColorMapUIEntry.prototype.clone = function () {
+    var result = new ColorMapUIEntry(this.cutOff, this.startColor.colorComponents, this.blendStyle, this.endColor.colorComponents);
+    return result;
+  };
+  ColorMapUIEntry.fromColorMapEntry = function (cme) {
+    var result = ColorMapUIEntry.fromOffsetAndColorNum(cme.cutOff, cme.colorNum, cme.blendStyle, cme.endColorNum);
+    return result;
+  };
+  ColorMapUIEntry.fromOffsetAndColorNum = function (cutOff, startCNum, blendStyle, endCNum) {
+    var startColorComps = ColorNumbers.getColorComponents(startCNum);
+    var endColorComps = ColorNumbers.getColorComponents(endCNum);
+    var result = new ColorMapUIEntry(cutOff, startColorComps, blendStyle, endColorComps);
+    return result;
+  };
+  ColorMapUIEntry.fromOffsetAndCssColor = function (cutOff, startCssColor, blendStyle, endCssColor) {
+    var startColorComps = ColorNumbers.getColorComponentsFromCssColor(startCssColor);
+    var endColorComps = ColorNumbers.getColorComponentsFromCssColor(endCssColor);
+    var result = new ColorMapUIEntry(cutOff, startColorComps, blendStyle, endColorComps);
+    return result;
+  };
+  ColorMapUIEntry.fromOffsetAndRgba = function (cutOff, startRgbaColor, blendStyle, endRgbaColor) {
+    var startColorComps = ColorNumbers.getColorComponentsFromRgba(startRgbaColor);
+    var endColorComps = ColorNumbers.getColorComponentsFromRgba(endRgbaColor);
+    var result = new ColorMapUIEntry(cutOff, startColorComps, blendStyle, endColorComps);
+    return result;
+  };
+  return ColorMapUIEntry;
 }());
 var ColorMap = /** @class */ (function () {
   function ColorMap(ranges, highColor) {
@@ -1150,6 +1561,155 @@ var ColorMap = /** @class */ (function () {
     return result;
   };
   return ColorMap;
+}());
+var ColorMapUI = /** @class */ (function () {
+  function ColorMapUI(ranges, highColorCss, serialNumber) {
+    this.ranges = ranges;
+    this.highColorCss = highColorCss;
+    this.serialNumber = serialNumber;
+  }
+  ColorMapUI.prototype.insertColorMapEntry = function (index, entry) {
+    this.ranges.splice(index, 0, entry);
+  };
+  ColorMapUI.prototype.removeColorMapEntry = function (index) {
+    var result = this.ranges[index];
+    this.ranges.splice(index, 1);
+    return result;
+  };
+  ColorMapUI.prototype.applyColors = function (colorMapUiEntries, serialNumber) {
+    var ranges = [];
+    var ptrToNewColorEntry = 0;
+    var ptr;
+    for (ptr = 0; ptr < this.ranges.length; ptr++) {
+      var existingCutOff = this.ranges[ptr].cutOff;
+      var sourceCme = colorMapUiEntries[ptrToNewColorEntry++];
+      var startCComps = sourceCme.startColor.colorComponents;
+      var endCComps = sourceCme.endColor.colorComponents;
+      ranges.push(new ColorMapUIEntry(existingCutOff, startCComps, sourceCme.blendStyle, endCComps));
+      if (ptrToNewColorEntry > colorMapUiEntries.length - 1) {
+        ptrToNewColorEntry = 0;
+      }
+    }
+    var result = new ColorMapUI(ranges, this.highColorCss, serialNumber);
+    return result;
+  };
+  ColorMapUI.prototype.mergeCutoffs = function (cutOffs, serialNumber) {
+    var ranges = [];
+    var ptrToExistingCmes = 0;
+    var ptr;
+    for (ptr = 0; ptr < cutOffs.length; ptr++) {
+      //let existingColorComps = this.ranges[ptrToExistingCmes++].startColor.colorComponents;
+      var existingCme = this.ranges[ptrToExistingCmes++];
+      var startCComps = existingCme.startColor.colorComponents;
+      var endCComps = existingCme.endColor.colorComponents;
+      ranges.push(new ColorMapUIEntry(cutOffs[ptr], startCComps, existingCme.blendStyle, endCComps));
+      if (ptrToExistingCmes > this.ranges.length - 1) {
+        ptrToExistingCmes = 0;
+      }
+    }
+    var result = new ColorMapUI(ranges, this.highColorCss, serialNumber);
+    return result;
+  };
+  ColorMapUI.prototype.spliceCutOffs = function (start, numToRemove, cutOffs, serialNumber) {
+    // Create a range of ColorMapUIEntries from the given cutOffs.
+    var white = ColorNumbers.white;
+    var whiteComps = ColorNumbers.getColorComponents(white);
+    var rangesToInsert = [];
+    var ptr1;
+    for (ptr1 = 0; ptr1 < cutOffs.length; ptr1++) {
+      rangesToInsert.push(new ColorMapUIEntry(cutOffs[ptr1], whiteComps, ColorMapEntryBlendStyle.none, null));
+    }
+    // Create a copy of the existing ranges
+    var rangesResult = this.cloneRanges();
+    rangesResult.splice.apply(rangesResult, [start, numToRemove].concat(rangesToInsert));
+    var result = new ColorMapUI(rangesResult, this.highColorCss, serialNumber);
+    return result;
+  };
+  ColorMapUI.prototype.cloneRanges = function () {
+    var result = [];
+    var ptr;
+    for (ptr = 0; ptr < this.ranges.length; ptr++) {
+      result.push(this.ranges[ptr].clone());
+    }
+    return result;
+  };
+  ColorMapUI.prototype.getOffsets = function () {
+    var result = new Array(this.ranges.length);
+    var ptr;
+    for (ptr = 0; ptr < this.ranges.length; ptr++) {
+      result[ptr] = this.ranges[ptr].cutOff;
+    }
+    return result;
+  };
+  ColorMapUI.prototype.getRegularColorMap = function () {
+    var regularRanges = [];
+    var ptr;
+    for (ptr = 0; ptr < this.ranges.length; ptr++) {
+      var cmuie = this.ranges[ptr];
+      var startCComps = ColorNumbers.getColorFromComps(cmuie.startColor.colorComponents);
+      var endCComps = ColorNumbers.getColorFromComps(cmuie.endColor.colorComponents);
+      var cme = new ColorMapEntry(cmuie.cutOff, startCComps, cmuie.blendStyle, endCComps);
+      regularRanges.push(cme);
+    }
+    var result = new ColorMap(regularRanges, ColorNumbers.getColorFromCssColor(this.highColorCss));
+    return result;
+  };
+  ColorMapUI.fromColorMapForExport = function (cmfe, serialNumber) {
+    if (typeof cmfe.version === 'undefined') {
+      cmfe.version = 1.0;
+    }
+    //console.log('Got a ColorMapForExport and it has version = ' + cmfe.version + '.');
+    var result;
+    if (cmfe.version === 1.0) {
+      result = this.fromColorMapForExportV1(cmfe, serialNumber);
+    }
+    else {
+      result = this.fromColorMapForExportV2(cmfe, serialNumber);
+    }
+    return result;
+  };
+  ColorMapUI.fromColorMapForExportV1 = function (cmfe, serialNumber) {
+    var ranges = [];
+    var ptr;
+    for (ptr = 0; ptr < cmfe.ranges.length; ptr++) {
+      var cmeForExport = cmfe.ranges[ptr];
+      var cme = ColorMapUIEntry.fromOffsetAndCssColor(cmeForExport.cutOff, cmeForExport.cssColor, ColorMapEntryBlendStyle.none, '#000000');
+      ranges.push(cme);
+    }
+    var result = new ColorMapUI(ranges, cmfe.highColorCss, serialNumber);
+    return result;
+  };
+  ColorMapUI.fromColorMapForExportV2 = function (cmfe, serialNumber) {
+    var ranges = [];
+    var ptr;
+    for (ptr = 0; ptr < cmfe.ranges.length; ptr++) {
+      var cmeForExport = cmfe.ranges[ptr];
+      var cme = ColorMapUIEntry.fromOffsetAndCssColor(cmeForExport.cutOff, cmeForExport.startCssColor, cmeForExport.blendStyle, cmeForExport.endCssColor);
+      ranges.push(cme);
+    }
+    var result = new ColorMapUI(ranges, cmfe.highColorCss, serialNumber);
+    return result;
+  };
+  return ColorMapUI;
+}());
+var ColorMapForExport = /** @class */ (function () {
+  function ColorMapForExport(ranges, highColorCss) {
+    this.ranges = ranges;
+    this.highColorCss = highColorCss;
+    this.version = 2.0;
+  }
+  ColorMapForExport.FromColorMap = function (colorMap) {
+    var ranges = [];
+    var ptr;
+    for (ptr = 0; ptr < colorMap.ranges.length; ptr++) {
+      var cme = colorMap.ranges[ptr];
+      var cmeForExport = ColorMapEntryForExport.fromColorMapUIEntry(cme);
+      ranges.push(cmeForExport);
+    }
+    var result = new ColorMapForExport(ranges, colorMap.highColorCss);
+    return result;
+  };
+  return ColorMapForExport;
 }());
 // -- WebWorker Message Implementations
 var WebWorkerMessage = /** @class */ (function () {

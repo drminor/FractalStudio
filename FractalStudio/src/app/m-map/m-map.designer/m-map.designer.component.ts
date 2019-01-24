@@ -10,6 +10,8 @@ import {
 
 import { ColorMapUI, ColorMapUIEntry, ColorMapForExport, MapInfoWithColorMap, MapInfoWithColorMapForExport } from '../m-map-common-ui';
 
+import { apRationalCalc, apRational, RoundingMode } from '../../apMath/apRational';
+
 
 import { MMapDisplayComponent } from '../../m-map/m-map.display/m-map.display.component';
 
@@ -90,6 +92,8 @@ export class MMapDesignerComponent {
 
     this.colorEditorOffSet = '946px'; // 7 pixels to accomodate border, margin and 1 pixel gap.
     this.colorEditorWidth = '385px';
+
+    this.doApRatTest();
   }
 
   onColorMapUpdated(colorMap: ColorMapUI) {
@@ -235,6 +239,27 @@ export class MMapDesignerComponent {
 
     let result: ColorMapUI = new ColorMapUI(ranges, '#000000', serialNumber);
     return result;
+  }
+
+  private doApRatTest() {
+
+    let x: apRational = apRationalCalc.parse('351.23');
+    console.log('Created a apRational with value = ' + x.toString());
+
+    //let y: apRational = new apRational(true, 0, [0]);
+
+    let calc = new apRationalCalc(10, RoundingMode.HalfUp, 4, -3);
+    let s = calc.stringify(x);
+    console.log('Stringify of x = |' + s + '|');
+
+    let a = apRationalCalc.parse('201.123456789123456789');
+    let b = calc.round(a, 10, RoundingMode.HalfEven, false);
+    console.log('Round of a = ' + b);
+
+    let c = apRationalCalc.parse('0.00000000123456789123456789');
+    let d = calc.round(c, 5, RoundingMode.HalfEven, false);
+    console.log('Round of c = ' + d);
+
   }
 
 }
