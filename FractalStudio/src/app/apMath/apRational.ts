@@ -31,10 +31,14 @@ export class apRationalCalc {
 
   public MaxDp: number;
   public MaxPower: number;
+  //public IncludeSignForZero: boolean;
+  //public IncludeTrailingZeros: boolean;
 
   constructor(public dp: number, public rm: RoundingMode, public posExp: number, public negExp: number) {
     this.MaxDp = 1000000;
     this.MaxPower = 1000000;
+    //this.IncludeSignForZero = false;
+    //this.IncludeTrailingZeros = false;
   }
 
   public static parse(sn: string | number): apRational {
@@ -173,24 +177,105 @@ export class apRationalCalc {
 //  }
 
 
-  //return stringify(this, 2, dp, this.e + dp);
 
-  public toFixed(x: apRational): string {
-    let result: string = '';
+  //  P.toExponential = function (dp) {
+  //    return stringify(this, 1, dp, dp);
 
-    let n = this.dp;
-    //      // The index of the digit that may be rounded up.
-//      n = k - x.e;
+  //  P.toFixed = function (dp) {
+  //    return stringify(this, 2, dp, this.e + dp);
 
+  //  P.toPrecision = function (sd) {
+  //    return stringify(this, 3, sd, sd - 1);
 
-    return result;
+  public toFixed(x: apRational, dp: number): string {
 
+    if (!Number.isInteger(dp) || dp < 0 || dp > this.MaxDp) {
+      // Consider using ~~dp !== dp instead of Number.isInteger(dp)
+      throw new Error(apRationalCalc.INVALID_DP);
+    }
+
+    let k = dp + 1;
+
+    // n is the index of the digit that may be rounded up.
+    let n = dp;
+
+    // Round?
+    if (x.cof.length > k) {
+      this.round(x, n, this.rm, false);
+
+      // Recalculate k as x.exp may have changed if value rounded up.
+      k = x.exp + dp + 1;
+    }
+
+    //// Append zeros?
+    //if(this.IncludeTrailingZeros) 
+    //  for (; x.cof.length < k;) x.cof.push(0);
+
+    let e = x.exp;
+    let s = x.cof.join('');
+    n = s.length;
+
+    if (e < 0) {
+      for (; ++e;) s = '0' + s;
+      s = '0.' + s;
+    }
+    else if (e > 0) {
+      if (++e > n)
+        for (e -= n; e--;) s += '0';
+      else if (e < n)
+        s = s.slice(0, e) + '.' + s.slice(e);
+    }
+    else if (n > 1)
+      s = s.charAt(0) + '.' + s.slice(1);
+
+    // True if we are 0.
+    let z = !x.cof[0];
+
+    return !x.sign && (!z /*|| this.IncludeSignForZero*/) ? '-' + s : s;
+  }
+
+  public toExponential(x: apRational, dp: number): string {
+
+    if (!Number.isInteger(dp) || dp < 0 || dp > this.MaxDp) {
+      // Consider using ~~dp !== dp instead of Number.isInteger(dp)
+      throw new Error(apRationalCalc.INVALID_DP);
+    }
+
+    let k = dp + 1;
+
+    // n is the index of the digit that may be rounded up.
+    let n = dp - x.exp;
+
+    // Round?
+    if (x.cof.length > k) {
+      this.round(x, n, this.rm, false);
+    }
+
+    //// Append zeros?
+    //if (this.IncludeTrailingZeros)
+    //  for (; x.cof.length < k;) x.cof.push(0);
+
+    let e = x.exp;
+    let s = x.cof.join('');
+    n = s.length;
+
+    s = s.charAt(0) + (n > 1 ? '.' + s.slice(1) : '') + (e < 0 ? 'e' : 'e+') + e;
+
+    // True if we are 0.
+    let z = !x.cof[0];
+
+    return !x.sign && (!z /*|| this.IncludeSignForZero*/) ? '-' + s : s;
   }
 
   public stringify(x: apRational): string {
     let result: string = '';
 
-
+    if (x.exp >= this.posExp || x.exp <= this.negExp) {
+      result = this.toExponential(x, this.dp);
+    }
+    else {
+      result = this.toFixed(x, this.dp);
+    }
 
     return result;
   }

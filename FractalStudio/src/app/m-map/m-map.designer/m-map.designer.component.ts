@@ -249,16 +249,21 @@ export class MMapDesignerComponent {
     //let y: apRational = new apRational(true, 0, [0]);
 
     let calc = new apRationalCalc(10, RoundingMode.HalfUp, 4, -3);
-    let s = calc.stringify(x);
+    let s = calc.toFixed(x, 10);
     console.log('Stringify of x = |' + s + '|');
 
     let a = apRationalCalc.parse('201.123456789123456789');
-    let b = calc.round(a, 10, RoundingMode.HalfEven, false);
-    console.log('Round of a = ' + b);
+    let b = calc.round(a, 10, RoundingMode.HalfUp, false);
+    let c = calc.toExponential(b, 10);
 
-    let c = apRationalCalc.parse('0.00000000123456789123456789');
-    let d = calc.round(c, 5, RoundingMode.HalfEven, false);
-    console.log('Round of c = ' + d);
+    console.log('Round of a = ' + b + ' or ' + calc.toFixed(b, 10) + ' in exp ' + c);
+
+    let d = apRationalCalc.parse('0.00000000123456789123456789');
+    let e = calc.round(d, 15, RoundingMode.HalfUp, false);
+    let f = calc.toExponential(e, 15);
+    console.log('Round of d = ' + e + ' or ' + calc.toFixed(e, 15) + ' in exp ' + f);
+
+    
 
   }
 
