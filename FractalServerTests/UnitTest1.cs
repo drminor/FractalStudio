@@ -11,6 +11,7 @@ namespace FractalServerTests
     public class UnitTest1
     {
         public const string BasePath = @"C:\Users\david_000\Documents\Mbrodts";
+
         [TestMethod]
         public void BuildTestMap()
         {
@@ -40,20 +41,20 @@ namespace FractalServerTests
         {
             //string path = @"C:\MandlebrodtMapInfo.json";
 
-            string fn = "x18";
+            string fn = "x20";
             string path = Path.Combine(BasePath, $"MandlebrodtMapInfo ({fn}).json");
 
             JsonReader jr = new JsonReader();
             MapInfoWithColorMap miwcm = jr.Read(path);
 
-            Size canvasSize = new Size(1440, 960);
+            //Size canvasSize = new Size(1440, 960);
             //Size canvasSize = new Size(7200, 4800);
             //Size canvasSize = new Size(10800, 7200);
             //Size canvasSize = new Size(14400, 9600);
             //Size canvasSize = new Size(21600, 14400);
 
             // Double the size of an 11 x 7.33 at 300 DPI
-            //Size canvasSize = new Size(6600, 4400);
+            Size canvasSize = new Size(6600, 4400);
 
             string imagePath = Path.Combine(BasePath, $"MBZ ({fn})_{canvasSize.Width}.png");
 
@@ -81,22 +82,22 @@ namespace FractalServerTests
         {
             ColorMap colorMap = BuildColorMap();
 
-            int val = colorMap.GetColorMapEntry(0).CutOff;
+            int val = colorMap.GetCutOff(0);
 
             System.Diagnostics.Debug.WriteLine($"Got co:{val} for cnt:0.");
-            foreach(int co in colorMap._cutOffs)
+            foreach(int co in colorMap.CutOffs)
             {
-                val = colorMap.GetColorMapEntry(co - 1).CutOff;
+                val = colorMap.GetCutOff(co - 1);
                 System.Diagnostics.Debug.WriteLine($"Got co:{val} for cnt:{co - 1}.");
 
-                val = colorMap.GetColorMapEntry(co).CutOff;
+                val = colorMap.GetCutOff(co);
                 System.Diagnostics.Debug.WriteLine($"Got co:{val} for cnt:{co}.");
 
-                val = colorMap.GetColorMapEntry(co + 1).CutOff;
+                val = colorMap.GetCutOff(co + 1);
                 System.Diagnostics.Debug.WriteLine($"Got co:{val} for cnt:{co + 1}.");
             }
 
-            val = colorMap.GetColorMapEntry(400).CutOff;
+            val = colorMap.GetCutOff(400);
             System.Diagnostics.Debug.WriteLine($"Got co:{val} for cnt:400.");
         }
 

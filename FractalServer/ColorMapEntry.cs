@@ -5,7 +5,10 @@
         public readonly int CutOff;
         public readonly ColorMapColor StartColor;
         public readonly ColorMapBlendStyle BlendStyle;
-        public readonly ColorMapColor EndColor;
+        public ColorMapColor EndColor;
+
+        public int PrevCutOff;
+        public int BucketWidth;
 
         public ColorMapEntry(int cutOff, string startCssColor, ColorMapBlendStyle blendStyle, string endCssColor)
         {

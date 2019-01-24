@@ -44,19 +44,18 @@ namespace FractalServer
             {
                 c.X = _xVals[xPtr];
 
-                int cnt = MPointWork.Iterate(c, iterCount);
+                int cnt = MPointWork.Iterate(c, iterCount, out double escapeVelocity);
 
-                ColorMapEntry cme;
+                int[] cComps;
                 if (cnt == iterCount)
                 {
-                    cme = ColorMap.HighColorEntry;
+                    cComps = ColorMap.HighColorEntry.StartColor.ColorComps;
                 }
                 else
                 {
-                    cme = ColorMap.GetColorMapEntry(cnt);
+                    cComps = ColorMap.GetColor(cnt, escapeVelocity);
                 }
 
-                int[] cComps = cme.StartColor.ColorComps;
                 ImageLineHelper.SetPixel(iLine, xPtr, cComps[0], cComps[1], cComps[2]);
             }
         }
