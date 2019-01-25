@@ -243,28 +243,61 @@ export class MMapDesignerComponent {
 
   private doApRatTest() {
 
-    let x: apRational = apRationalCalc.parse('351.23');
+    let x: apRational = apRationalCalc.parse('-0.000035123');
     console.log('Created a apRational with value = ' + x.toString());
 
     //let y: apRational = new apRational(true, 0, [0]);
 
-    let calc = new apRationalCalc(10, RoundingMode.HalfUp, 4, -3);
-    let s = calc.toFixed(x, 10);
+    let calc = new apRationalCalc(10, RoundingMode.HalfUp);
+    calc.posExp = 4;
+    calc.negExp = 3;
+
+    let s = calc.stringify(x);
     console.log('Stringify of x = |' + s + '|');
 
     let a = apRationalCalc.parse('201.123456789123456789');
-    let b = calc.round(a, 10, RoundingMode.HalfUp, false);
-    let c = calc.toExponential(b, 10);
+    this.reportApRatValue(calc, 'A', a);
+    let b = calc.round(a);
+    this.reportApRatValue(calc, 'A Rounded', b);
 
-    console.log('Round of a = ' + b + ' or ' + calc.toFixed(b, 10) + ' in exp ' + c);
+    calc = new apRationalCalc(15, RoundingMode.HalfUp);
+    calc.posExp = 20;
+    calc.negExp = 8;
 
-    let d = apRationalCalc.parse('0.00000000123456789123456789');
-    let e = calc.round(d, 15, RoundingMode.HalfUp, false);
-    let f = calc.toExponential(e, 15);
-    console.log('Round of d = ' + e + ' or ' + calc.toFixed(e, 15) + ' in exp ' + f);
+    let c = apRationalCalc.parse('0.00000000123456789123456789');
+    this.reportApRatValue(calc, 'C', c);
+    let d = calc.round(c);
+    this.reportApRatValue(calc, 'C rounded', d);
 
-    
+    let m = calc.multiply(c, d);
+    this.reportApRatValue(calc, 'C * D', m);
 
+    let nc = calc.divide(m, d);
+    this.reportApRatValue(calc, 'C * D / D', nc);
+
+    let m2 = calc.multiply(a, c);
+    this.reportApRatValue(calc, 'A * C', m2);
+
+    let nc2 = calc.divide(m2, c);
+    this.reportApRatValue(calc, 'A * C / C', nc2);
+
+    let p = calc.plus(a, a);
+    this.reportApRatValue(calc, 'A + A', p);
+
+    let p2 = calc.plus(p, c);
+    this.reportApRatValue(calc, 'A + A + C', p2);
+
+    let u = calc.minus(p, a);
+    this.reportApRatValue(calc, 'A + A - A', u);
+
+    let u2 = calc.minus(p2, c);
+    this.reportApRatValue(calc, 'A + A + C - C', u2);
+  }
+
+  private reportApRatValue(calc: apRationalCalc, name:string, x: apRational): void {
+    let f = calc.toFixed(x);
+    let e = calc.toExponential(x);
+    console.log(name + '= ' + f + ' (' + e + ')');
   }
 
 }
