@@ -5,7 +5,7 @@
 //importScripts(['big.js', 'ColorNumbers']);
 
 importScripts('ColorNumbers.js');
-
+importScripts('apRational.js');
 
 var MAX_CANVAS_WIDTH = 50000;
 var MAX_CANVAS_HEIGHT = 50000;
