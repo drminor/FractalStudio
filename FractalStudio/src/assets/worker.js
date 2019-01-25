@@ -857,7 +857,7 @@ var MapWorkingData = /** @class */ (function () {
         var modulus = Math.log10(zxSquared + zySquared) / 2;
         var nu = Math.log10(modulus / this.log2) / this.log2;
         //let nu: number = Math.log(modulus) / this.log2;
-        wv.escapeVel = 1 - nu / 2; // / 4;
+        wv.escapeVel = 1 - nu / 4; // / 4;
         //wv.escapeVel = nu;
         wv.done = true;
         break;
@@ -882,7 +882,7 @@ var MapWorkingData = /** @class */ (function () {
     for (y = 0; y < this.canvasSize.height; y++) {
       for (x = 0; x < this.canvasSize.width; x++) {
         var pointIsDone = this.iterateElement(new Point(x, y), iterCount);
-        if (!pointIsDone)
+        if (!stillAlive && !pointIsDone) stillAlive = true;
           stillAlive = true;
       }
     }
