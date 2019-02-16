@@ -1,9 +1,3 @@
-//import { ColorNumbers } from "./ColorNumbers";
-//import { Big } from "big.js";
-
-
-//importScripts(['big.js', 'ColorNumbers']);
-
 importScripts('ColorNumbers.js');
 importScripts('apRational.js');
 

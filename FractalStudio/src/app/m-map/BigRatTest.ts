@@ -1,20 +1,20 @@
-import * as bigInt from 'big-integer';
-import { BigInteger } from 'big-integer';
+//import * as bigInt from 'big-integer';
+//import { BigInteger } from 'big-integer';
 
 
-export class Test {
+//export class Test {
 
-  public x: BigInteger;
+//  public x: BigInteger;
 
-  public getSum(f: number, s: number): BigInteger {
+//  public getSum(f: number, s: number): BigInteger {
 
-    let fbn = bigInt(f);
-    let sbn = bigInt(s);
+//    let fbn = bigInt(f);
+//    let sbn = bigInt(s);
 
-    let r = fbn.add(sbn);
+//    let r = fbn.add(sbn);
 
-    return r;
+//    return r;
 
-  }
+//  }
 
-}
+//}

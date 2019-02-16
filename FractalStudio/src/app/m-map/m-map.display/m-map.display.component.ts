@@ -1,5 +1,4 @@
 import { Component, AfterViewInit, ElementRef, ViewChild, Input, EventEmitter, Output } from '@angular/core';
-//import { saveAs } from 'file-saver';
 
 //import { ColorNumbers } from '../ColorNumbers';
 
@@ -153,38 +152,6 @@ export class MMapDisplayComponent implements AfterViewInit {
       }
     }
   }
-
-  //set maxIterations(maxIters: number) {
-
-  //  if (this.viewInitialized) {
-
-  //    if (this._mapInfo.maxIterations < maxIters) {
-  //      this._mapInfo.maxIterations = maxIters;
-  //      console.log('The Maximum Iterations is being increased. Will perform the additional iterations. The new MapInfo is:' + this._mapInfo.toString());
-  //      this.doMoreIterations(maxIters);
-  //    }
-  //    else if (this._mapInfo.maxIterations > maxIters) {
-  //      this._mapInfo.maxIterations = maxIters;
-  //      console.log('The Maximum Iterations is being decreased. Will rebuild the map. The new MapInfo is:' + this._mapInfo.toString());
-  //      this.buildWorkingData();
-  //    }
-  //    else {
-  //      console.log('The Maximum Iterations is being set to the same value it currently has. The new MapInfo is:' + this._mapInfo.toString());
-  //    }
-  //  }
-  //  else {
-  //    // The view is not ready, just save the new value.
-  //    this._mapInfo.maxIterations = maxIters;
-  //    console.log('The Maximum Iterations is being updated. The view has not been initialized. The new MapInfo is:' + this._mapInfo.toString());
-  //  }
-  //}
-
-  //set iterationsPerStep(itersPerStep: number) {
-  //  if (this._mapInfo.iterationsPerStep != itersPerStep) {
-  //    this._mapInfo.iterationsPerStep = itersPerStep;
-  //    console.log('The Iterations Per Step is being updated. The new MapInfo is:' + this._mapInfo.toString());
-  //  }
-  //}
 
   @Input('allowZoom') allowZoom: boolean;
 
@@ -489,7 +456,7 @@ export class MMapDisplayComponent implements AfterViewInit {
       //}
 
       // initialized our workers array (this.workers)
-      this.workers = this.initWebWorkers(this.numberOfSections);
+      this.workers = this.initWebWorkers(this.sections);
     }
     else {
       if (this.numberOfSections !== 1) {
@@ -535,7 +502,9 @@ export class MMapDisplayComponent implements AfterViewInit {
   }
 
   // Worker stuff
-  private initWebWorkers(numberOfSections: number): Worker[] {
+  private initWebWorkers(sections: IMapWorkingData[]): Worker[] {
+
+    let numberOfSections = sections.length;
 
     let result: Worker[] = new Array<Worker>(numberOfSections);
 
@@ -550,16 +519,19 @@ export class MMapDisplayComponent implements AfterViewInit {
         if (plainMsg.messageKind === 'ImageDataResponse') {
           let updatedMapDataMsg = WebWorkerImageDataResponse.FromEventData(evt.data);
           let sectionNumber: number = updatedMapDataMsg.sectionNumber;
+          let ww = result[sectionNumber];
 
           //console.log('Received ' + plainMsg.messageKind + ' with section number = ' + sectionNumber + ' from a web worker.');
 
-          let mapWorkingData: IMapWorkingData = this.sections[sectionNumber];
+          let mapWorkingData: IMapWorkingData = sections[sectionNumber];
           let imageData: ImageData = updatedMapDataMsg.getImageData(mapWorkingData.canvasSize);
 
           let numberOfIterations = mapWorkingData.iterationCountForNextStep();
           if (numberOfIterations > 0) {
             let iterateRequest = WebWorkerIterateRequest.CreateRequest(numberOfIterations);
-            this.workers[sectionNumber].postMessage(iterateRequest);
+            //this.workers[sectionNumber].postMessage(iterateRequest);
+            ww.postMessage(iterateRequest);
+
             mapWorkingData.curIterations += numberOfIterations;
 
             // Call draw after sending the request to get the next ImageData.
@@ -572,7 +544,9 @@ export class MMapDisplayComponent implements AfterViewInit {
             if (this._buildingNewMap) {
               // Request the histogram data for this section.
               let histRequest = WebWorkerHistogramRequest.CreateRequest();
-              this.workers[sectionNumber].postMessage(histRequest);
+              //this.workers[sectionNumber].postMessage(histRequest);
+              ww.postMessage(histRequest);
+
             }
 
             // And then draw the end note.
@@ -597,13 +571,22 @@ export class MMapDisplayComponent implements AfterViewInit {
 
 
       // Send the mapWorking data and color map to the Web Worker.
-      let mapWorkingData: IMapWorkingData = this.sections[ptr];
+      let mapWorkingData: IMapWorkingData = sections[ptr];
       let startRequestMsg = WebWorkerStartRequest.CreateRequest(mapWorkingData, ptr);
       webWorker.postMessage(startRequestMsg);
 
-      let iterateRequest = WebWorkerIterateRequest.CreateRequest(this._mapInfo.iterationsPerStep);
-      webWorker.postMessage(iterateRequest);
-      mapWorkingData.curIterations += this._mapInfo.iterationsPerStep;
+      //let iterateRequest = WebWorkerIterateRequest.CreateRequest(this._mapInfo.iterationsPerStep);
+      //webWorker.postMessage(iterateRequest);
+      //mapWorkingData.curIterations += this._mapInfo.iterationsPerStep;
+
+
+      let numberOfIterations = mapWorkingData.iterationCountForNextStep();
+      if (numberOfIterations > 0) {
+        let iterateRequest = WebWorkerIterateRequest.CreateRequest(numberOfIterations);
+        webWorker.postMessage(iterateRequest);
+        mapWorkingData.curIterations += numberOfIterations;
+      }
+
     }
 
     return result;

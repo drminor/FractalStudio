@@ -1,25 +1,5 @@
 
-class apRational {
-
-  constructor(public sign: boolean, public exp: number, public cof: number[]) { }
-
-  public toString(): string {
-    let result = (this.sign ? '' : '-') + this.cof.join('') + 'e' + this.exp;
-    return result;
-  }
-}
-
-
-class apRationalCalc {
-
-  // Error messages.
-  static NAME = '[apRationalCalc]';
-  static INVALID = apRationalCalc.NAME + ' Invalid';
-  static INVALID_DP = apRationalCalc.INVALID + ' decimal places';
-  static INVALID_RM = apRationalCalc.INVALID + ' rounding mode';
-  static DIV_BY_ZERO = apRationalCalc.NAME + ' Division by zero';
-
-  static NUMERIC = /^-?(\d+(\.\d*)?|\.\d+)(e[+-]?\d+)?$/i;
+export class apRationalSettings {
 
   public posExp: number;
   public negExp: number;
@@ -27,8 +7,8 @@ class apRationalCalc {
   public MaxDp: number;
   public MaxPower: number;
 
-  //public IncludeSignForZero: boolean;
-  //public IncludeTrailingZeros: boolean;
+  public IncludeSignForZero: boolean;
+  public IncludeTrailingZeros: boolean;
 
   constructor(public dp: number, public rm: RoundingMode) {
     this.posExp = 8;
@@ -37,11 +17,36 @@ class apRationalCalc {
     this.MaxDp = 1000000;
     this.MaxPower = 1000000;
 
-    //this.IncludeSignForZero = false;
-    //this.IncludeTrailingZeros = false;
+    this.IncludeSignForZero = false;
+    this.IncludeTrailingZeros = false;
   }
 
-  public static parse(sn: string | number): apRational {
+  public parse(sn: string | number): apRational {
+
+    let result = apRational.parse(sn, this);
+    return result;
+  }
+
+  public getNewZero(): apRational {
+    let result = new apRational(true, 0, [0], this);
+    return result;
+  }
+}
+
+export class apRational {
+
+  // Error messages.
+  static NAME = '[apRational]';
+  static INVALID = apRational.NAME + ' Invalid';
+  static INVALID_DP = apRational.INVALID + ' decimal places';
+  static INVALID_RM = apRational.INVALID + ' rounding mode';
+  static DIV_BY_ZERO = apRational.NAME + ' Division by zero';
+
+  static NUMERIC = /^-?(\d+(\.\d*)?|\.\d+)(e[+-]?\d+)?$/i;
+
+  constructor(public sign: boolean, public exp: number, public cof: number[], public settings: apRationalSettings) { }
+
+  public static parse(sn: string | number, settings: apRationalSettings): apRational {
 
     let s: string;
 
@@ -51,8 +56,8 @@ class apRationalCalc {
     }
     else {
       s = sn + '';
-      if (!apRationalCalc.NUMERIC.test(s)) {
-        throw Error(apRationalCalc.INVALID + ' number');
+      if (!apRational.NUMERIC.test(s)) {
+        throw Error(apRational.INVALID + ' number');
       }
     }
 
@@ -112,21 +117,27 @@ class apRationalCalc {
       for (e = 0; i <= nl;) cof[e++] = +s.charAt(i++);
     }
 
-    let result = new apRational(sign, exp, cof);
+    let result = new apRational(sign, exp, cof, settings);
     return result;
   }
 
-  public stringify(x: apRational): string {
-    let result: string = '';
+  public stringify(): string {
+    let result: string;
 
-    if (x.exp >= this.posExp || x.exp <= this.negExp) {
-      result = this.toExponential(x);
+    if (this.exp >= this.settings.posExp || this.exp <= this.settings.negExp) {
+      result = this.toExponential();
     }
     else {
-      result = this.toFixed(x);
+      result = this.toFixed();
     }
 
     return result;
+  }
+
+  public clone(): apRational {
+    let newCof = this.cof.slice(0);
+    let result = new apRational(this.sign, this.exp, newCof, this.settings);
+    return result
   }
 
   //  P.toExponential = function (dp) {
@@ -138,16 +149,18 @@ class apRationalCalc {
   //  P.toPrecision = function (sd) {
   //    return stringify(this, 3, sd, sd - 1);
 
-  public toFixed(x: apRational): string {
-    return this.toFixedCustom(x, this.dp, this.rm);
+  public toFixed(): string {
+    return this.toFixedCustom(this.settings.dp, this.settings.rm, this.settings.IncludeSignForZero);
   }
 
-  public toFixedCustom(x: apRational, dp: number, roundingMode: RoundingMode): string {
+  public toFixedCustom(dp: number, roundingMode: RoundingMode, includeSignForZero: boolean): string {
 
-    if (!Number.isInteger(dp) || dp < 0 || dp > this.MaxDp) {
+    if (!Number.isInteger(dp) || dp < 0 || dp > this.settings.MaxDp) {
       // Consider using ~~dp !== dp instead of Number.isInteger(dp)
-      throw new Error(apRationalCalc.INVALID_DP);
+      throw new Error(apRational.INVALID_DP);
     }
+
+    let x: apRational;
 
     let k = dp + 1;
 
@@ -155,11 +168,14 @@ class apRationalCalc {
     let n = dp;
 
     // Round?
-    if (x.cof.length > k) {
-      x = this.roundCustom(x, n, roundingMode, false);
+    if (this.cof.length > k) {
+      x = this.clone().roundCustom(n, roundingMode, false);
 
       // Recalculate k as x.exp may have changed if value rounded up.
       k = x.exp + dp + 1;
+    }
+    else {
+      x = this;
     }
 
     //// Append zeros?
@@ -186,28 +202,33 @@ class apRationalCalc {
     // True if we are 0.
     let z = !x.cof[0];
 
-    return !x.sign && (!z /*|| this.IncludeSignForZero*/) ? '-' + s : s;
+    return !x.sign && (!z || includeSignForZero) ? '-' + s : s;
   }
 
-  public toExponential(x: apRational): string {
-    return this.toExponentialCustom(x, this.dp, this.rm);
+  public toExponential(): string {
+    return this.toExponentialCustom(this.settings.dp, this.settings.rm, this.settings.IncludeSignForZero);
   }
 
-  public toExponentialCustom(x: apRational, dp: number, roundingMode: RoundingMode): string {
+  public toExponentialCustom(dp: number, roundingMode: RoundingMode, includeSignForZero: boolean): string {
 
-    if (!Number.isInteger(dp) || dp < 0 || dp > this.MaxDp) {
+    if (!Number.isInteger(dp) || dp < 0 || dp > this.settings.MaxDp) {
       // Consider using ~~dp !== dp instead of Number.isInteger(dp)
-      throw new Error(apRationalCalc.INVALID_DP);
+      throw new Error(apRational.INVALID_DP);
     }
 
     let k = dp + 1;
 
     // n is the index of the digit that may be rounded up.
-    let n = dp - x.exp;
+    let n = dp - this.exp;
+
+    let x: apRational;
 
     // Round?
-    if (x.cof.length > k) {
-      this.roundCustom(x, n, roundingMode, false);
+    if (this.cof.length > k) {
+      x = this.clone().roundCustom(n, roundingMode, false);
+    }
+    else {
+      x = this;
     }
 
     //// Append zeros?
@@ -223,36 +244,25 @@ class apRationalCalc {
     // True if we are 0.
     let z = !x.cof[0];
 
-    return !x.sign && (!z /*|| this.IncludeSignForZero*/) ? '-' + s : s;
+    return !x.sign && (!z || includeSignForZero) ? '-' + s : s;
   }
 
-  public clone(x: apRational): apRational {
-    let result = new apRational(x.sign, x.exp, x.cof);
-    return result;
-  }
-
-  public roundCustom(x: apRational, dp: number, rm: RoundingMode, more: boolean): apRational {
-    let result = this.roundInPlace(this.clone(x), dp, rm, more);
-    return result;
-  }
-
-  public round(x: apRational): apRational {
-    let result = this.roundInPlace(this.clone(x), this.dp, this.rm, false);
+  public round(): apRational {
+    let result = this.roundCustom(this.settings.dp, this.settings.rm, false);
     return result;
   }
 
   /**
     *
-    * @param {apRational} x - The value that will be rounded.
     * @param {number} dp - Number of digits after the decimal
     * @param {RoundingMode} rm - Rounding Mode
     * @param {boolean} more - true if you want force rounding up when the last digit is 5. Useful if this is called after a division and the division operation truncates the mantissa.
     * @returns {void}
     *
     */
-  public roundInPlace(x: apRational, dp: number, rm: RoundingMode, more: boolean): apRational {
-    let xc = x.cof;
-    let i = x.exp + dp + 1;
+  public roundCustom(dp: number, rm: RoundingMode, more: boolean): apRational {
+    let xc = this.cof;
+    let i = this.exp + dp + 1;
 
     if (i < xc.length) {
       if (rm === RoundingMode.HalfUp) {
@@ -270,7 +280,7 @@ class apRationalCalc {
         more = more || !!xc[0];
       } else {
         more = false;
-        if (rm !== RoundingMode.Down) throw Error(apRationalCalc.INVALID_RM);
+        if (rm !== RoundingMode.Down) throw Error(apRational.INVALID_RM);
       }
 
       if (i < 1) {
@@ -278,12 +288,12 @@ class apRationalCalc {
 
         if (more) {
           // 1, 0.1, 0.01, 0.001, 0.0001 etc.
-          x.exp = -dp;
+          this.exp = -dp;
           xc[0] = 1;
         } else {
           // Zero.
           xc[0] = 0;
-          x.exp = 0;
+          this.exp = 0;
         }
       } else {
 
@@ -297,7 +307,7 @@ class apRationalCalc {
           for (; ++xc[i] > 9;) {
             xc[i] = 0;
             if (!i--) {
-              ++x.exp;
+              ++this.exp;
               xc.unshift(1);
             }
           }
@@ -308,7 +318,7 @@ class apRationalCalc {
       }
     }
 
-    return x;
+    return this;
   }
 
   private getMoreForHalfEven(cof: number[], i: number, more: boolean): boolean {
@@ -348,23 +358,34 @@ class apRationalCalc {
   }
 
   public abs(x: apRational): apRational {
-    return new apRational(true, x.exp, x.cof);
+    x.sign = true;
+    return x;
   }
 
-  public divide(x: apRational, y: apRational): apRational {
-
-    y = this.clone(y);
-
-    let a = x.cof;
-    let b = y.cof;
-
-    let sn = x.sign === y.sign;
+  public divide(y: apRational): apRational {
 
     // Divisor is zero?
-    if (!b[0]) throw Error(apRationalCalc.DIV_BY_ZERO);
+    if (!y.cof[0]) throw Error(apRational.DIV_BY_ZERO);
 
     // Dividend is 0? Return +-0.
-    if (!a[0]) return new apRational(sn, 0, [0]);
+    if (!this.cof[0]) {
+      this.sign = this.sign === y.sign;
+      return this;
+    }
+
+    //y = y.clone();
+
+    let a = this.cof;
+    let b = y.cof;
+
+    //let sn = this.sign === y.sign;
+
+    //let q = y.clone();
+    //q.cof = [];
+    //q.exp = this.exp - y.exp;
+    //q.sign = this.sign === y.sign;
+
+    let q = new apRational(this.sign === y.sign, this.exp - y.exp, [], this.settings);
 
     let bz = b.slice();
     let bl = b.length;
@@ -375,14 +396,9 @@ class apRationalCalc {
     let r = a.slice(0, bl);
     let rl = r.length;
 
-    let q = y;
-    q.cof = [];
-    q.exp = x.exp - q.exp;
-    q.sign = sn;
-
     let qc = q.cof;
     let qi = 0;
-    let d = this.dp + q.exp + 1;    // number of digits of the result
+    let d = this.settings.dp + q.exp + 1;    // number of digits of the result
 
     let k = d < 0 ? 0 : d;
 
@@ -414,13 +430,12 @@ class apRationalCalc {
           }
         }
 
-
         // If divisor < remainder, subtract divisor from remainder.
         if (cmp < 0) {
 
           // Remainder can't be more than 1 digit longer than divisor.
           // Equalise lengths using divisor with extra leading zero?
-          rl = bl;
+          //rl = bl;
           let bt = rl === bl ? b : bz;
 
           for (; rl;) {
@@ -461,47 +476,55 @@ class apRationalCalc {
 
     // Round?
     if (qi > d)
-      this.roundInPlace(q, this.dp, this.rm, r[0] !== undefined);
+      q.roundCustom(this.settings.dp, this.settings.rm, r[0] !== undefined);
 
     return q;
   }
 
-  public multiply(x: apRational, y: apRational): apRational {
-
-    y = this.clone(y);
-
-    let xc = x.cof;
-    let yc = y.cof;
-    let a = xc.length;
-    let b = yc.length;
-    let i = x.exp;
-    let j = y.exp;
+  public multiply(y: apRational): apRational {
 
     // Determine sign of result.
-    y.sign = x.sign === y.sign;
+    this.sign = this.sign === y.sign;
 
     // Return signed 0 if either 0.
-    if (!xc[0] || !yc[0]) {
-      return new apRational(y.sign, 0, [0]);
+    if (!this.cof[0] || !y.cof[0]) {
+      return this;
     }
 
-    // Initialise exponent of result as x.e + y.e.
-    y.exp = i + j;
+    //y = y.clone();
 
-    let c: number[];
+    let a = this.cof.length;
+    let b = y.cof.length;
+
+
+    //let xc = this.cof;
+    //let yc = y.cof;
+    //let i = this.exp;
+    //let j = y.exp;
+
+    // Initialise exponent of result as x.e + y.e.
+    this.exp = this.exp + y.exp;
+
+    let xc: number[];
+    let yc: number[];
+    let i: number;
+    let j: number;
 
     // If array xc has fewer digits than yc, swap xc and yc, and lengths.
     if (a < b) {
-      let c = xc;
-      xc = yc;
-      yc = c;
+      xc = y.cof
+      yc = this.cof;
       j = a;
       a = b;
       b = j;
     }
+    else {
+      xc = this.cof;
+      yc = y.cof;
+    }
 
     j = a + b;
-    c = new Array(j);
+    let c = new Array(j);
 
     // Initialise coefficient array of result with zeros.
     for (; j--;) c[j] = 0;
@@ -528,153 +551,47 @@ class apRationalCalc {
 
     // Increment result exponent if there is a final carry, otherwise remove leading zero.
     if (b)
-      ++y.exp;
+      ++this.exp;
     else
       c.shift();
 
     // Remove trailing zeros.
     for (i = c.length; !c[--i];) c.pop();
-    y.cof = c;
+    this.cof = c;
 
-    return y;
+    this.roundCustom(this.settings.dp, this.settings.rm, false);
+
+    return this;
   }
 
-  public minus(x: apRational, y: apRational): apRational {
+  public plus(y: apRational): apRational {
 
-    if (x.sign !== y.sign) {
-      return this.plusInt(x, y, true);
+    if (this.sign !== y.sign) {
+      return this.minusInt(y, true);
     }
     else {
-      return this.minusInt(x, y, false);
+      return this.plusInt(y, false);
     }
   }
 
-  private minusInt(x: apRational, y: apRational, negateY: boolean): apRational {
+  public minus(y: apRational): apRational {
 
-    y = this.clone(y);
-    if (negateY) y.sign = !y.sign;
-
-    let xc = x.cof;
-    let yc = y.cof;
-
-    // Either zero?
-    if (!xc[0] || !yc[0]) {
-
-      if (yc[0]) {
-        // y is not zero, therefor x is: return 0 - y, i.e., -y
-        return y;
-      }
-      else {
-        // y is zero; x - 0 = x: return x
-        return this.clone(x);
-      }
-    }
-
-    xc = xc.slice();
-
-    let xe = x.exp;
-    let ye = y.exp;
-    let t: number[];
-
-    let a = xe - ye;
-    let b: number;
-    let xlty: boolean;
-    let i: number;
-    let j: number;
-
-    // Determine which is the bigger number. Prepend zeros to equalise exponents.
-    if (a) {
-      xlty = a < 0;
-      if (xlty) {
-        a = -a;
-        t = xc;
-      } else {
-        ye = xe;
-        t = yc;
-      }
-
-      t.reverse();
-      for (b = a; b--;) t.push(0);
-      t.reverse();
-    } else {
-
-      // Exponents equal. Check digit by digit.
-      j = ((xlty = xc.length < yc.length) ? xc : yc).length;
-
-      for (a = b = 0; b < j; b++) {
-        if (xc[b] !== yc[b]) {
-          xlty = xc[b] < yc[b];
-          break;
-        }
-      }
-    }
-
-    // x < y? Point xc to the array of the bigger number.
-    if (xlty) {
-      t = xc;
-      xc = yc;
-      yc = t;
-      y.sign = !y.sign;
-    }
-
-    /*
-     * Append zeros to xc if shorter. No need to add zeros to yc if shorter as subtraction only
-     * needs to start at yc.length.
-     */
-    if ((b = (j = yc.length) - (i = xc.length)) > 0) for (; b--;) xc[i++] = 0;
-
-    // Subtract yc from xc.
-    for (b = i; j > a;) {
-      if (xc[--j] < yc[j]) {
-        for (i = j; i && !xc[--i];) xc[i] = 9;
-        --xc[i];
-        xc[j] += 10;
-      }
-
-      xc[j] -= yc[j];
-    }
-
-    // Remove trailing zeros.
-    for (; xc[--b] === 0;) xc.pop();
-
-    // Remove leading zeros and adjust exponent accordingly.
-    for (; xc[0] === 0;) {
-      xc.shift();
-      --ye;
-    }
-
-    if (!xc[0]) {
-
-      // n - n = +0
-      y.sign = true;
-
-      // Result must be zero.
-      ye = 0;
-      xc = [0];
-    }
-
-    y.cof = xc;
-    y.exp = ye;
-
-    return y;
-  }
-
-  public plus(x: apRational, y: apRational): apRational {
-
-    if (x.sign !== y.sign) {
-      return this.minusInt(x, y, true);
+    if (this.sign !== y.sign) {
+      return this.plusInt(y, true);
     }
     else {
-      return this.plusInt(x, y, false);
+      return this.minusInt(y, false);
     }
   }
 
-  private plusInt(x: apRational, y: apRational, negateY: boolean): apRational {
+  private plusInt(y: apRational, negateY: boolean): apRational {
 
-    y = this.clone(y);
-    if (negateY) y.sign = !y.sign;
+    if (negateY)
+      this.sign = !y.sign;
+    else
+      this.sign = y.sign;
 
-    let xc = x.cof;
+    let xc = this.cof;
     let yc = y.cof;
 
     // Either zero?
@@ -682,17 +599,20 @@ class apRationalCalc {
 
       if (yc[0]) {
         // y is not zero, therefor x is: return 0 + y, i.e., y
-        return y;
+        this.sign = y.sign;
+        this.exp = y.exp;
+        this.cof = y.cof.slice(0);
+        return this;
       }
       else {
         // y is zero; x + 0 = x
-        return this.clone(x);
+        return this;
       }
     }
 
     xc = xc.slice();
 
-    let xe = x.exp;
+    let xe = this.exp;
     let ye = y.exp;
     let t: number[];
 
@@ -737,21 +657,141 @@ class apRationalCalc {
     // Remove trailing zeros.
     for (a = xc.length; xc[--a] === 0;) xc.pop();
 
-    y.cof = xc;
-    y.exp = ye;
+    this.exp = ye;
+    this.cof = xc;
 
-    return y;
+    return this;
+  }
+
+  private minusInt(y: apRational, negateY: boolean): apRational {
+
+    if (negateY)
+      this.sign = !y.sign;
+    else
+      this.sign = y.sign;
+
+
+    let xc = this.cof;
+    let yc = y.cof;
+
+    // Either zero?
+    if (!xc[0] || !yc[0]) {
+
+      if (yc[0]) {
+        // y is not zero, therefor x is: return 0 - y, i.e., -y
+        this.sign = !this.sign;
+        this.exp = y.exp;
+        this.cof = y.cof.slice(0);
+        return this;
+      }
+      else {
+        // y is zero; x - 0 = x: return x
+        return this;
+      }
+    }
+
+    xc = xc.slice();
+
+    let xe = this.exp;
+    let ye = y.exp;
+    let t: number[];
+
+    let a = xe - ye;
+    let b: number;
+    let xlty: boolean;
+    let i: number;
+    let j: number;
+
+    // Determine which is the bigger number. Prepend zeros to equalise exponents.
+    if (a) {
+      xlty = a < 0;
+      if (xlty) {
+        a = -a;
+        t = xc;
+      } else {
+        ye = xe;
+        t = yc;
+      }
+
+      t.reverse();
+      for (b = a; b--;) t.push(0);
+      t.reverse();
+    } else {
+
+      // Exponents equal. Check digit by digit.
+      j = ((xlty = xc.length < yc.length) ? xc : yc).length;
+
+      for (a = b = 0; b < j; b++) {
+        if (xc[b] !== yc[b]) {
+          xlty = xc[b] < yc[b];
+          break;
+        }
+      }
+    }
+
+    // x < y? Point xc to the array of the bigger number.
+    if (xlty) {
+      t = xc;
+      xc = yc;
+      yc = t;
+      this.sign = !this.sign;
+    }
+
+    /*
+     * Append zeros to xc if shorter. No need to add zeros to yc if shorter as subtraction only
+     * needs to start at yc.length.
+     */
+    if ((b = (j = yc.length) - (i = xc.length)) > 0) for (; b--;) xc[i++] = 0;
+
+    // Subtract yc from xc.
+    for (b = i; j > a;) {
+      if (xc[--j] < yc[j]) {
+        for (i = j; i && !xc[--i];) xc[i] = 9;
+        --xc[i];
+        xc[j] += 10;
+      }
+
+      xc[j] -= yc[j];
+    }
+
+    // Remove trailing zeros.
+    for (; xc[--b] === 0;) xc.pop();
+
+    // Remove leading zeros and adjust exponent accordingly.
+    for (; xc[0] === 0;) {
+      xc.shift();
+      --ye;
+    }
+
+    if (!xc[0]) {
+
+      // n - n = +0
+      this.sign = true;
+
+      // Result must be zero.
+      ye = 0;
+      xc = [0];
+    }
+
+    this.exp = ye;
+    this.cof = xc;
+
+    return this;
+  }
+
+  public toString(): string {
+    let result = (this.sign ? '' : '-') + this.cof.join('') + 'e' + this.exp;
+    return result;
   }
 
 }
 
-enum RoundingMode {
+export enum RoundingMode {
   Down,
   HalfUp,
   HalfEven,
   Up
 }
-
 
 class ColorNumbers {
 
@@ -1022,6 +1062,31 @@ export class Point implements IPoint {
     if (p.y !== this.y) return false;
 
     return true;
+  }
+}
+
+export class PointAp {
+  constructor(public x: apRational, public y: apRational) { }
+}
+
+export class BoxAp {
+  constructor(public botLeft: PointAp, public topRight: PointAp) { }
+  
+  public static fromBox(bx: Box, apRatSettings: apRationalSettings): BoxAp {
+
+    let result = new BoxAp(
+      new PointAp(
+        apRatSettings.parse(bx.botLeft.x),
+        apRatSettings.parse(bx.botLeft.y)
+        ),
+      new PointAp(
+        apRatSettings.parse(bx.topRight.x),
+        apRatSettings.parse(bx.topRight.y)
+      )
+    )
+
+    return result;
+
   }
 }
 
@@ -1818,11 +1883,19 @@ export class CurWorkVal {
   public escapeVel: number;
   public done: boolean;
 
-  constructor() {
+  //---
+  //public zAp: PointAp;
+
+  constructor(apRatSettings: apRationalSettings) {
     this.z = new Point(0, 0);
     this.cnt = 0;
     this.escapeVel = 0;
     this.done = false;
+
+    //this.zAp = new PointAp(
+    //  apRatSettings.getNewZero(),
+    //  apRatSettings.getNewZero()
+    //)
   }
 }
 
@@ -1831,18 +1904,6 @@ export class MapWorkingData implements IMapWorkingData {
   public elementCount: number;
   public workingVals: CurWorkVal[];
 
-  // The number of times each point has been iterated.
-  public get cnts(): Uint16Array {
-    let result = new Uint16Array(this.elementCount);
-
-    let ptr: number;
-    for (ptr = 0; ptr < this.elementCount; ptr++) {
-      result[ptr] = this.workingVals[ptr].cnt;
-    }
-
-    return result;
-  }
-
   public xVals: number[];
   public yVals: number[];
 
@@ -1850,10 +1911,18 @@ export class MapWorkingData implements IMapWorkingData {
 
   private log2: number;
 
+  //---
+  public apRatSettings: apRationalSettings;
+  //private xValsAp: apRational[];
+  //private yValsAp: apRational[];
+
+
   constructor(public canvasSize: ICanvasSize, public mapInfo: IMapInfo, public colorMap: ColorMap, public sectionAnchor: IPoint) {
 
+    this.apRatSettings = new apRationalSettings(25, RoundingMode.HalfUp);
+
     this.elementCount = this.getNumberOfElementsForCanvas(this.canvasSize);
-    this.workingVals = this.buildWorkingVals(this.elementCount);
+    this.workingVals = this.buildWorkingVals(this.elementCount, this.apRatSettings);
 
     // X coordinates get larger as one moves from the left of the map to  the right.
     this.xVals = MapWorkingData.buildVals(this.canvasSize.width, this.mapInfo.bottomLeft.x, this.mapInfo.topRight.x);
@@ -1874,15 +1943,30 @@ export class MapWorkingData implements IMapWorkingData {
     this.curIterations = 0;
     this.log2 = Math.log10(2) as number;
 
+    //----
+    //let boxAp = BoxAp.fromBox(this.mapInfo.coords, this.apRatSettings);
+
+    //this.xValsAp = MapWorkingData.buildValsAp(this.canvasSize.width, boxAp.botLeft.x, boxAp.topRight.x, this.apRatSettings);
+
+    //if (mapInfo.upsideDown) {
+    //  // The y coordinates are already reversed, just use buildVals
+    //  this.yValsAp = MapWorkingData.buildValsAp(this.canvasSize.height, boxAp.botLeft.y, boxAp.topRight.y, this.apRatSettings);
+    //}
+    //else {
+    //  // if we only have a single section, then we must reverse the y values.
+    //  // The y coordinates are not reversed, reverse them here.
+    //  this.yValsAp = MapWorkingData.buildValsAp(this.canvasSize.height, boxAp.topRight.y, boxAp.botLeft.y, this.apRatSettings);
+    //}
+
     console.log('Constructing MapWorkingData, ColorMap = ' + this.colorMap + '.');
   }
 
-  private buildWorkingVals(elementCount: number): CurWorkVal[] {
+  private buildWorkingVals(elementCount: number, apRatSettings: apRationalSettings): CurWorkVal[] {
     let result = new Array<CurWorkVal>(elementCount);
 
     let ptr: number;
     for (ptr = 0; ptr < this.elementCount; ptr++) {
-      result[ptr] = new CurWorkVal();
+      result[ptr] = new CurWorkVal(apRatSettings);
     }
 
     return result;
@@ -1905,6 +1989,39 @@ export class MapWorkingData implements IMapWorkingData {
     for (i = 0; i < canvasExtent; i++) {
       result[i] = start + i * unitExtent;
     }
+    return result;
+  }
+
+  // Build the array of 'c' values for one dimension of the map.
+  static buildValsAp(canvasExtent: number, start: apRational, end: apRational, apRatSettings: apRationalSettings): apRational[] {
+
+    console.log('Building ValsAp.');
+
+    let result: apRational[] = new Array<apRational>(canvasExtent);
+
+    let mapExtent: apRational = end.clone().minus(start);
+    let canvasExtentAp = apRatSettings.parse(canvasExtent);
+    let unitExtent: apRational = mapExtent.divide(canvasExtentAp);
+
+    var i: number;
+    for (i = 0; i < canvasExtent; i++) {
+      let iAp = apRatSettings.parse(i);
+      let tue = iAp.multiply(unitExtent);
+      result[i] = tue.plus(start);
+    }
+
+    return result;
+  }
+
+  // The number of times each point has been iterated.
+  public get cnts(): Uint16Array {
+    let result = new Uint16Array(this.elementCount);
+
+    let ptr: number;
+    for (ptr = 0; ptr < this.elementCount; ptr++) {
+      result[ptr] = this.workingVals[ptr].cnt;
+    }
+
     return result;
   }
 
@@ -1933,11 +2050,17 @@ export class MapWorkingData implements IMapWorkingData {
     let z: IPoint = wv.z;
     const c: IPoint = new Point(this.xVals[mapCoordinate.x], this.yVals[mapCoordinate.y]);
 
-    let cntr: number;
+    //let zAp = wv.zAp;
+    //let cAp = new PointAp(this.xValsAp[mapCoordinate.x], this.yValsAp[mapCoordinate.y]);
+    //let two = this.apRatSettings.parse(2);
 
     let zxSquared = z.x * z.x;
     let zySquared = z.y * z.y;
 
+    //let zxApSquared = zAp.x.clone().multiply(zAp.x);
+    //let zyApSquared = zAp.y.clone().multiply(zAp.y);
+
+    let cntr: number;
     for (cntr = 0; cntr < iterCount; cntr++) {
 
       z.y = 2 * z.x * z.y + c.y;
@@ -1945,6 +2068,14 @@ export class MapWorkingData implements IMapWorkingData {
 
       zxSquared = z.x * z.x;
       zySquared = z.y * z.y;
+
+      //if (cntr < 2) {
+      //  zAp.y = zAp.y.multiply(zAp.x).multiply(two).plus(cAp.y);
+      //  zAp.x = zxApSquared.minus(zyApSquared).plus(cAp.x);
+
+      //  zxApSquared = zAp.x.clone().multiply(zAp.x);
+      //  zyApSquared = zAp.y.clone().multiply(zAp.y);
+      //}
 
       if ( zxSquared + zySquared > this.mapInfo.threshold) {
         // This point is done.
@@ -2666,72 +2797,72 @@ export class WebWorkerUpdateColorMapRequest implements IWebWorkerUpdateColorMapR
 
 }
 
-// Only used when the javascript produced from compiling this TypeScript is used to create worker.js
+//// Only used when the javascript produced from compiling this TypeScript is used to create worker.js
 
-var mapWorkingData: IMapWorkingData = null;
-var sectionNumber: number = 0;
+//var mapWorkingData: IMapWorkingData = null;
+//var sectionNumber: number = 0;
 
-// Handles messages sent from the window that started this web worker.
-onmessage = function (e) {
+//// Handles messages sent from the window that started this web worker.
+//onmessage = function (e) {
 
-  var pixelData: Uint8ClampedArray;
-  var imageDataResponse: IWebWorkerImageDataResponse;
+//  var pixelData: Uint8ClampedArray;
+//  var imageDataResponse: IWebWorkerImageDataResponse;
 
-  //console.log('Worker received message: ' + e.data + '.');
-  let plainMsg: IWebWorkerMessage = WebWorkerMessage.FromEventData(e.data);
+//  //console.log('Worker received message: ' + e.data + '.');
+//  let plainMsg: IWebWorkerMessage = WebWorkerMessage.FromEventData(e.data);
 
-  if (plainMsg.messageKind === 'Start') {
-    let startMsg = WebWorkerStartRequest.FromEventData(e.data);
+//  if (plainMsg.messageKind === 'Start') {
+//    let startMsg = WebWorkerStartRequest.FromEventData(e.data);
 
-    mapWorkingData = startMsg.getMapWorkingData();
-    sectionNumber = startMsg.sectionNumber;
-    console.log('Worker created MapWorkingData with element count = ' + mapWorkingData.elementCount);
+//    mapWorkingData = startMsg.getMapWorkingData();
+//    sectionNumber = startMsg.sectionNumber;
+//    console.log('Worker created MapWorkingData with element count = ' + mapWorkingData.elementCount);
 
-    let responseMsg = new WebWorkerMessage('StartResponse');
-    console.log('Posting ' + responseMsg.messageKind + ' back to main script');
-    self.postMessage(responseMsg, "*");
-  }
-  else if (plainMsg.messageKind === 'Iterate') {
-    let iterateRequestMsg = WebWorkerIterateRequest.FromEventData(e.data);
-    let iterCount = iterateRequestMsg.iterateCount;
-    mapWorkingData.doIterationsForAll(iterCount);
+//    let responseMsg = new WebWorkerMessage('StartResponse');
+//    console.log('Posting ' + responseMsg.messageKind + ' back to main script');
+//    self.postMessage(responseMsg, "*");
+//  }
+//  else if (plainMsg.messageKind === 'Iterate') {
+//    let iterateRequestMsg = WebWorkerIterateRequest.FromEventData(e.data);
+//    let iterCount = iterateRequestMsg.iterateCount;
+//    mapWorkingData.doIterationsForAll(iterCount);
 
-    pixelData = mapWorkingData.getPixelData();
-    imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, pixelData);
-    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
-    self.postMessage(imageDataResponse, "*", [pixelData.buffer]);
-  }
-  else if (plainMsg.messageKind === 'GetImageData') {
-    //mapWorkingData.doIterationsForAll(1);
+//    pixelData = mapWorkingData.getPixelData();
+//    imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, pixelData);
+//    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
+//    self.postMessage(imageDataResponse, "*", [pixelData.buffer]);
+//  }
+//  else if (plainMsg.messageKind === 'GetImageData') {
+//    //mapWorkingData.doIterationsForAll(1);
 
-    pixelData = mapWorkingData.getPixelData();
-    imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, pixelData);
-    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
-    self.postMessage(imageDataResponse, "*", [pixelData.buffer]);
-  }
-  else if (plainMsg.messageKind === "UpdateColorMap") {
-    let upColorMapReq = WebWorkerUpdateColorMapRequest.FromEventData(e.data);
+//    pixelData = mapWorkingData.getPixelData();
+//    imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, pixelData);
+//    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
+//    self.postMessage(imageDataResponse, "*", [pixelData.buffer]);
+//  }
+//  else if (plainMsg.messageKind === "UpdateColorMap") {
+//    let upColorMapReq = WebWorkerUpdateColorMapRequest.FromEventData(e.data);
 
-    mapWorkingData.colorMap = upColorMapReq.colorMap;
-    console.log('WebWorker received an UpdateColorMapRequest with ' + mapWorkingData.colorMap.ranges.length + ' entries.');
+//    mapWorkingData.colorMap = upColorMapReq.colorMap;
+//    console.log('WebWorker received an UpdateColorMapRequest with ' + mapWorkingData.colorMap.ranges.length + ' entries.');
 
-    pixelData = mapWorkingData.getPixelData();
-    imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, pixelData);
-    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
-    self.postMessage(imageDataResponse, "*", [pixelData.buffer]);
-  }
-  else if (plainMsg.messageKind === "GetHistogram") {
-    let histogram = mapWorkingData.getHistogram();
-    let histogramResponse = WebWorkerHistorgramResponse.CreateResponse(sectionNumber, histogram);
+//    pixelData = mapWorkingData.getPixelData();
+//    imageDataResponse = WebWorkerImageDataResponse.CreateResponse(sectionNumber, pixelData);
+//    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
+//    self.postMessage(imageDataResponse, "*", [pixelData.buffer]);
+//  }
+//  else if (plainMsg.messageKind === "GetHistogram") {
+//    let histogram = mapWorkingData.getHistogram();
+//    let histogramResponse = WebWorkerHistorgramResponse.CreateResponse(sectionNumber, histogram);
 
-    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
-    self.postMessage(histogramResponse, "*", [histogramResponse.vals.buffer, histogramResponse.occurances.buffer]);
-  }
-  else {
-    console.log('Received unknown message kind: ' + plainMsg.messageKind);
-  }
+//    //console.log('Posting ' + workerResult.messageKind + ' back to main script');
+//    self.postMessage(histogramResponse, "*", [histogramResponse.vals.buffer, histogramResponse.occurances.buffer]);
+//  }
+//  else {
+//    console.log('Received unknown message kind: ' + plainMsg.messageKind);
+//  }
 
-};
+//};
 
 
 

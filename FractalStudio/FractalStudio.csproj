@@ -8,8 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="src\app\apMath\apInt.ts" />
     <None Remove="src\app\apMath\apRational.ts" />
+    <None Remove="src\app\apMath\apsrRational.ts" />
     <None Remove="src\app\apMath\big.js" />
     <None Remove="src\app\apMath\index.d.ts" />
     <None Remove="src\app\m-map\BigRatTest.ts" />
@@ -38,11 +38,18 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Core" Version="1.0.4" />
+    <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="2.1.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
   </ItemGroup>
 
   <ItemGroup>
-    <TypeScriptCompile Include="src\app\apMath\apInt.ts" />
+    <ProjectReference Include="..\FractalServer\FractalServer.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <TypeScriptCompile Include="src\app\apMath\apRational.ts" />
+    <TypeScriptCompile Include="src\app\apMath\apsrRational.ts" />
     <TypeScriptCompile Include="src\app\logger.service.ts" />
     <TypeScriptCompile Include="src\app\m-map\BigRatTest.ts" />
     <TypeScriptCompile Include="src\app\m-map\ColorNumbers.ts" />

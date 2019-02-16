@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using FractalStudio.Hubs;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -25,8 +26,18 @@ namespace FractalStudio
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
-        }
+            var mvc = services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+
+            mvc.AddJsonOptions(options =>
+            {
+              options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
+              options.SerializerSettings.ContractResolver = new Newtonsoft.Json.Serialization.DefaultContractResolver();
+              options.SerializerSettings.Formatting = Newtonsoft.Json.Formatting.Indented;
+              options.SerializerSettings.ConstructorHandling = Newtonsoft.Json.ConstructorHandling.AllowNonPublicDefaultConstructor;
+            });
+
+            services.AddSignalR();
+    }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
@@ -44,6 +55,12 @@ namespace FractalStudio
             app.UseStaticFiles();
             app.UseHttpsRedirection();
             app.UseMvc();
+
+            // If you're using the SPA template, this should come before app.UseSpa(...);
+            app.UseSignalR(routes =>
+            {
+              routes.MapHub<EchoHub>("/hubs/echo");
+            });
 
         }
     }

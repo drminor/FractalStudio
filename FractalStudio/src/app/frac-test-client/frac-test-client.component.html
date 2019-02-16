@@ -1,0 +1,17 @@
+<p>
+  frac-test-client works!
+</p>
+<p>
+  The value is {{value}}
+</p>
+<p>
+  The Y value is {{yValue}}
+</p>
+<p>
+  The byte length is {{byteLength}}
+</p>
+
+
+<input type="text" [(ngModel)]="message">
+<button (click)="send()">Send</button>
+<p *ngFor="let m of messages">{{m}}</p>

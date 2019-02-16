@@ -5,12 +5,15 @@ import { ColorNumbers } from '../../m-map/ColorNumbers';
 import {
   IPoint, Point, IBox, Box,
   ColorMapEntryBlendStyle,
-  IMapInfo, MapInfo, Histogram
+  IMapInfo, MapInfo, Histogram,
+  apRational, RoundingMode, apRationalSettings
 } from '../../m-map/m-map-common';
 
 import { ColorMapUI, ColorMapUIEntry, ColorMapForExport, MapInfoWithColorMap, MapInfoWithColorMapForExport } from '../m-map-common-ui';
 
-import { apRationalCalc, apRational, RoundingMode } from '../../apMath/apRational';
+//import { apRational, RoundingMode, apRationalSettings } from '../../apMath/apRational';
+
+import { apsrRational, apsrRationalSettings } from '../../apMath/apsrRational';
 
 
 import { MMapDisplayComponent } from '../../m-map/m-map.display/m-map.display.component';
@@ -93,7 +96,10 @@ export class MMapDesignerComponent {
     this.colorEditorOffSet = '946px'; // 7 pixels to accomodate border, margin and 1 pixel gap.
     this.colorEditorWidth = '385px';
 
-    this.doApRatTest();
+    //this.doApRatTest();
+    //this.doApRatTest2();
+    this.doApRatTest3();
+
   }
 
   onColorMapUpdated(colorMap: ColorMapUI) {
@@ -241,62 +247,95 @@ export class MMapDesignerComponent {
     return result;
   }
 
-  private doApRatTest() {
+  private doApRatTest3() {
 
-    let x: apRational = apRationalCalc.parse('-0.000035123');
-    console.log('Created a apRational with value = ' + x.toString());
+    let apRatSettings = new apsrRationalSettings(25, 7);
 
-    //let y: apRational = new apRational(true, 0, [0]);
+    let x = apRatSettings.parse(105.001);
+    console.log('X is ' + x.toString() + ' fancy:' + x.toStringF());
 
-    let calc = new apRationalCalc(10, RoundingMode.HalfUp);
-    calc.posExp = 4;
-    calc.negExp = 3;
+    let y = apRatSettings.parse('0.000456789'); 
+    console.log('Y is ' + y.toString() + ' fancy:' + y.toStringF());
 
-    let s = calc.stringify(x);
-    console.log('Stringify of x = |' + s + '|');
+    let z = y.clone().roundCustom(5);
+    console.log('Z is ' + z.toString() + ' fancy:' + z.toStringF());
 
-    let a = apRationalCalc.parse('201.123456789123456789');
-    this.reportApRatValue(calc, 'A', a);
-    let b = calc.round(a);
-    this.reportApRatValue(calc, 'A Rounded', b);
-
-    calc = new apRationalCalc(15, RoundingMode.HalfUp);
-    calc.posExp = 20;
-    calc.negExp = 8;
-
-    let c = apRationalCalc.parse('0.00000000123456789123456789');
-    this.reportApRatValue(calc, 'C', c);
-    let d = calc.round(c);
-    this.reportApRatValue(calc, 'C rounded', d);
-
-    let m = calc.multiply(c, d);
-    this.reportApRatValue(calc, 'C * D', m);
-
-    let nc = calc.divide(m, d);
-    this.reportApRatValue(calc, 'C * D / D', nc);
-
-    let m2 = calc.multiply(a, c);
-    this.reportApRatValue(calc, 'A * C', m2);
-
-    let nc2 = calc.divide(m2, c);
-    this.reportApRatValue(calc, 'A * C / C', nc2);
-
-    let p = calc.plus(a, a);
-    this.reportApRatValue(calc, 'A + A', p);
-
-    let p2 = calc.plus(p, c);
-    this.reportApRatValue(calc, 'A + A + C', p2);
-
-    let u = calc.minus(p, a);
-    this.reportApRatValue(calc, 'A + A - A', u);
-
-    let u2 = calc.minus(p2, c);
-    this.reportApRatValue(calc, 'A + A + C - C', u2);
   }
 
-  private reportApRatValue(calc: apRationalCalc, name:string, x: apRational): void {
-    let f = calc.toFixed(x);
-    let e = calc.toExponential(x);
+  private doApRatTest2() {
+
+    let apRatSettings = new apRationalSettings(25, RoundingMode.HalfUp);
+
+    let x = apRatSettings.parse(1.001);
+    let y = x.clone();
+
+    let ptr = 0;
+
+    for (; ptr < 100; ptr++) {
+      y.multiply(x);
+      console.log('At interation ' + ptr + ' Y is ' + y.toFixed() + ' raw: ' + y.toString());
+    }
+  }
+
+  private doApRatTest() {
+
+    let apRatTestSettings = new apRationalSettings(10, RoundingMode.HalfUp);
+    apRatTestSettings.posExp = 4;
+    apRatTestSettings.negExp = 3;
+
+    let x: apRational = apRational.parse('-0.000035123', apRatTestSettings);
+    console.log('Created a apRational with value = ' + x.toString());
+
+    let s = x.stringify();
+    console.log('Stringify of x = |' + s + '|');
+
+    let a = apRatTestSettings.parse('201.123456789123456789');
+
+    this.reportApRatValue('A', a);
+    let b = a.clone().round();
+    this.reportApRatValue('A Rounded', b);
+
+    let apRatSettings = new apRationalSettings(15, RoundingMode.HalfUp);
+    apRatSettings.posExp = 20;
+    apRatSettings.negExp = 8;
+
+    //let c = apRational.parse('0.00000000123456789123456789', apRatSettings);
+    let c = apRatSettings.parse('0.00000000123456789123456789');
+
+    this.reportApRatValue('C', c);
+    let d = c.clone().round();
+    this.reportApRatValue('C rounded', d);
+
+    let m = c.clone().multiply(d);
+    this.reportApRatValue('C * D', m);
+
+    let nc = m.clone().divide(d);
+    this.reportApRatValue('C * D / D', nc);
+
+    let m2 = a.clone().multiply(c);
+    this.reportApRatValue('A * C', m2);
+
+    let nc2 = m2.divide(c);
+    this.reportApRatValue('A * C / C', nc2);
+
+    a = apRatSettings.parse('2.3');
+
+    let p = a.clone().plus(a);
+    this.reportApRatValue('A + A', p);
+
+    let p2 = p.clone().plus(c);
+    this.reportApRatValue('A + A + C', p2);
+
+    let u = p.clone().minus(a);
+    this.reportApRatValue('A + A - A', u);
+
+    let u2 = p2.clone().minus(c);
+    this.reportApRatValue('A + A + C - C', u2);
+  }
+
+  private reportApRatValue(name:string, x: apRational): void {
+    let f = x.toFixed();
+    let e = x.toExponential();
     console.log(name + '= ' + f + ' (' + e + ')');
   }
 
