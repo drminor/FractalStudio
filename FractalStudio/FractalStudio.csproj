@@ -4,7 +4,7 @@
     <TargetFramework>netcoreapp2.1</TargetFramework>
     <TypeScriptCompileBlocked>false</TypeScriptCompileBlocked> 
     <PostBuildEvent>ng build --aot</PostBuildEvent> 
-    <TypeScriptToolsVersion>3.0</TypeScriptToolsVersion>
+    <TypeScriptToolsVersion>3.1</TypeScriptToolsVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -12,6 +12,7 @@
     <None Remove="src\app\apMath\apsrRational.ts" />
     <None Remove="src\app\apMath\big.js" />
     <None Remove="src\app\apMath\index.d.ts" />
+    <None Remove="src\app\m-map-common-server.ts" />
     <None Remove="src\app\m-map\BigRatTest.ts" />
     <None Remove="src\app\m-map\ColorNumbers.ts" />
     <None Remove="src\app\m-map\m-map-common-ui.ts" />
@@ -44,6 +45,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\FractalEngine\FractalEngine.csproj" />
     <ProjectReference Include="..\FractalServer\FractalServer.csproj" />
   </ItemGroup>
 
@@ -51,6 +53,7 @@
     <TypeScriptCompile Include="src\app\apMath\apRational.ts" />
     <TypeScriptCompile Include="src\app\apMath\apsrRational.ts" />
     <TypeScriptCompile Include="src\app\logger.service.ts" />
+    <TypeScriptCompile Include="src\app\m-map\m-map-common-server.ts" />
     <TypeScriptCompile Include="src\app\m-map\BigRatTest.ts" />
     <TypeScriptCompile Include="src\app\m-map\ColorNumbers.ts" />
     <TypeScriptCompile Include="src\app\m-map\m-map-common-ui.ts" />

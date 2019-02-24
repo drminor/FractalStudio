@@ -4,15 +4,14 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{8EFE2D37-974C-4979-AF9A-E2C080BDD7E4}</ProjectGuid>
+    <ProjectGuid>{B09271E9-BD16-44B9-A738-1D2D22A04655}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>FractalServer</RootNamespace>
-    <AssemblyName>FractalServer</AssemblyName>
+    <RootNamespace>FractalEngine</RootNamespace>
+    <AssemblyName>FractalEngine</AssemblyName>
     <TargetFrameworkVersion>v4.7</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
-    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -32,13 +31,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Newtonsoft.Json, Version=12.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\packages\Newtonsoft.Json.12.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
-    <Reference Include="System.Numerics" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -47,37 +42,18 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BigFloat.cs" />
-    <Compile Include="ColorMap.cs" />
-    <Compile Include="ColorMapBlendStyle.cs" />
-    <Compile Include="ColorMapColor.cs" />
-    <Compile Include="ColorMapEntry.cs" />
-    <Compile Include="ColorMapEntryForExport.cs" />
-    <Compile Include="ColorMapForExport.cs" />
-    <Compile Include="CanvasSize.cs" />
-    <Compile Include="MapWorkRequest.cs" />
-    <Compile Include="Coords.cs" />
-    <Compile Include="DPoint.cs" />
-    <Compile Include="JsonReader.cs" />
-    <Compile Include="MapInfo.cs" />
-    <Compile Include="MapInfoWithColorMap.cs" />
-    <Compile Include="MapInfoWithColorMapForExport.cs" />
-    <Compile Include="MapWorkingData.cs" />
-    <Compile Include="MapSectionWorkRequest.cs" />
-    <Compile Include="MPointWork.cs" />
+    <Compile Include="Client.cs" />
+    <Compile Include="Engine.cs" />
+    <Compile Include="IClient.cs" />
+    <Compile Include="Job.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SubJob.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Hjg.Pngcs\Hjg.Pngcs.csproj">
-      <Project>{fd3b0d50-46b3-4a83-9a6d-c641569142cf}</Project>
-      <Name>Hjg.Pngcs</Name>
+    <ProjectReference Include="..\FractalServer\FractalServer.csproj">
+      <Project>{8efe2d37-974c-4979-af9a-e2c080bdd7e4}</Project>
+      <Name>FractalServer</Name>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="BigFloat_LICENSE.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

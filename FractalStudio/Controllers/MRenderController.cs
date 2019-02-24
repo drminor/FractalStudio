@@ -1,9 +1,10 @@
 using FractalServer;
 using Microsoft.AspNetCore.Mvc;
-using FractalStudio.ActionResults;
 
-using Microsoft.AspNetCore.Mvc.Formatters;
 
+using FractalEngine;
+using Microsoft.AspNetCore.SignalR;
+using FractalStudio.Hubs;
 
 namespace FractalStudio.Controllers
 {
@@ -12,6 +13,14 @@ namespace FractalStudio.Controllers
   [ApiController]
   public class MRenderController : ControllerBase
   {
+    private readonly Engine _engine;
+    private readonly IHubContext<EchoHub> _hubContext;
+
+    public MRenderController(Engine engine, IHubContext<EchoHub> hubContext)
+    {
+      _engine = engine;
+      _hubContext = hubContext;
+    }
 
     // GET: api/MRender
     [HttpGet]
@@ -35,15 +44,23 @@ namespace FractalStudio.Controllers
 
     // POST: api/MRender
     [HttpPost]
-    public IActionResult Post([FromBody] Coords value)
+    public IActionResult Post([FromBody] MapWorkRequest mapWorkRequest)
     {
-      //this.DPoint = value.LeftBot;
-      //value.LeftBot.X = 10.3;
+      //Client client = new Client("Test", connectionId, x => _hubContext.C.lients.Client(connectionId).SendAsync("Send", x.ToString()) );
 
-      value.RightTop.Y = 10.4;
-      //value.Y = 10.3;
+      //Client client = new Client("Test", connectionId, (connId, x) => {
+      //  _hubContext.Clients.All.SendAsync("Send", x.ToString());
+      //  });
 
-      return Ok(value); // new JsonResult(value);
+      FractalEngineClient client = new FractalEngineClient(_hubContext, mapWorkRequest.ConnectionId);
+      
+      Job job = new Job(mapWorkRequest, client);
+
+      int jobId = _engine.SubmitJob(job);
+
+      mapWorkRequest.Coords.RightTop.Y = _engine.NumberOfJobs;
+
+      return Ok(mapWorkRequest); // new JsonResult(value);
     }
 
     // PUT: api/MRender/5

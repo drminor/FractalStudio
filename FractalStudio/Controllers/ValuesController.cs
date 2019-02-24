@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using FractalEngine;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 
@@ -24,6 +25,15 @@ namespace FractalStudio.Controllers
   [ApiController]
   public class ValuesController : ControllerBase
   {
+
+    private readonly Engine Engine;
+
+    public ValuesController(Engine engine)
+    {
+      Engine = engine;
+    }
+
+
     // GET api/values
     [HttpGet]
     public ActionResult<IEnumerable<string>> Get()
@@ -35,6 +45,11 @@ namespace FractalStudio.Controllers
     [HttpGet("{name}")]
     public ActionResult<Cat> Get(string name)
     {
+      //Job dummy = new Job(null, null);
+      //Engine.SubmitJob(dummy);
+
+      ////return $"There are now {Engine.NumberOfJobs} jobs.";
+      //string n = $"There are now {Engine.NumberOfJobs} jobs.";
       return new Cat(name);
     }
 

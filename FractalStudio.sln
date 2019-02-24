@@ -21,6 +21,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PngImageBuilder", "PngImage
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hjg.Pngcs", "Hjg.Pngcs\Hjg.Pngcs.csproj", "{FD3B0D50-46B3-4A83-9A6D-C641569142CF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FracWinService", "FracWinService\FracWinService.csproj", "{69F21493-51C8-4845-A837-BA152C67AC57}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FractalEngine", "FractalEngine\FractalEngine.csproj", "{B09271E9-BD16-44B9-A738-1D2D22A04655}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -69,6 +73,22 @@ Global
 		{FD3B0D50-46B3-4A83-9A6D-C641569142CF}.Release|Any CPU.Build.0 = Release|Any CPU
 		{FD3B0D50-46B3-4A83-9A6D-C641569142CF}.Release45|Any CPU.ActiveCfg = Release45|Any CPU
 		{FD3B0D50-46B3-4A83-9A6D-C641569142CF}.Release45|Any CPU.Build.0 = Release45|Any CPU
+		{69F21493-51C8-4845-A837-BA152C67AC57}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{69F21493-51C8-4845-A837-BA152C67AC57}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{69F21493-51C8-4845-A837-BA152C67AC57}.Debug45|Any CPU.ActiveCfg = Debug|Any CPU
+		{69F21493-51C8-4845-A837-BA152C67AC57}.Debug45|Any CPU.Build.0 = Debug|Any CPU
+		{69F21493-51C8-4845-A837-BA152C67AC57}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{69F21493-51C8-4845-A837-BA152C67AC57}.Release|Any CPU.Build.0 = Release|Any CPU
+		{69F21493-51C8-4845-A837-BA152C67AC57}.Release45|Any CPU.ActiveCfg = Release|Any CPU
+		{69F21493-51C8-4845-A837-BA152C67AC57}.Release45|Any CPU.Build.0 = Release|Any CPU
+		{B09271E9-BD16-44B9-A738-1D2D22A04655}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B09271E9-BD16-44B9-A738-1D2D22A04655}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B09271E9-BD16-44B9-A738-1D2D22A04655}.Debug45|Any CPU.ActiveCfg = Debug|Any CPU
+		{B09271E9-BD16-44B9-A738-1D2D22A04655}.Debug45|Any CPU.Build.0 = Debug|Any CPU
+		{B09271E9-BD16-44B9-A738-1D2D22A04655}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B09271E9-BD16-44B9-A738-1D2D22A04655}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B09271E9-BD16-44B9-A738-1D2D22A04655}.Release45|Any CPU.ActiveCfg = Release|Any CPU
+		{B09271E9-BD16-44B9-A738-1D2D22A04655}.Release45|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

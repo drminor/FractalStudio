@@ -1,23 +1,15 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
-import { IBox } from '../m-map/m-map-common';
 import { isNullOrUndefined } from 'util';
 
+
+import { IBox } from '../m-map/m-map-common';
+import { MapWorkRequest } from '../m-map/m-map-common-server';
 
 export interface Cat {
   name: string;
 }
-
-export interface TPoint {
-  x: number;
-  y: number;
-}
-
-//export class Coords {
-//  LeftBot: DPoint;
-//  RightTop: DPoint;
-//}
 
 @Injectable({
   providedIn: 'root'
@@ -31,19 +23,16 @@ export class FracServerService {
 
   constructor(private http: HttpClient) { }
 
-  sendCoords(box: IBox): Observable<IBox> {
-    let res: Observable<IBox> = this.http.post<IBox>(this.baseUrl + this.controllerPath2, box);
-    //res.subscribe(this.useBox);
+  submitJob(request: MapWorkRequest): Observable<MapWorkRequest> {
+    let res: Observable<MapWorkRequest> = this.http.post<MapWorkRequest>(this.baseUrl + this.controllerPath2, request);
     return res;
   }
 
-  useTPoint(x: TPoint) {
-    console.log('The Y value is ' + x.y);
-  }
-
-  useBox(x: IBox) {
-    console.log('The TopRight Y value is ' + x.topRight.y);
-  }
+  //sendCoords(box: IBox): Observable<IBox> {
+  //  let res: Observable<IBox> = this.http.post<IBox>(this.baseUrl + this.controllerPath2, box);
+  //  //res.subscribe(this.useBox);
+  //  return res;
+  //}
 
   sendByteRequest(): Observable<ArrayBuffer> {
     //const headers = new HttpHeaders().set('content-type', 'application/octet-stream');
@@ -59,15 +48,18 @@ export class FracServerService {
     return res;
   }
 
+  //useBox(x: IBox) {
+  //  console.log('The TopRight Y value is ' + x.topRight.y);
+  //}
 
-  useBytes(x: ArrayBuffer) {
-    if (isNullOrUndefined(x)) {
-      console.log('The byte array is null.');
-    }
-    else {
-      console.log('The byte array is ' + x.byteLength + ' long.');
-    }
-  }
+  //useBytes(x: ArrayBuffer) {
+  //  if (isNullOrUndefined(x)) {
+  //    console.log('The byte array is null.');
+  //  }
+  //  else {
+  //    console.log('The byte array is ' + x.byteLength + ' long.');
+  //  }
+  //}
 
   getAllCats(): Observable<Cat[]> {
     return this.http.get<Cat[]>(this.baseUrl + this.controllerPath);
