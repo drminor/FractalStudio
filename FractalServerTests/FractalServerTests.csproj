@@ -55,6 +55,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="OrangeGradiant.cs" />
+    <Compile Include="FractalEngineTests.cs" />
     <Compile Include="UnitTest1.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -62,6 +63,10 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\FractalEngine\FractalEngine.csproj">
+      <Project>{b09271e9-bd16-44b9-a738-1d2d22a04655}</Project>
+      <Name>FractalEngine</Name>
+    </ProjectReference>
     <ProjectReference Include="..\FractalServer\FractalServer.csproj">
       <Project>{8efe2d37-974c-4979-af9a-e2c080bdd7e4}</Project>
       <Name>FractalServer</Name>

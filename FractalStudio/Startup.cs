@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -38,7 +39,9 @@ namespace FractalStudio
       });
 
 
-      services.AddSignalR();
+      services.AddSignalR().AddMessagePackProtocol();
+      //services.AddSignalR();
+
       services.AddSingleton(new Engine());
     }
 
@@ -58,6 +61,14 @@ namespace FractalStudio
       app.UseStaticFiles();
       app.UseHttpsRedirection();
       app.UseMvc();
+
+      // Start our Fractal [generation] engine
+      // using a client connector (which wraps an instance of the Echo Hub context.)
+      var hub = app.ApplicationServices.GetRequiredService<IHubContext<EchoHub>>();
+      IClientConnector clientConnector = new FractalEngineClient(hub);
+
+      var engine = app.ApplicationServices.GetRequiredService<Engine>();
+      engine.Start(clientConnector);
 
       // If you're using the SPA template, this should come before app.UseSpa(...);
       app.UseSignalR(routes =>

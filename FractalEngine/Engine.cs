@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -9,9 +10,10 @@ using System.Threading.Tasks;
 
 namespace FractalEngine
 {
-
 	public class Engine
 	{
+		private IClientConnector _clientConnector;
+
 		private int _nextJobId;
 		private int _nextJobPtr;
 
@@ -25,6 +27,8 @@ namespace FractalEngine
 
 		public Engine()
 		{
+			_clientConnector = null;
+
 			_nextJobId = 0;
 			_nextJobPtr = 0;
 			_jobs = new Dictionary<int, Job>();
@@ -32,7 +36,6 @@ namespace FractalEngine
 			_cts = new CancellationTokenSource();
 
 			HaveWork = new ManualResetEvent(false);
-			Start(_cts);
 		}
 
 		public void Quit()
@@ -100,6 +103,7 @@ namespace FractalEngine
 					{
 						if(_jobs.Count == 0)
 						{
+							System.Diagnostics.Debug.WriteLine("There are no jobs, Resetting HaveWork.");
 							_nextJobPtr = 0;
 							HaveWork.Reset();
 						}
@@ -110,7 +114,8 @@ namespace FractalEngine
 								_nextJobPtr = 0;
 							}
 
-							result = _jobs.Values.ToArray()[_nextJobPtr];
+							result = _jobs.Values.ToArray()[_nextJobPtr++];
+							System.Diagnostics.Debug.WriteLine($"The next job has id = {result.JobId}.");
 
 							//result = _jobs[_nextJobPtr++];
 							break;
@@ -129,106 +134,100 @@ namespace FractalEngine
 
 		private readonly BlockingCollection<SubJob> WorkRequests = new BlockingCollection<SubJob>(10);
 
-		public void Start(CancellationTokenSource cts)
+		public void Start(IClientConnector clientConnector)
 		{
+			this._clientConnector = clientConnector;
+
 			// Start one producer and one consumer.
-			Task t1 = Task.Run(() => WorkProcessor(WorkRequests), cts.Token);
-			Task t2 = Task.Run(() => QueueWork(WorkRequests, cts.Token), cts.Token);
-
-			//// Wait for the tasks to complete execution
-			//Task.WaitAll(t1, t2);
-
-			//cts.Dispose();
-
-			//Task.Run(() =>
-			//{
-			//	bool allJobsComplete = false;
-			//	for (int ptr = 0; ptr < 100000; ptr++)
-			//	{
-			//		if (_jobs.Count == 0 || allJobsComplete)
-			//		{
-			//			Thread.Sleep(1000);
-			//		}
-			//		else
-			//		{
-			//			Thread.Sleep(5);
-			//		}
-
-			//		allJobsComplete = true; // Assume true, until we find one that's not.
-			//		lock (_jobLock)
-			//		{
-			//			foreach (KeyValuePair<int, Job> kvp in _jobs)
-			//			{
-			//				Job job = kvp.Value;
-
-			//				MapSectionWorkRequest mswr = job.GetNextResult();
-
-			//				if (mswr != null)
-			//				{
-			//					job.Client.ReceiveImageData(mswr.Canvas.Left);
-			//					allJobsComplete = false;
-			//				}
-			//			}
-			//		}
-
-			//	}
-
-			//}, cts.Token);
+			Task t1 = Task.Run(() => WorkProcessor(WorkRequests, _cts.Token), _cts.Token);
+			Task t2 = Task.Run(() => QueueWork(WorkRequests, _cts.Token), _cts.Token);
 		}
 
-		private void QueueWork(BlockingCollection<SubJob> bc, CancellationToken cts)
+		private void QueueWork(BlockingCollection<SubJob> bc, CancellationToken ct)
 		{
 			do
 			{
-				if (cts.IsCancellationRequested) return;
+				if (ct.IsCancellationRequested) return;
 
-				Job job = GetNextJob(cts);
-				if (cts.IsCancellationRequested) return;
+				Job job = GetNextJob(ct);
+				if (ct.IsCancellationRequested) return;
 
-				if(job != null)
+				SubJob subJob = job.GetNextSubJob();
+				if(subJob != null)
 				{
-					SubJob subJob = job.GetNextResult();
-					if(subJob != null)
-					{
-						bc.Add(subJob, cts);
-					}
-					else
-					{
-						// Remove the job.
-						CancelJob(job.JobId);
-					}
+					bc.Add(subJob, ct);
 				}
+				else
+				{
+					// Remove the job.
+					CancelJob(job.JobId);
+				}
+
 			} while (true);
 		}
 
-		private void WorkProcessor(BlockingCollection<SubJob> bc)
+		private void WorkProcessor(BlockingCollection<SubJob> bc, CancellationToken ct)
 		{
-			SubJob wr = null;
-			while (!bc.IsCompleted)
+			var parallelOptions = new ParallelOptions
 			{
-				try
-				{
-					wr = bc.Take();
-					wr.Client.ReceiveImageData(wr.MapSectionWorkRequest.Canvas.Left);
-				}
-				catch (OperationCanceledException)
-				{
-					//Console.WriteLine("Taking canceled.");
-					break;
-				}
-				catch (InvalidOperationException)
-				{
-					//Console.WriteLine("Adding was completed!");
-					break;
-				}
-				//Console.WriteLine("Take:{0} ", wr);
+				MaxDegreeOfParallelism = 4,
+				CancellationToken = ct
+			};
 
-				// Simulate a slow consumer. This will cause
-				// collection to fill up fast and thus Adds wil block.
-				Thread.SpinWait(100000);
+			try
+			{
+				Parallel.ForEach(bc.GetConsumingPartitioner(), parallelOptions, ProcessSubJob);
+			}
+			catch (OperationCanceledException)
+			{
+				System.Diagnostics.Debug.WriteLine("Work Request Consuming Enumerable canceled.");
+				throw;
+			}
+			catch (InvalidOperationException)
+			{
+				System.Diagnostics.Debug.WriteLine("Work Request Consuming Enumerable completed.");
+				throw;
 			}
 
+			//SubJob wr = null;
+			//while (!bc.IsCompleted)
+			//{
+			//	try
+			//	{
+			//		wr = bc.Take(ct);
+			//		_clientConnector.ReceiveImageData(wr.ConnectionId, wr.MapSectionWorkRequest.Canvas.Left);
+			//	}
+			//	catch (OperationCanceledException)
+			//	{
+			//		//Console.WriteLine("Taking canceled.");
+			//		break;
+			//	}
+			//	catch (InvalidOperationException)
+			//	{
+			//		//Console.WriteLine("Adding was completed!");
+			//		break;
+			//	}
+			//	//Console.WriteLine("Take:{0} ", wr);
 
+			//	// Simulate a slow consumer. This will cause
+			//	// collection to fill up fast and thus Adds wil block.
+			//	Thread.SpinWait(100000);
+			//}
+		}
+
+		private void ProcessSubJob(SubJob subJob)
+		{
+			MapSectionWorkRequest mswr = subJob.MapSectionWorkRequest;
+			Size canvasSize = new Size(mswr.MapSection.CanvasSize.Width, mswr.MapSection.CanvasSize.Height);
+
+			MapWorkingData2 workingData = new MapWorkingData2(canvasSize, mswr.MaxIterations, mswr.XValues, mswr.YValues);
+
+			double[] imageData = workingData.GetValues();
+			_clientConnector.ReceiveImageData(subJob.ConnectionId, mswr.MapSection, imageData);
+
+			// Simulate a slow consumer. This will cause
+			// collection to fill up fast and thus Adds wil block.
+			//Thread.SpinWait(100000);
 		}
 
 		#endregion

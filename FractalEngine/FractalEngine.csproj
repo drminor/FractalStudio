@@ -31,6 +31,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="AsyncEnumerable, Version=2.2.2.0, Culture=neutral, PublicKeyToken=0426b068161bd1d1, processorArchitecture=MSIL">
+      <HintPath>..\packages\AsyncEnumerator.2.2.2\lib\net45\AsyncEnumerable.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
@@ -42,9 +45,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Client.cs" />
+    <Compile Include="BlockingCollectionExtensions.cs" />
     <Compile Include="Engine.cs" />
-    <Compile Include="IClient.cs" />
+    <Compile Include="IClientConnector.cs" />
     <Compile Include="Job.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SubJob.cs" />
@@ -54,6 +57,9 @@
       <Project>{8efe2d37-974c-4979-af9a-e2c080bdd7e4}</Project>
       <Name>FractalServer</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

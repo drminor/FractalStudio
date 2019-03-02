@@ -1,10 +1,13 @@
 import { Component, OnInit } from '@angular/core';
-import { HubConnection, HubConnectionBuilder } from '@aspnet/signalr';
-import { Observable } from 'rxjs';
+//import { HubConnection, HubConnectionBuilder } from '@aspnet/signalr';
+import * as signalR from '@aspnet/signalr';
+import * as msgPackHubProtocol from '@aspnet/signalr-protocol-msgpack';
+//import { Observable } from 'rxjs';
 
 import { Box, Point, IBox, ICanvasSize, CanvasSize } from '../m-map/m-map-common';
-import { MapWorkRequest } from '../m-map/m-map-common-server';
+import { MapWorkRequest, MapSection } from '../m-map/m-map-common-server';
 import { FracServerService, Cat } from '../frac-server/frac-server.service';
+
 
 
 @Component({
@@ -18,7 +21,7 @@ export class FracTestClientComponent implements OnInit {
   public yValue: number;
   public byteLength: number;
 
-  public hubConnection: HubConnection;
+  public hubConnection: signalR.HubConnection;
   public hubConnId: string;
 
   public messages: string[] = [];
@@ -72,9 +75,9 @@ export class FracTestClientComponent implements OnInit {
 
   submitJob() {
 
-    let coords: IBox = new Box(new Point(1.2, 3.4), new Point(5.6, 7.8));
+    let coords: IBox = new Box(new Point(-2, -1), new Point(1, 1));
     let maxIterations = 100;
-    let canvasSize: ICanvasSize = new CanvasSize(100, 100);
+    let canvasSize: ICanvasSize = new CanvasSize(188, 125);
 
     let jobRequest = new MapWorkRequest(this.hubConnId, coords, maxIterations, canvasSize);
 
@@ -87,10 +90,22 @@ export class FracTestClientComponent implements OnInit {
   }
 
   private connectToHub(url: string): void {
-    let builder = new HubConnectionBuilder();
+
+    //let builder = new HubConnectionBuilder();
+    //this.hubConnection = builder.withUrl(url).build();
+
+    //this.hubConnection = builder
+    //  .withUrl(url)
+    //  .withHubProtocol(new signalR.protocols.msgpack.MessagePackHubProtocol())
+    //  .build();
+
+    this.hubConnection = new signalR.HubConnectionBuilder()
+      .withUrl(url)
+      .withHubProtocol(new msgPackHubProtocol.MessagePackHubProtocol())
+      //.withHubProtocol(new signalR.protocols.msgpack.MessagePackHubProtocol())
+      .build();
 
 
-    this.hubConnection = builder.withUrl(url).build();
 
     // message coming from the server
     this.hubConnection.on("Send", (message) => {
@@ -102,8 +117,9 @@ export class FracTestClientComponent implements OnInit {
       this.value = 'Ready';
     });
 
-    this.hubConnection.on("ImageData", (message) => {
-      this.messages.push(message);
+    this.hubConnection.on("ImageData", (mapSection: MapSection, data: number[]) => {
+      let ls: string = data.length.toString();
+      this.messages.push(ls);
     });
 
     //this.hubConnection.start().then(() => this.value = 'Ready');

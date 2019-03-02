@@ -17,10 +17,10 @@ namespace FractalServer
             Height = 0;
         }
 
-        public CanvasSize(int width, int heigth)
+        public CanvasSize(int width, int height)
         {
-            Width = heigth;
-            Height = width;
+            Width = width;
+            Height = height;
         }
 
     }

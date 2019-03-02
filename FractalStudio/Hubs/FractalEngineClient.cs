@@ -1,39 +1,24 @@
 using FractalEngine;
+using FractalServer;
 using Microsoft.AspNetCore.SignalR;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace FractalStudio.Hubs
 {
-  public class FractalEngineClient : IClient
+  public class FractalEngineClient : IClientConnector
   {
-
-    //private readonly string _userName;
-    //private readonly Action<string, int> _callBack;
-
     private readonly IHubContext<EchoHub> _hubContext;
-    private readonly string _connectionId;
 
-    //public FractalEngineClient(string userName, string connectionId, Action<string, int> callBack)
-    public FractalEngineClient(IHubContext<EchoHub> hubContext, string connectionId)
+    public FractalEngineClient(IHubContext<EchoHub> hubContext)
     {
-      //_userName = userName ?? throw new ArgumentNullException(nameof(userName));
-      //_connectionId = connectionId ?? throw new ArgumentNullException(nameof(connectionId));
-      //_callBack = callBack;
-
       _hubContext = hubContext ?? throw new ArgumentNullException(nameof(hubContext));
-      _connectionId = connectionId;
     }
 
-    public int ReceiveImageData(int data)
+    public int ReceiveImageData(string connectionId, MapSection mapSection, double[] imageData)
     {
-      //_callBack?.Invoke(_connectionId, data);
-
-      _hubContext.Clients.Client(_connectionId).SendAsync("ImageData", data);
+      _hubContext.Clients.Client(connectionId).SendAsync("ImageData", mapSection, imageData);
       return 0;
     }
+
   }
 }

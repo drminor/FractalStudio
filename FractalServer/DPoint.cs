@@ -2,14 +2,24 @@
 
 namespace FractalServer
 {
-	public class SPoint
+	public class Point
 	{
-		public double x;
+		[JsonProperty("x")]
+		public int X;
 
-		public double y;
+		[JsonProperty("y")]
+		public int Y;
 
-		public SPoint()
+		private Point()
 		{
+			X = 0;
+			Y = 0;
+		}
+
+		public Point(int x, int y)
+		{
+			X = x;
+			Y = y;
 		}
 	}
 

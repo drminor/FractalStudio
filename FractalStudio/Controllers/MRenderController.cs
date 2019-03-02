@@ -52,9 +52,9 @@ namespace FractalStudio.Controllers
       //  _hubContext.Clients.All.SendAsync("Send", x.ToString());
       //  });
 
-      FractalEngineClient client = new FractalEngineClient(_hubContext, mapWorkRequest.ConnectionId);
+      FractalEngineClient client = new FractalEngineClient(_hubContext);
       
-      Job job = new Job(mapWorkRequest, client);
+      Job job = new Job(mapWorkRequest, mapWorkRequest.ConnectionId);
 
       int jobId = _engine.SubmitJob(job);
 

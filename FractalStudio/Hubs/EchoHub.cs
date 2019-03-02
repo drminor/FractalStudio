@@ -20,5 +20,20 @@ namespace FractalStudio.Hubs
       Clients.Caller.SendAsync("ConnId", Context.ConnectionId);
     }
 
+    ///// <summary>
+    ///// Context instance to access client connections to broadcast to
+    ///// </summary>
+    //public static IHubContext<EchoHub> HubContext
+    //{
+    //  get
+    //  {
+    //    if (_context == null)
+    //      _context = GlobalHost.ConnectionManager.GetHubContext<EchoHub>();
+
+    //    return _context;
+    //  }
+    //}
+    //static IHubContext<EchoHub> _context = null;
+
   }
 }

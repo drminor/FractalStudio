@@ -55,6 +55,8 @@
     <Compile Include="ColorMapEntryForExport.cs" />
     <Compile Include="ColorMapForExport.cs" />
     <Compile Include="CanvasSize.cs" />
+    <Compile Include="MapSection.cs" />
+    <Compile Include="MapWorkingData2.cs" />
     <Compile Include="MapWorkRequest.cs" />
     <Compile Include="Coords.cs" />
     <Compile Include="DPoint.cs" />

@@ -1,21 +1,21 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace FractalServer
 {
 	public class MapSectionWorkRequest
 	{
-		public readonly MapInfo MapInfo;
-		public readonly Rectangle Canvas;
+		public readonly MapSection MapSection;
+		public readonly int MaxIterations;
 
-		public MapSectionWorkRequest(MapInfo mapInfo, Rectangle canvas)
+		public readonly Double[] XValues;
+		public readonly Double[] YValues;
+
+		public MapSectionWorkRequest(MapSection mapSection, int maxIterations, double[] xValues, double[] yValues)
 		{
-			MapInfo = mapInfo ?? throw new ArgumentNullException(nameof(mapInfo));
-			Canvas = canvas;
+			MaxIterations = maxIterations;
+			MapSection = mapSection ?? throw new ArgumentNullException(nameof(mapSection));
+			XValues = xValues ?? throw new ArgumentNullException(nameof(xValues));
+			YValues = yValues ?? throw new ArgumentNullException(nameof(yValues));
 		}
 	}
 }
