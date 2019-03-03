@@ -31,13 +31,13 @@ namespace FractalEngine
 
 		private bool _done;
 
-		public Job(MapWorkRequest mapWorkRequest)
+		public Job(MapWorkRequest mapWorkRequest, string connectionId)
 		{
 			MapWorkRequest = mapWorkRequest ?? throw new ArgumentNullException(nameof(mapWorkRequest));
-
+			//
 			ConnectionId = mapWorkRequest.ConnectionId ?? throw new ArgumentNullException(nameof(mapWorkRequest.ConnectionId));
 
-			//ConnectionId = connectionId ?? throw new ArgumentNullException(nameof(connectionId));
+			ConnectionId = connectionId ?? throw new ArgumentNullException(nameof(connectionId));
 			_jobId = -1;
 
 			_xValueSections = BuildValueSections(mapWorkRequest.Coords.LeftBot.X, mapWorkRequest.Coords.RightTop.X,

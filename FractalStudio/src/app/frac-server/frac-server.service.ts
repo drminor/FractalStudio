@@ -5,16 +5,12 @@ import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import * as signalR from '@aspnet/signalr';
 import * as msgPackHubProtocol from '@aspnet/signalr-protocol-msgpack';
 
-import { Box, Point, IBox, ICanvasSize, CanvasSize } from '../m-map/m-map-common';
-import { MapWorkRequest, MapSection, MapSectionResult } from '../m-map/m-map-common-server';
+import { MapWorkRequest, MapSectionResult } from '../m-map/m-map-common-server';
 
 interface IHaveConnIdCallback {
   (connId: string): void;
 }
 
-//@Injectable({
-//  providedIn: 'root'
-//})
 @Injectable()
 export class FracServerService {
 
@@ -78,6 +74,8 @@ export class FracServerService {
       return false;
     }
 
+    this.http.delete(this.baseUrl + this.controllerPath + "/" + this.jobId);
+
     //TODO: Make the MRender Controller support a cancel job end point.
   }
 
@@ -122,18 +120,22 @@ export class FracServerService {
     });
 
     this.hubConnection.on("ImageData", (mapSectionResult: MapSectionResult, isFinalSection: boolean) => {
-      let ls: string = this.getAvg(mapSectionResult.ImageData).toString();
+      //let ls: string = this.getAvg(mapSectionResult.ImageData).toString();
 
-      this.lastMessageReceived = ls;
+      //this.lastMessageReceived = ls;
 
       if (this.imageDataSubject !== null) {
         this.imageDataSubject.next(mapSectionResult);
-      }
 
-      if (isFinalSection) {
-        this.imageDataSubject.complete();
-        this.jobId = -1;
+        if (isFinalSection) {
+          this.imageDataSubject.complete();
+          this.jobId = -1;
+        }
       }
+    });
+
+    this.hubConnection.on("JobCancelled", (jobId: number) => {
+      console.log("Received confirmation that job with id: " + jobId + " was cancelled.");
     });
 
     this.hubConnection.start().then(() => {

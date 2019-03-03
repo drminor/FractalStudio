@@ -61,10 +61,19 @@ namespace FractalEngine
 
 		public void CancelJob(int jobId)
 		{
+
 			lock (_jobLock)
 			{
-				_jobs.Remove(jobId);
+				if (_jobs.TryGetValue(jobId, out Job job))
+				{
+					_jobs.Remove(jobId);
+					if (_clientConnector != null)
+					{
+						_clientConnector.ConfirmJobCancel(job.ConnectionId, jobId);
+					}
+				}
 			}
+
 		}
 
 		public int NumberOfJobs

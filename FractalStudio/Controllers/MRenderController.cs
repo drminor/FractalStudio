@@ -44,7 +44,7 @@ namespace FractalStudio.Controllers
     [HttpPost]
     public IActionResult Post([FromBody] MapWorkRequest mapWorkRequest)
     {
-      Job job = new Job(mapWorkRequest);
+      Job job = new Job(mapWorkRequest, mapWorkRequest.ConnectionId);
 
       int jobId = _engine.SubmitJob(job);
       mapWorkRequest.JobId = jobId;
@@ -64,7 +64,7 @@ namespace FractalStudio.Controllers
     [HttpDelete("{id}")]
     public void Delete(int id)
     {
-      //TODO: Make Delete cancel a Job by its Id.
+      _engine.CancelJob(id);
     }
 
   }

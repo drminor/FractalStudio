@@ -14,6 +14,11 @@ namespace FractalStudio.Hubs
       _hubContext = hubContext ?? throw new ArgumentNullException(nameof(hubContext));
     }
 
+    public void ConfirmJobCancel(string connectionId, int jobId)
+    {
+      _hubContext.Clients.Client(connectionId).SendAsync("JobCancelled", jobId);
+    }
+
     public int ReceiveImageData(string connectionId, MapSectionResult mapSectionResult, bool isFinalSection)
     {
       _hubContext.Clients.Client(connectionId).SendAsync("ImageData", mapSectionResult, isFinalSection);
