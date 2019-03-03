@@ -14,8 +14,8 @@ namespace FractalEngine
 		public readonly MapWorkRequest MapWorkRequest;
 		public readonly string ConnectionId;
 
-		private const int SECTION_WIDTH = 10;
-		private const int SECTION_HEIGHT = 10;
+		private const int SECTION_WIDTH = 100;
+		private const int SECTION_HEIGHT = 100;
 
 		private readonly double[][] _xValueSections;
 		private readonly double[][] _yValueSections;
@@ -31,13 +31,13 @@ namespace FractalEngine
 
 		private bool _done;
 
-		public Job(MapWorkRequest mapWorkRequest, string connectionId)
+		public Job(MapWorkRequest mapWorkRequest)
 		{
 			MapWorkRequest = mapWorkRequest ?? throw new ArgumentNullException(nameof(mapWorkRequest));
 
-			//ConnectionId = mapWorkRequest.ConnectionId;
+			ConnectionId = mapWorkRequest.ConnectionId ?? throw new ArgumentNullException(nameof(mapWorkRequest.ConnectionId));
 
-			ConnectionId = connectionId ?? throw new ArgumentNullException(nameof(connectionId));
+			//ConnectionId = connectionId ?? throw new ArgumentNullException(nameof(connectionId));
 			_jobId = -1;
 
 			_xValueSections = BuildValueSections(mapWorkRequest.Coords.LeftBot.X, mapWorkRequest.Coords.RightTop.X,
@@ -181,6 +181,8 @@ namespace FractalEngine
 			int left = _hSectionPtr * SECTION_WIDTH;
 			int top = _vSectionPtr * SECTION_HEIGHT;
 
+			bool isFinalSubJob = (_hSectionPtr == _numberOfHSections - 1) && (_vSectionPtr == _numberOfVSections - 1);
+
 			MapSection mapSection = new MapSection(new FractalServer.Point(left, top), new CanvasSize(w, h));
 
 			//Rectangle canvas = new Rectangle(left, top, w, h);
@@ -191,8 +193,12 @@ namespace FractalEngine
 			MapSectionWorkRequest mswr = new MapSectionWorkRequest(mapSection, MapWorkRequest.MaxIterations, xValues, yValues);
 
 			System.Diagnostics.Debug.WriteLine($"w: {w} h: {h} xLen: {xValues.Length} yLen: {yValues.Length}.");
+			if (isFinalSubJob)
+			{
+				System.Diagnostics.Debug.WriteLine("This is the final sub job.");
+			}
 
-			SubJob result = new SubJob(mswr, ConnectionId);
+			SubJob result = new SubJob(mswr, ConnectionId, isFinalSubJob);
 
 			return result;
 		}

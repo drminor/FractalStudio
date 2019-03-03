@@ -1,4 +1,6 @@
-import { Component, AfterViewInit, ElementRef, ViewChild, Input, EventEmitter, Output } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ElementRef, ViewChild, Input, EventEmitter, Output } from '@angular/core';
+import * as signalR from '@aspnet/signalr';
+import * as msgPackHubProtocol from '@aspnet/signalr-protocol-msgpack';
 
 //import { ColorNumbers } from '../ColorNumbers';
 
@@ -14,12 +16,16 @@ import {
 
 import { ColorMapUI, ColorMapUIEntry, ColorMapForExport, MapInfoWithColorMap } from '../m-map-common-ui';
 
+import { MapWorkRequest, MapSection } from '../../m-map/m-map-common-server';
+import { FracServerService } from '../../frac-server/frac-server.service';
+
 @Component({
   selector: 'app-m-map-display',
   templateUrl: './m-map.display.component.html',
   styleUrls: ['./m-map.display.component.css']
 })
-export class MMapDisplayComponent implements AfterViewInit {
+export class MMapDisplayComponent implements AfterViewInit, OnInit {
+
 
   @ViewChild('myCanvas') canvasRef: ElementRef;
   @ViewChild('myControlCanvas') canvasControlRef: ElementRef;
@@ -57,6 +63,9 @@ export class MMapDisplayComponent implements AfterViewInit {
   private _sectionCompleteFlags: boolean[];
 
   private zoomBox: IBox;
+
+  private hubConnection: signalR.HubConnection;
+  private hubConnId: string;
 
   @Input('mapInfoWithColorMap')
   set mapInfoWithColorMap(value: MapInfoWithColorMap) {
@@ -406,6 +415,10 @@ export class MMapDisplayComponent implements AfterViewInit {
         return false;
     }
     return true;
+  }
+
+  ngOnInit(): void {
+    throw new Error("Method not implemented.");
   }
 
   ngAfterViewInit() {

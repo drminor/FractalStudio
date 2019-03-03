@@ -1,19 +1,17 @@
 import { Component, OnInit } from '@angular/core';
-//import { HubConnection, HubConnectionBuilder } from '@aspnet/signalr';
 import * as signalR from '@aspnet/signalr';
 import * as msgPackHubProtocol from '@aspnet/signalr-protocol-msgpack';
-//import { Observable } from 'rxjs';
 
 import { Box, Point, IBox, ICanvasSize, CanvasSize } from '../m-map/m-map-common';
-import { MapWorkRequest, MapSection } from '../m-map/m-map-common-server';
-import { FracServerService, Cat } from '../frac-server/frac-server.service';
-
+import { MapWorkRequest, MapSection, MapSectionResult } from '../m-map/m-map-common-server';
+import { FracServerService } from '../frac-server/frac-server.service';
 
 
 @Component({
   selector: 'app-frac-test-client',
   templateUrl: './frac-test-client.component.html',
-  styleUrls: ['./frac-test-client.component.css']
+  styleUrls: ['./frac-test-client.component.css'],
+  providers: [FracServerService]
 })
 export class FracTestClientComponent implements OnInit {
 
@@ -34,10 +32,10 @@ export class FracTestClientComponent implements OnInit {
   }
 
   ngOnInit() {
-    console.log('The frac-test-client component is doing ngOnInit.');
+    //console.log('The frac-test-client component is doing ngOnInit.');
 
-    let url = '/hubs/echo';
-    this.connectToHub(url);
+    //let url = '/hubs/mgen';
+    //this.connectToHub(url);
 
     
 
@@ -54,85 +52,108 @@ export class FracTestClientComponent implements OnInit {
     //});
   }
 
-  useByteResponse(br: ArrayBuffer): void {
-    if (br !== undefined && br !== null) {
-      this.byteLength = br.byteLength;
-    }
-    else {
-      this.byteLength = -1;
-    }
-  }
+  //useByteResponse(br: ArrayBuffer): void {
+  //  if (br !== undefined && br !== null) {
+  //    this.byteLength = br.byteLength;
+  //  }
+  //  else {
+  //    this.byteLength = -1;
+  //  }
+  //}
 
-  send() {
-    // message sent from the client to the server
-    this.hubConnection.invoke("Echo", this.message);
-    this.message = "";
-  }
+  //send() {
+  //  // message sent from the client to the server
+  //  this.hubConnection.invoke("Echo", this.message);
+  //  this.message = "";
+  //}
 
-  requestConnId() {
-    this.hubConnection.invoke("RequestConnId");
-  }
+  //requestConnId() {
+  //  this.hubConnection.invoke("RequestConnId");
+  //}
 
   submitJob() {
-
+    this.messages = [];
     let coords: IBox = new Box(new Point(-2, -1), new Point(1, 1));
     let maxIterations = 100;
-    let canvasSize: ICanvasSize = new CanvasSize(188, 125);
+    //let canvasSize: ICanvasSize = new CanvasSize(188, 125);
+    let canvasSize: ICanvasSize = new CanvasSize(600, 400);
 
     let jobRequest = new MapWorkRequest(this.hubConnId, coords, maxIterations, canvasSize);
 
     let cc = this.fService.submitJob(jobRequest);
-    cc.subscribe(resp => this.yValue = resp.coords.topRight.y);
+    cc.subscribe(
+      resp => {
+        let ls: string = this.getAvg(resp.ImageData).toString();
+        this.messages.push(ls);
+        //this.yValue = resp.MapSection.canvasSize.width
+      },
+      err => this.messages.push(err),
+      () => this.messages.push("Completed"));
 
-    let dd = this.fService.sendByteRequest();
+      //    //let ls: string = data.length.toString();
+  //    let ls: string = this.getAvg(mapSectionResult.ImageData).toString();
 
-    dd.subscribe(jj => this.useByteResponse(jj));
+  //    this.messages.push(ls);
+  //    if (isFinalSection) {
+  //      this.messages.push("Complete.");
+  //    }
+
+    //let dd = this.fService.sendByteRequest();
+
+    //dd.subscribe(jj => this.useByteResponse(jj));
   }
 
-  private connectToHub(url: string): void {
+  //private connectToHub(url: string): void {
 
-    //let builder = new HubConnectionBuilder();
-    //this.hubConnection = builder.withUrl(url).build();
+  //  //let builder = new HubConnectionBuilder();
+  //  //this.hubConnection = builder.withUrl(url).build();
 
-    //this.hubConnection = builder
-    //  .withUrl(url)
-    //  .withHubProtocol(new signalR.protocols.msgpack.MessagePackHubProtocol())
-    //  .build();
+  //  //this.hubConnection = builder
+  //  //  .withUrl(url)
+  //  //  .withHubProtocol(new signalR.protocols.msgpack.MessagePackHubProtocol())
+  //  //  .build();
 
-    this.hubConnection = new signalR.HubConnectionBuilder()
-      .withUrl(url)
-      .withHubProtocol(new msgPackHubProtocol.MessagePackHubProtocol())
-      //.withHubProtocol(new signalR.protocols.msgpack.MessagePackHubProtocol())
-      .build();
+  //  this.hubConnection = new signalR.HubConnectionBuilder()
+  //    .withUrl(url)
+  //    .withHubProtocol(new msgPackHubProtocol.MessagePackHubProtocol())
+  //    //.withHubProtocol(new signalR.protocols.msgpack.MessagePackHubProtocol())
+  //    .build();
 
+  //  // message coming from the server
+  //  this.hubConnection.on("Send", (message) => {
+  //    this.messages.push(message);
+  //  });
 
+  //  this.hubConnection.on("ConnId", (id) => {
+  //    this.hubConnId = id;
+  //    this.value = 'Ready';
+  //  });
 
-    // message coming from the server
-    this.hubConnection.on("Send", (message) => {
-      this.messages.push(message);
-    });
+  //  this.hubConnection.on("ImageData", (mapSectionResult: MapSectionResult, isFinalSection: boolean) => {
+  //    //let ls: string = data.length.toString();
+  //    let ls: string = this.getAvg(mapSectionResult.ImageData).toString();
 
-    this.hubConnection.on("ConnId", (id) => {
-      this.hubConnId = id;
-      this.value = 'Ready';
-    });
+  //    this.messages.push(ls);
+  //    if (isFinalSection) {
+  //      this.messages.push("Complete.");
+  //    }
+  //  });
 
-    this.hubConnection.on("ImageData", (mapSection: MapSection, data: number[]) => {
-      let ls: string = data.length.toString();
-      this.messages.push(ls);
-    });
-
-    //this.hubConnection.start().then(() => this.value = 'Ready');
-
-    this.hubConnection.start().then(() => {
-      this.requestConnId();
-      //this.value = 'Ready';
-    });
-  }
-
-  //onHubStarted(): void {
-  //  this.requestConnId();
+  //  this.hubConnection.start().then(() => {
+  //    this.requestConnId();
+  //  });
   //}
 
+  private getAvg(data: number[]): number {
+
+    let result = 0;
+    let ptr: number;
+    for (ptr = 0; ptr < data.length; ptr++) {
+      result += data[ptr];
+    }
+
+    return result / data.length;
+
+  }
 
 }

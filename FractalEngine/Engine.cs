@@ -2,9 +2,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -188,49 +186,21 @@ namespace FractalEngine
 				System.Diagnostics.Debug.WriteLine("Work Request Consuming Enumerable completed.");
 				throw;
 			}
-
-			//SubJob wr = null;
-			//while (!bc.IsCompleted)
-			//{
-			//	try
-			//	{
-			//		wr = bc.Take(ct);
-			//		_clientConnector.ReceiveImageData(wr.ConnectionId, wr.MapSectionWorkRequest.Canvas.Left);
-			//	}
-			//	catch (OperationCanceledException)
-			//	{
-			//		//Console.WriteLine("Taking canceled.");
-			//		break;
-			//	}
-			//	catch (InvalidOperationException)
-			//	{
-			//		//Console.WriteLine("Adding was completed!");
-			//		break;
-			//	}
-			//	//Console.WriteLine("Take:{0} ", wr);
-
-			//	// Simulate a slow consumer. This will cause
-			//	// collection to fill up fast and thus Adds wil block.
-			//	Thread.SpinWait(100000);
-			//}
 		}
 
 		private void ProcessSubJob(SubJob subJob)
 		{
 			MapSectionWorkRequest mswr = subJob.MapSectionWorkRequest;
-			Size canvasSize = new Size(mswr.MapSection.CanvasSize.Width, mswr.MapSection.CanvasSize.Height);
 
-			MapWorkingData2 workingData = new MapWorkingData2(canvasSize, mswr.MaxIterations, mswr.XValues, mswr.YValues);
+			MapWorkingData2 workingData = new MapWorkingData2(mswr.MapSection.CanvasSize, mswr.MaxIterations, mswr.XValues, mswr.YValues);
 
 			double[] imageData = workingData.GetValues();
-			_clientConnector.ReceiveImageData(subJob.ConnectionId, mswr.MapSection, imageData);
 
-			// Simulate a slow consumer. This will cause
-			// collection to fill up fast and thus Adds wil block.
-			//Thread.SpinWait(100000);
+			MapSectionResult mapSectionResult = new MapSectionResult(mswr.MapSection, imageData);
+
+			_clientConnector.ReceiveImageData(subJob.ConnectionId, mapSectionResult, subJob.IsFinalSubJob);
 		}
 
 		#endregion
-
 	}
 }

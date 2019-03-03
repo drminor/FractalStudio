@@ -39,7 +39,8 @@ namespace FractalServerTests
 
 			MapWorkRequest mapWorkRequest = new MapWorkRequest(coords, maxIterations, canvasSize, connectionId);
 
-			Job job = new Job(mapWorkRequest, connectionId);
+			Job job = new Job(mapWorkRequest);
+			mapWorkRequest.JobId = job.JobId;
 
 			SubJob subJob = null;
 			while((subJob = job.GetNextSubJob()) != null)
@@ -52,9 +53,8 @@ namespace FractalServerTests
 		private void ProcessSubJob(SubJob subJob)
 		{
 			MapSectionWorkRequest mswr = subJob.MapSectionWorkRequest;
-			Size canvasSize = new Size(mswr.MapSection.CanvasSize.Width, mswr.MapSection.CanvasSize.Height);
 
-			MapWorkingData2 workingData = new MapWorkingData2(canvasSize, mswr.MaxIterations, mswr.XValues, mswr.YValues);
+			MapWorkingData2 workingData = new MapWorkingData2(mswr.MapSection.CanvasSize, mswr.MaxIterations, mswr.XValues, mswr.YValues);
 
 			double[] imageData = workingData.GetValues();
 		}

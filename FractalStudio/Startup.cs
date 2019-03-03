@@ -64,7 +64,7 @@ namespace FractalStudio
 
       // Start our Fractal [generation] engine
       // using a client connector (which wraps an instance of the Echo Hub context.)
-      var hub = app.ApplicationServices.GetRequiredService<IHubContext<EchoHub>>();
+      var hub = app.ApplicationServices.GetRequiredService<IHubContext<FractalEngineHub>>();
       IClientConnector clientConnector = new FractalEngineClient(hub);
 
       var engine = app.ApplicationServices.GetRequiredService<Engine>();
@@ -73,7 +73,7 @@ namespace FractalStudio
       // If you're using the SPA template, this should come before app.UseSpa(...);
       app.UseSignalR(routes =>
       {
-        routes.MapHub<EchoHub>("/hubs/echo");
+        routes.MapHub<FractalEngineHub>("/hubs/mgen");
       });
 
     }

@@ -1,10 +1,8 @@
-using FractalServer;
-using Microsoft.AspNetCore.Mvc;
-
-
 using FractalEngine;
-using Microsoft.AspNetCore.SignalR;
+using FractalServer;
 using FractalStudio.Hubs;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 
 namespace FractalStudio.Controllers
 {
@@ -14,9 +12,9 @@ namespace FractalStudio.Controllers
   public class MRenderController : ControllerBase
   {
     private readonly Engine _engine;
-    private readonly IHubContext<EchoHub> _hubContext;
+    private readonly IHubContext<FractalEngineHub> _hubContext;
 
-    public MRenderController(Engine engine, IHubContext<EchoHub> hubContext)
+    public MRenderController(Engine engine, IHubContext<FractalEngineHub> hubContext)
     {
       _engine = engine;
       _hubContext = hubContext;
@@ -46,21 +44,14 @@ namespace FractalStudio.Controllers
     [HttpPost]
     public IActionResult Post([FromBody] MapWorkRequest mapWorkRequest)
     {
-      //Client client = new Client("Test", connectionId, x => _hubContext.C.lients.Client(connectionId).SendAsync("Send", x.ToString()) );
-
-      //Client client = new Client("Test", connectionId, (connId, x) => {
-      //  _hubContext.Clients.All.SendAsync("Send", x.ToString());
-      //  });
-
-      FractalEngineClient client = new FractalEngineClient(_hubContext);
-      
-      Job job = new Job(mapWorkRequest, mapWorkRequest.ConnectionId);
+      Job job = new Job(mapWorkRequest);
 
       int jobId = _engine.SubmitJob(job);
+      mapWorkRequest.JobId = jobId;
 
-      mapWorkRequest.Coords.RightTop.Y = _engine.NumberOfJobs;
+      //mapWorkRequest.Coords.RightTop.Y = _engine.NumberOfJobs;
 
-      return Ok(mapWorkRequest); // new JsonResult(value);
+      return Ok(mapWorkRequest);
     }
 
     // PUT: api/MRender/5
@@ -73,6 +64,8 @@ namespace FractalStudio.Controllers
     [HttpDelete("{id}")]
     public void Delete(int id)
     {
+      //TODO: Make Delete cancel a Job by its Id.
     }
+
   }
 }

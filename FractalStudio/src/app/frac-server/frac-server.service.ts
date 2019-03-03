@@ -1,83 +1,164 @@
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
-import { isNullOrUndefined } from 'util';
 
+import * as signalR from '@aspnet/signalr';
+import * as msgPackHubProtocol from '@aspnet/signalr-protocol-msgpack';
 
-import { IBox } from '../m-map/m-map-common';
-import { MapWorkRequest } from '../m-map/m-map-common-server';
+import { Box, Point, IBox, ICanvasSize, CanvasSize } from '../m-map/m-map-common';
+import { MapWorkRequest, MapSection, MapSectionResult } from '../m-map/m-map-common-server';
 
-export interface Cat {
-  name: string;
+interface IHaveConnIdCallback {
+  (connId: string): void;
 }
 
-@Injectable({
-  providedIn: 'root'
-})
+//@Injectable({
+//  providedIn: 'root'
+//})
+@Injectable()
 export class FracServerService {
 
   public baseUrl = 'https://localhost:44330';
-  public controllerPath = '/api/values';
+  public controllerPath = '/api/mrender';
+  public hubUrl = '/hubs/mgen';
 
-  public controllerPath2 = '/api/mrender';
+  public hubConnection: signalR.HubConnection;
+  public hubConnId: string;
+  public lastMessageReceived: string;
 
-  constructor(private http: HttpClient) { }
+  private doWhenHaveConnId: IHaveConnIdCallback;
 
-  submitJob(request: MapWorkRequest): Observable<MapWorkRequest> {
-    let res: Observable<MapWorkRequest> = this.http.post<MapWorkRequest>(this.baseUrl + this.controllerPath2, request);
+  private imageDataSubject: Subject<MapSectionResult>;
+  private jobId: number;
+
+  constructor(private http: HttpClient) {
+    this.hubConnection = null;
+    this.hubConnId = null;
+    this.lastMessageReceived = null;
+    this.doWhenHaveConnId = null;
+
+    this.imageDataSubject = null;
+    this.jobId = -1;
+  }
+
+  public get haveHubConnection(): boolean {
+    let result = this.hubConnId !== null;
+    return result;
+  }
+
+  public get JobId(): number {
+    let result = this.jobId;
+    return result;
+  }
+
+  public submitJob(request: MapWorkRequest): Observable<MapSectionResult> {
+
+    this.request = request;
+    this.imageDataSubject = new Subject<MapSectionResult>();
+    let res: Observable<MapSectionResult>  = this.imageDataSubject.asObservable();
+
+    if (this.haveHubConnection) {
+      this.request.connectionId = this.hubConnId;
+      this.submitJobInternal();
+    }
+    else {
+      this.doWhenHaveConnId = ((connId: string) => {
+        this.request.connectionId = this.hubConnId;
+        this.submitJobInternal();
+      });
+
+      this.startHubConnection(this.hubUrl);
+    }
+
     return res;
   }
 
-  //sendCoords(box: IBox): Observable<IBox> {
-  //  let res: Observable<IBox> = this.http.post<IBox>(this.baseUrl + this.controllerPath2, box);
-  //  //res.subscribe(this.useBox);
-  //  return res;
-  //}
+  public cancelJob(): boolean {
+    if (this.jobId === -1) {
+      return false;
+    }
 
-  sendByteRequest(): Observable<ArrayBuffer> {
-    //const headers = new HttpHeaders().set('content-type', 'application/octet-stream');
-    //headers.set('
-    //const params = new HttpParams();
-
-    let target = this.baseUrl + this.controllerPath2;
-
-    let res = this.http.get(target, { /*headers: headers,*/ responseType: 'arraybuffer' });
-
-    //res.subscribe(this.useBytes);
-
-    return res;
+    //TODO: Make the MRender Controller support a cancel job end point.
   }
 
-  //useBox(x: IBox) {
-  //  console.log('The TopRight Y value is ' + x.topRight.y);
-  //}
+  private request: MapWorkRequest = null;
 
-  //useBytes(x: ArrayBuffer) {
-  //  if (isNullOrUndefined(x)) {
-  //    console.log('The byte array is null.');
-  //  }
-  //  else {
-  //    console.log('The byte array is ' + x.byteLength + ' long.');
-  //  }
-  //}
-
-  getAllCats(): Observable<Cat[]> {
-    return this.http.get<Cat[]>(this.baseUrl + this.controllerPath);
+  private submitJobInternal(): void {
+    let res: Observable<MapWorkRequest> = this.http.post<MapWorkRequest>(this.baseUrl + this.controllerPath, this.request);
+    res.subscribe(this.useReturnedMapWorkResult);
+    this.doWhenHaveConnId = null;
+    this.request = null;
   }
 
-  getCat(name: string): Observable<Cat> {
-    return this.http.get<Cat>(this.baseUrl + this.controllerPath + '/' + name);
+  private useReturnedMapWorkResult(result: MapWorkRequest) {
+    this.jobId = result.jobId;
   }
 
-  insertCat(cat: Cat): Observable<Cat> {
-    return this.http.post<Cat>(this.baseUrl + this.controllerPath + '/', cat);
+  private startHubConnection(url: string)/*: Promise<any>*/ {
+
+    //let builder = new HubConnectionBuilder();
+    //this.hubConnection = builder.withUrl(url).build();
+
+    //this.hubConnection = builder
+    //  .withUrl(url)
+    //  .withHubProtocol(new signalR.protocols.msgpack.MessagePackHubProtocol())
+    //  .build();
+
+    this.hubConnection = new signalR.HubConnectionBuilder()
+      .withUrl(url)
+      .withHubProtocol(new msgPackHubProtocol.MessagePackHubProtocol())
+      //.withHubProtocol(new signalR.protocols.msgpack.MessagePackHubProtocol())
+      .build();
+
+    // message coming from the server
+    this.hubConnection.on("Send", (message) => {
+      this.lastMessageReceived = message;
+    });
+
+    this.hubConnection.on("ConnId", (id) => {
+      this.hubConnId = id;
+      if(this.doWhenHaveConnId !== null)
+        this.doWhenHaveConnId(id);
+    });
+
+    this.hubConnection.on("ImageData", (mapSectionResult: MapSectionResult, isFinalSection: boolean) => {
+      let ls: string = this.getAvg(mapSectionResult.ImageData).toString();
+
+      this.lastMessageReceived = ls;
+
+      if (this.imageDataSubject !== null) {
+        this.imageDataSubject.next(mapSectionResult);
+      }
+
+      if (isFinalSection) {
+        this.imageDataSubject.complete();
+        this.jobId = -1;
+      }
+    });
+
+    this.hubConnection.start().then(() => {
+      this.requestConnId();
+    });
   }
 
-  updateCat(cat: Cat): Observable<void> {
-    return this.http.put<void>(this.baseUrl + this.controllerPath + '/' + cat.name, cat);
+  public send(message: string) {
+    this.hubConnection.invoke("Echo", message);
   }
 
-  deleteCat(name: string) {
-    return this.http.delete(this.baseUrl + this.controllerPath + '/' + name);
+  private requestConnId() {
+    this.hubConnection.invoke("RequestConnId");
   }
+
+  private getAvg(data: number[]): number {
+
+    let result = 0;
+    let ptr: number;
+    for (ptr = 0; ptr < data.length; ptr++) {
+      result += data[ptr];
+    }
+
+    return result / data.length;
+  }
+
+
 }

@@ -5,13 +5,13 @@ namespace FractalServer
 {
     public class MapWorkingData2
     {
-        public readonly Size CanvasSize;
+        public readonly CanvasSize CanvasSize;
         public readonly int MaxIterations;
 
         private readonly double[] _xVals;
         private readonly double[] _yVals;
 
-        public MapWorkingData2(Size canvasSize, int maxIterations, double[] xVals, double[] yVals)
+        public MapWorkingData2(CanvasSize canvasSize, int maxIterations, double[] xVals, double[] yVals)
         {
             CanvasSize = canvasSize;
             MaxIterations = maxIterations;

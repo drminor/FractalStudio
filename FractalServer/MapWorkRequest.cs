@@ -17,11 +17,15 @@ namespace FractalServer
         [JsonProperty("connectionId")]
         public string ConnectionId;
 
+		[JsonProperty("jobId")]
+		public int JobId;
+
 		private MapWorkRequest()
         {
 			Coords = null;
 			CanvasSize = new CanvasSize(0, 0);
 			ConnectionId = null;
+			JobId = -1;
         }
 
 		public MapWorkRequest(Coords coords, int maxIterations, CanvasSize canvasSize, string connectionId)
