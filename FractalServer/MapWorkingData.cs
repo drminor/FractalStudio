@@ -12,7 +12,9 @@ namespace FractalServer
         private readonly double[] _xVals;
         private readonly double[] _yVals;
 
-        public MapWorkingData(Size canvasSize, MapInfo mapInfo, ColorMap colorMap)
+		private readonly MPointWork _mPointWork;
+
+		public MapWorkingData(Size canvasSize, MapInfo mapInfo, ColorMap colorMap)
         {
             CanvasSize = canvasSize;
             MapInfo = mapInfo;
@@ -32,22 +34,24 @@ namespace FractalServer
                 _yVals = BuildVals(CanvasSize.Height, MapInfo.RightTop.Y, MapInfo.LeftBot.Y);
             }
 
-            System.Diagnostics.Debug.WriteLine($"The aspect ratio (w/h) is {MapInfo.AspectRatio}.");
+			_mPointWork = new MPointWork(mapInfo.MaxIterations);
+
+
+			System.Diagnostics.Debug.WriteLine($"The aspect ratio (w/h) is {MapInfo.AspectRatio}.");
         }
 
-        public void BuildPngImageLine(int lineNumber, int iterCount, ImageLine iLine)
+        public void BuildPngImageLine(int lineNumber, ImageLine iLine)
         {
-
-            DPoint c = new DPoint(0, _yVals[lineNumber]);
+			DPoint c = new DPoint(0, _yVals[lineNumber]);
 
             for (int xPtr = 0; xPtr < CanvasSize.Width; xPtr++)
             {
                 c.X = _xVals[xPtr];
 
-                int cnt = MPointWork.Iterate(c, iterCount, out double escapeVelocity);
+                int cnt = _mPointWork.Iterate(c, out double escapeVelocity);
 
                 int[] cComps;
-                if (cnt == iterCount)
+                if (cnt == MapInfo.MaxIterations)
                 {
                     cComps = ColorMap.HighColorEntry.StartColor.ColorComps;
                 }

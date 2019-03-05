@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace FractalEngine
@@ -13,6 +14,7 @@ namespace FractalEngine
 		private int _jobId;
 		public readonly MapWorkRequest MapWorkRequest;
 		public readonly string ConnectionId;
+		public bool CancelRequested;
 
 		private const int SECTION_WIDTH = 100;
 		private const int SECTION_HEIGHT = 100;
@@ -22,6 +24,8 @@ namespace FractalEngine
 
 		private int _numberOfHSections;
 		private int _numberOfVSections;
+
+		private int _numberOfSectionRemainingToSend;
 
 		private int _lastSectionWidth;
 		private int _lastSectionHeight;
@@ -47,7 +51,7 @@ namespace FractalEngine
 			_numberOfHSections = numSectionsH;
 			_lastSectionWidth = lastExtentH;
 
-			if (mapWorkRequest.Coords.IsUpsideDown)
+			if (!mapWorkRequest.Coords.IsUpsideDown)
 			{
 				_yValueSections = BuildValueSections(mapWorkRequest.Coords.RightTop.Y, mapWorkRequest.Coords.LeftBot.Y,
 					mapWorkRequest.CanvasSize.Height, SECTION_HEIGHT,
@@ -68,6 +72,8 @@ namespace FractalEngine
 			_vSectionPtr = 0;
 
 			_done = false;
+			CancelRequested = false;
+			_numberOfSectionRemainingToSend = _numberOfHSections * _numberOfVSections;
 		}
 
 		private double[][] BuildValueSections(double start, double end, int extent, int sectionExtent, out int sectionCount, out int lastExtent)
@@ -181,7 +187,7 @@ namespace FractalEngine
 			int left = _hSectionPtr * SECTION_WIDTH;
 			int top = _vSectionPtr * SECTION_HEIGHT;
 
-			bool isFinalSubJob = (_hSectionPtr == _numberOfHSections - 1) && (_vSectionPtr == _numberOfVSections - 1);
+			//bool isFinalSubJob = (_hSectionPtr == _numberOfHSections - 1) && (_vSectionPtr == _numberOfVSections - 1);
 
 			MapSection mapSection = new MapSection(new FractalServer.Point(left, top), new CanvasSize(w, h));
 
@@ -193,14 +199,24 @@ namespace FractalEngine
 			MapSectionWorkRequest mswr = new MapSectionWorkRequest(mapSection, MapWorkRequest.MaxIterations, xValues, yValues);
 
 			System.Diagnostics.Debug.WriteLine($"w: {w} h: {h} xLen: {xValues.Length} yLen: {yValues.Length}.");
-			if (isFinalSubJob)
-			{
-				System.Diagnostics.Debug.WriteLine("This is the final sub job.");
-			}
+			//if (isFinalSubJob)
+			//{
+			//	System.Diagnostics.Debug.WriteLine("This is the final sub job.");
+			//}
 
-			SubJob result = new SubJob(mswr, ConnectionId, isFinalSubJob);
+			SubJob result = new SubJob(this, mswr, ConnectionId/*, isFinalSubJob*/);
 
 			return result;
+		}
+
+		/// <summary>
+		/// Returns true if there are no remaing sub jobs to be sent.
+		/// </summary>
+		/// <returns></returns>
+		public bool DecrementSubJobsRemainingToBeSent()
+		{
+			int newVal = Interlocked.Decrement(ref _numberOfSectionRemainingToSend);
+			return newVal == 0;
 		}
 
 	}

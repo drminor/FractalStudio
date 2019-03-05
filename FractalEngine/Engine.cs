@@ -61,19 +61,34 @@ namespace FractalEngine
 
 		public void CancelJob(int jobId)
 		{
+			Job job = this.RemoveJob(jobId);
 
+			if(job != null)
+			{
+				job.CancelRequested = true;
+				if (_clientConnector != null)
+				{
+					_clientConnector.ConfirmJobCancel(job.ConnectionId, jobId);
+				}
+			}
+		}
+
+		private Job RemoveJob(int jobId)
+		{
+			// TODO: consider keeping a list of removed jobs using WeakReferences.
+			// The job can be removed from the list of removedjobs once the last subjob is processed.
 			lock (_jobLock)
 			{
 				if (_jobs.TryGetValue(jobId, out Job job))
 				{
 					_jobs.Remove(jobId);
-					if (_clientConnector != null)
-					{
-						_clientConnector.ConfirmJobCancel(job.ConnectionId, jobId);
-					}
+					return job;
+				}
+				else
+				{
+					return null;
 				}
 			}
-
 		}
 
 		public int NumberOfJobs
@@ -97,6 +112,11 @@ namespace FractalEngine
 			Job result = null;
 			do
 			{
+				if (cts.IsCancellationRequested)
+				{
+					break;
+				}
+
 				bool wasSignaled = HaveWork.WaitOne(1000);
 
 				if (cts.IsCancellationRequested)
@@ -139,41 +159,42 @@ namespace FractalEngine
 
 		#region Work
 
-		private readonly BlockingCollection<SubJob> WorkRequests = new BlockingCollection<SubJob>(10);
+		private readonly BlockingCollection<SubJob> WorkQueue = new BlockingCollection<SubJob>(10);
+		private readonly BlockingCollection<SubJob> SendQueue = new BlockingCollection<SubJob>(50);
+
 
 		public void Start(IClientConnector clientConnector)
 		{
 			this._clientConnector = clientConnector;
 
 			// Start one producer and one consumer.
-			Task t1 = Task.Run(() => WorkProcessor(WorkRequests, _cts.Token), _cts.Token);
-			Task t2 = Task.Run(() => QueueWork(WorkRequests, _cts.Token), _cts.Token);
+			Task.Run(() => SendProcessor(SendQueue, _cts.Token), _cts.Token);
+			Task.Run(() => WorkProcessor(WorkQueue, SendQueue, _cts.Token), _cts.Token);
+			Task.Run(() => QueueWork(WorkQueue, _cts.Token), _cts.Token);
 		}
 
-		private void QueueWork(BlockingCollection<SubJob> bc, CancellationToken ct)
+		private void QueueWork(BlockingCollection<SubJob> workQueue, CancellationToken ct)
 		{
 			do
 			{
-				if (ct.IsCancellationRequested) return;
-
 				Job job = GetNextJob(ct);
 				if (ct.IsCancellationRequested) return;
 
 				SubJob subJob = job.GetNextSubJob();
 				if(subJob != null)
 				{
-					bc.Add(subJob, ct);
+					workQueue.Add(subJob, ct);
 				}
 				else
 				{
 					// Remove the job.
-					CancelJob(job.JobId);
+					RemoveJob(job.JobId);
 				}
 
 			} while (true);
 		}
 
-		private void WorkProcessor(BlockingCollection<SubJob> bc, CancellationToken ct)
+		private void WorkProcessor(BlockingCollection<SubJob> workQueue, BlockingCollection<SubJob> sendQueue, CancellationToken ct)
 		{
 			var parallelOptions = new ParallelOptions
 			{
@@ -183,31 +204,68 @@ namespace FractalEngine
 
 			try
 			{
-				Parallel.ForEach(bc.GetConsumingPartitioner(), parallelOptions, ProcessSubJob);
+				Parallel.ForEach(workQueue.GetConsumingPartitioner(), parallelOptions, ProcessSubJob);
 			}
 			catch (OperationCanceledException)
 			{
-				System.Diagnostics.Debug.WriteLine("Work Request Consuming Enumerable canceled.");
+				System.Diagnostics.Debug.WriteLine("Work Queue Consuming Enumerable canceled.");
 				throw;
 			}
 			catch (InvalidOperationException)
 			{
-				System.Diagnostics.Debug.WriteLine("Work Request Consuming Enumerable completed.");
+				System.Diagnostics.Debug.WriteLine("Work Queue Consuming Enumerable completed.");
 				throw;
 			}
 		}
 
 		private void ProcessSubJob(SubJob subJob)
 		{
+			if (subJob.ParentJob.CancelRequested)
+			{
+				System.Diagnostics.Debug.WriteLine("Not Processing Sub Job.");
+				return;
+			}
+
 			MapSectionWorkRequest mswr = subJob.MapSectionWorkRequest;
 
 			MapWorkingData2 workingData = new MapWorkingData2(mswr.MapSection.CanvasSize, mswr.MaxIterations, mswr.XValues, mswr.YValues);
 
-			double[] imageData = workingData.GetValues();
+			int[] imageData = workingData.GetValues();
 
-			MapSectionResult mapSectionResult = new MapSectionResult(mswr.MapSection, imageData);
+			MapSectionResult mapSectionResult = new MapSectionResult(subJob.ParentJob.JobId, mswr.MapSection, imageData);
+			subJob.result = mapSectionResult;
 
-			_clientConnector.ReceiveImageData(subJob.ConnectionId, mapSectionResult, subJob.IsFinalSubJob);
+			SendQueue.Add(subJob);
+		}
+
+		private void SendProcessor(BlockingCollection<SubJob> sendQueue, CancellationToken ct)
+		{
+			try
+			{
+				while(!ct.IsCancellationRequested)
+				{
+					if(sendQueue.TryTake(out SubJob subJob, -1, ct))
+					{
+						if (!subJob.ParentJob.CancelRequested)
+						{
+							bool isFinalSubJob = subJob.ParentJob.DecrementSubJobsRemainingToBeSent();
+
+							System.Diagnostics.Debug.WriteLine($"Sending subjob with x: {subJob.result.MapSection.SectionAnchor.X} and y: {subJob.result.MapSection.SectionAnchor.Y}.");
+							_clientConnector.ReceiveImageData(subJob.ConnectionId, subJob.result, isFinalSubJob);
+						}
+					}
+				}
+			}
+			catch (OperationCanceledException)
+			{
+				System.Diagnostics.Debug.WriteLine("Send Queue Consuming Enumerable canceled.");
+				throw;
+			}
+			catch (InvalidOperationException)
+			{
+				System.Diagnostics.Debug.WriteLine("Send Queue Consuming Enumerable completed.");
+				throw;
+			}
 		}
 
 		#endregion

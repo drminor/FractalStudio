@@ -71,7 +71,7 @@ namespace FractalServerTests
 
                 for (int linePtr = 0; linePtr < canvasSize.Height; linePtr++)
                 {
-                    mapWorkingData.BuildPngImageLine(linePtr, miwcm.MapInfo.MaxIterations, iLine);
+                    mapWorkingData.BuildPngImageLine(linePtr, iLine);
                     pngImage.WriteLine(iLine);
                 }
             }

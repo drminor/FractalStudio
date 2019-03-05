@@ -1,4 +1,5 @@
 ﻿using Hjg.Pngcs;
+using System;
 using System.Drawing;
 
 namespace FractalServer
@@ -20,21 +21,26 @@ namespace FractalServer
 			_yVals = yVals;
         }
 
-		public double[] GetValues()
+		public int[] GetValues()
 		{
-			double[] result = new double[CanvasSize.Width * CanvasSize.Height];
+			MPointWork mPointWork = new MPointWork(MaxIterations);
+			int[] result = new int[CanvasSize.Width * CanvasSize.Height];
 			int ptr = 0;
 
-			for (int yPtr = 0; yPtr < CanvasSize.Height - 1; yPtr++)
+			for (int yPtr = 0; yPtr < CanvasSize.Height; yPtr++)
 			{
 				DPoint c = new DPoint(0, _yVals[yPtr]);
 
-				for (int xPtr = 0; xPtr < CanvasSize.Width - 1; xPtr++)
+				for (int xPtr = 0; xPtr < CanvasSize.Width; xPtr++)
 				{
 					c.X = _xVals[xPtr];
 
-					int cnt = MPointWork.Iterate(c, MaxIterations, out double escapeVelocity);
-					result[ptr++] = cnt + escapeVelocity;
+					int cnt = mPointWork.Iterate(c, out double escapeVelocity);
+
+					cnt *= 10000;
+					escapeVelocity = Math.Truncate(escapeVelocity * 10000);
+
+					result[ptr++] = (int) (cnt + escapeVelocity);
 				}
 			}
 			return result;

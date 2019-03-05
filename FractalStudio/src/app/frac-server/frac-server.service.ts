@@ -5,7 +5,8 @@ import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import * as signalR from '@aspnet/signalr';
 import * as msgPackHubProtocol from '@aspnet/signalr-protocol-msgpack';
 
-import { MapWorkRequest, MapSectionResult } from '../m-map/m-map-common-server';
+import { MapWorkRequest, MapSectionResult, MapSection } from '../m-map/m-map-common-server';
+import { Point, CanvasSize } from '../m-map/m-map-common';
 
 interface IHaveConnIdCallback {
   (connId: string): void;
@@ -49,6 +50,7 @@ export class FracServerService {
 
   public submitJob(request: MapWorkRequest): Observable<MapSectionResult> {
 
+    this.cancelJob();
     this.request = request;
     this.imageDataSubject = new Subject<MapSectionResult>();
     let res: Observable<MapSectionResult>  = this.imageDataSubject.asObservable();
@@ -59,7 +61,7 @@ export class FracServerService {
     }
     else {
       this.doWhenHaveConnId = ((connId: string) => {
-        this.request.connectionId = this.hubConnId;
+        this.request.connectionId = connId;
         this.submitJobInternal();
       });
 
@@ -74,23 +76,27 @@ export class FracServerService {
       return false;
     }
 
-    this.http.delete(this.baseUrl + this.controllerPath + "/" + this.jobId);
+    //if (this.imageDataSubject !== null) {
+    //  this.imageDataSubject.complete();
+    //}
 
-    //TODO: Make the MRender Controller support a cancel job end point.
+    this.http.delete(this.baseUrl + this.controllerPath + "/" + this.jobId);
+    
+    this.jobId = -1;
   }
 
   private request: MapWorkRequest = null;
 
   private submitJobInternal(): void {
     let res: Observable<MapWorkRequest> = this.http.post<MapWorkRequest>(this.baseUrl + this.controllerPath, this.request);
-    res.subscribe(this.useReturnedMapWorkResult);
+    res.subscribe(ret => this.jobId = ret.jobId);
     this.doWhenHaveConnId = null;
     this.request = null;
   }
 
-  private useReturnedMapWorkResult(result: MapWorkRequest) {
-    this.jobId = result.jobId;
-  }
+  //private useReturnedMapWorkResult(result: MapWorkRequest) {
+  //  this.jobId = result.jobId;
+  //}
 
   private startHubConnection(url: string)/*: Promise<any>*/ {
 
@@ -120,16 +126,26 @@ export class FracServerService {
     });
 
     this.hubConnection.on("ImageData", (mapSectionResult: MapSectionResult, isFinalSection: boolean) => {
-      //let ls: string = this.getAvg(mapSectionResult.ImageData).toString();
-
-      //this.lastMessageReceived = ls;
-
       if (this.imageDataSubject !== null) {
-        this.imageDataSubject.next(mapSectionResult);
+        let fixed = this.fixMapSectionResult(mapSectionResult);
+        this.imageDataSubject.next(fixed);
 
         if (isFinalSection) {
-          this.imageDataSubject.complete();
-          this.jobId = -1;
+          console.log('Received the final section.');
+          if (this.jobId === undefined) {
+            console.log('No this on handling ImageData');
+          }
+          else {
+            if (fixed.jobId === this.jobId) {
+              console.log('Handling final job for this request.');
+
+              this.imageDataSubject.complete();
+              this.jobId = -1;
+            }
+            else {
+              console.log('Handling final job for previous request.');
+            }
+          }
         }
       }
     });
@@ -143,6 +159,23 @@ export class FracServerService {
     });
   }
 
+  private fixMapSectionResult(raw: any): MapSectionResult {
+
+    let ts: any = raw.MapSection;
+    //let ts = raw[0];
+
+    let ms = new MapSection(new Point(ts.SectionAnchor.X, ts.SectionAnchor.Y), new CanvasSize(ts.CanvasSize.Width, ts.CanvasSize.Height));
+    //let ms = new MapSection(new Point(ts[0].X, ts[0].Y), new CanvasSize(ts[1].Width, ts[1].Height));
+
+    //let rawIData = raw[1] as number[];
+    //let imageData = new Array<number>(...rawIData);
+
+    //let result = new MapSectionResult(ms, imageData);
+    let result = new MapSectionResult(raw.JobId, ms, raw.ImageData as number[]);
+
+    return result;
+  }
+
   public send(message: string) {
     this.hubConnection.invoke("Echo", message);
   }
@@ -151,16 +184,16 @@ export class FracServerService {
     this.hubConnection.invoke("RequestConnId");
   }
 
-  private getAvg(data: number[]): number {
+  //private getAvg(data: number[]): number {
 
-    let result = 0;
-    let ptr: number;
-    for (ptr = 0; ptr < data.length; ptr++) {
-      result += data[ptr];
-    }
+  //  let result = 0;
+  //  let ptr: number;
+  //  for (ptr = 0; ptr < data.length; ptr++) {
+  //    result += data[ptr];
+  //  }
 
-    return result / data.length;
-  }
+  //  return result / data.length;
+  //}
 
 
 }

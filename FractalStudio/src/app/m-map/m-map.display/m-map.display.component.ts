@@ -1,6 +1,4 @@
-import { Component, OnInit, AfterViewInit, ElementRef, ViewChild, Input, EventEmitter, Output } from '@angular/core';
-import * as signalR from '@aspnet/signalr';
-import * as msgPackHubProtocol from '@aspnet/signalr-protocol-msgpack';
+import { Component, AfterViewInit, ElementRef, ViewChild, Input, EventEmitter, Output } from '@angular/core';
 
 //import { ColorNumbers } from '../ColorNumbers';
 
@@ -10,21 +8,29 @@ import {
   WebWorkerImageDataResponse, WebWorkerMessage, WebWorkerStartRequest,
   WebWorkerIterateRequest, WebWorkerUpdateColorMapRequest,
   Histogram, WebWorkerHistogramRequest, WebWorkerHistorgramResponse,
-  HistArrayPair
+  HistArrayPair,
+  RawMapDataProcessor
 } from '../m-map-common';
 
 
 import { ColorMapUI, ColorMapUIEntry, ColorMapForExport, MapInfoWithColorMap } from '../m-map-common-ui';
 
-import { MapWorkRequest, MapSection } from '../../m-map/m-map-common-server';
+import { MapWorkRequest, MapSection, MapSectionResult } from '../../m-map/m-map-common-server';
 import { FracServerService } from '../../frac-server/frac-server.service';
+
+enum WorkMethod {
+  ForeGround = "ForeGround",
+  WebWorkers = "WebWorkers",
+  WebService = "WebService"
+}
 
 @Component({
   selector: 'app-m-map-display',
   templateUrl: './m-map.display.component.html',
-  styleUrls: ['./m-map.display.component.css']
+  styleUrls: ['./m-map.display.component.css'],
+  providers: [FracServerService]
 })
-export class MMapDisplayComponent implements AfterViewInit, OnInit {
+export class MMapDisplayComponent implements AfterViewInit {
 
 
   @ViewChild('myCanvas') canvasRef: ElementRef;
@@ -44,7 +50,8 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
   private viewInitialized: boolean;
   private canvasSize: ICanvasSize;
 
-  private useWorkers: boolean;
+  private workMethod: WorkMethod;
+  //private useWorkers: boolean;
 
   // Array of WebWorkers
   private workers: Worker[];
@@ -64,8 +71,8 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
   private zoomBox: IBox;
 
-  private hubConnection: signalR.HubConnection;
-  private hubConnId: string;
+  private mapDataProcessor: RawMapDataProcessor;
+
 
   @Input('mapInfoWithColorMap')
   set mapInfoWithColorMap(value: MapInfoWithColorMap) {
@@ -100,7 +107,8 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     }
     else {
       // The new mapInfo has a value.
-      if (this._mapInfo === null) {
+      // If we have existing map, or if we are using the Web Serivce, rebuild.
+      if (this._mapInfo === null || this.workMethod === WorkMethod.WebService) {
         // We have no working map, initialize our values and build one.
         this._colorMap = cm;
         this._mapInfo = mi;
@@ -174,7 +182,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     return this._overLayBox;
   }
 
-  constructor() {
+  constructor(private fService: FracServerService) {
     console.log('m-map.display is being constructed.');
 
     this.viewInitialized = false;
@@ -188,11 +196,15 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     // TODO: Make the numberOfSections an input.
     // Set the number of sections to 4 - because we have 4 logical processors.
     this.numberOfSections = 4;
-    this.useWorkers = true;
+    //this.workMethod = WorkMethod.WebWorkers;
+    this.workMethod = WorkMethod.WebService;
+    //this.useWorkers = true;
 
     //// For simplicity, do not use Web Workers and use only one section.
     //this.numberOfSections = 1;
-    //this.useWorkers = false;
+    ////this.useWorkers = false;
+    //this.workMethod = WorkMethod.ForeGround;
+
 
     this.zoomBox = null;
     this.canvasElement = null;
@@ -208,6 +220,8 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
     this.allowZoom = true;
     this.overLayBox = null;
+
+    this.mapDataProcessor = null;
   }
 
   public getImageDataForExport(): void {
@@ -301,6 +315,49 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
     let left: number = mapWorkingData.sectionAnchor.x;
     let bot: number = mapWorkingData.sectionAnchor.y;
+
+    ctx.fillStyle = '#DD0031';
+    ctx.clearRect(left, bot, imageData.width, imageData.height);
+
+    ctx.putImageData(imageData, left, bot);
+
+    //if (this.overLayBox !== null) {
+    //  this.drawOverLayBox(this.overLayBox);
+    //}
+
+    //console.log('Just drew image data for sn=' + sectionNumber + ' left=' + left + ' bot =' + bot  + '.');
+  }
+
+  draw2(imageData: ImageData, mapSection: MapSection): void {
+
+    let canvasElement = this.canvasElement;
+
+    let ctx: CanvasRenderingContext2D = canvasElement.getContext('2d');
+
+    let cw: number = canvasElement.width;
+    let ch: number = canvasElement.height;
+
+    //console.log("Drawing on canvas with W = " + cw + " H = " + ch);
+
+    //if (sectionNumber > 2) return;
+
+
+    if (cw !== this.canvasSize.width || ch !== this.canvasSize.height) {
+      console.log('Draw detects that our canvas size has changed since intialization.')
+    }
+
+    // Check the image data's width to the canvas width for this section.
+    if (imageData.width !== mapSection.canvasSize.width) {
+      console.log('Draw is being called with ImageData whose width does not equal canvas width for section at left: ' + mapSection.sectionAnchor.x + 'and top: ' + mapSection.sectionAnchor.y + '.');
+    }
+
+    // Check the image data's height to the canvas height for this section.
+    if (imageData.height !== mapSection.canvasSize.height) {
+      console.log('Draw is being called with ImageData whose height does not equal the canvas height for section at left: ' + mapSection.sectionAnchor.x + 'and top: ' + mapSection.sectionAnchor.y + '.');
+    }
+
+    let left: number = mapSection.sectionAnchor.x;
+    let bot: number = mapSection.sectionAnchor.y;
 
     ctx.fillStyle = '#DD0031';
     ctx.clearRect(left, bot, imageData.width, imageData.height);
@@ -417,10 +474,6 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
     return true;
   }
 
-  ngOnInit(): void {
-    throw new Error("Method not implemented.");
-  }
-
   ngAfterViewInit() {
     if (!this.viewInitialized) {
       this.viewInitialized = true;
@@ -456,7 +509,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
     let regularColorMap = this._colorMap.getRegularColorMap();
 
-    if (this.useWorkers) {
+    if (this.workMethod === WorkMethod.WebWorkers) {
       // Clear existing workers, if any
       this.terminateWorkers(this.workers);
 
@@ -471,7 +524,7 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
       // initialized our workers array (this.workers)
       this.workers = this.initWebWorkers(this.sections);
     }
-    else {
+    else if (this.workMethod === WorkMethod.ForeGround) {
       if (this.numberOfSections !== 1) {
         //console.log('The number of sections must be set to 1, if useWorkers = false.');
         throw new RangeError('The number of sections must be set to 1, if useWorkers = false.');
@@ -481,6 +534,42 @@ export class MMapDisplayComponent implements AfterViewInit, OnInit {
 
       this.progressively();
     }
+    else if (this.workMethod === WorkMethod.WebService) {
+
+      this.mapDataProcessor = new RawMapDataProcessor(regularColorMap);
+      let jobRequest = new MapWorkRequest(this._mapInfo.coords, this._mapInfo.maxIterations, this.canvasSize);
+
+      let cc = this.fService.submitJob(jobRequest);
+      cc.subscribe(
+        resp => this.useMapSectionResult(resp),
+        err => console.log(err),
+        () => this.webServiceMapWorkDone()
+      );
+    }
+    else {
+      throw new Error("The work method is not recognized.");
+    }
+  }
+
+  private useMapSectionResult(ms: MapSectionResult): void {
+    let pixelData = this.mapDataProcessor.getPixelData(ms.imageData);
+    let imageData = new ImageData(pixelData, ms.mapSection.canvasSize.width, ms.mapSection.canvasSize.height);
+
+    //let ls = imageData.length;
+    //console.log('Got ' + ls + ' worth of iteration counts.');
+    console.log('About to draw map section for x:' + ms.mapSection.sectionAnchor.x + ' and y:' + ms.mapSection.sectionAnchor.y);
+    this.draw2(imageData, ms.mapSection);
+  }
+
+  private webServiceMapWorkDone(): void {
+    console.log("Web Service Map Work Request is complete.");
+
+    this._buildingNewMap = false;
+    this._histogram = this.mapDataProcessor.Histogram;
+
+    console.log('The histogram has been assembled.');
+    //console.log('The historgram is ' + this._histogram + '.');
+    this.haveHistogram.emit(this._histogram);
   }
 
   private initMapDisplay(ce: HTMLCanvasElement): ICanvasSize {

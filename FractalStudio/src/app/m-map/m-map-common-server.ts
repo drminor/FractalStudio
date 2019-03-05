@@ -1,19 +1,19 @@
-import { ColorNumbers } from './ColorNumbers';
-
-import { IPoint, IBox, IMapInfo, MapInfo, ICanvasSize, ColorMapEntry, ColorMapEntryBlendStyle, ColorMap } from './m-map-common';
+import { IPoint, IBox, ICanvasSize } from './m-map-common';
 
 export class MapSection {
   constructor(public sectionAnchor: IPoint, public canvasSize: ICanvasSize) { }
 }
 
 export class MapSectionResult {
-  constructor(public MapSection: MapSection, public ImageData: number[]) { }
+  constructor(public jobId: number, public mapSection: MapSection, public imageData: number[]) { }
 }
 
 export class MapWorkRequest {
+  public connectionId: string;
   public jobId: number;
 
-  constructor(public connectionId: string, public coords: IBox, public maxIterations: number, public canvasSize: ICanvasSize) {
+  constructor(public coords: IBox, public maxIterations: number, public canvasSize: ICanvasSize) {
+    this.connectionId = null;
     this.jobId = -1;
   }
 }

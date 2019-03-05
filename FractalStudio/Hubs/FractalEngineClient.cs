@@ -2,12 +2,15 @@ using FractalEngine;
 using FractalServer;
 using Microsoft.AspNetCore.SignalR;
 using System;
+using System.Threading.Tasks;
 
 namespace FractalStudio.Hubs
 {
   public class FractalEngineClient : IClientConnector
   {
     private readonly IHubContext<FractalEngineHub> _hubContext;
+
+    private readonly object Lo = new object();
 
     public FractalEngineClient(IHubContext<FractalEngineHub> hubContext)
     {
@@ -19,10 +22,17 @@ namespace FractalStudio.Hubs
       _hubContext.Clients.Client(connectionId).SendAsync("JobCancelled", jobId);
     }
 
-    public int ReceiveImageData(string connectionId, MapSectionResult mapSectionResult, bool isFinalSection)
+    public void ReceiveImageData(string connectionId, MapSectionResult mapSectionResult, bool isFinalSection)
     {
-      _hubContext.Clients.Client(connectionId).SendAsync("ImageData", mapSectionResult, isFinalSection);
-      return 0;
+      //lock (Lo)
+      //{
+
+      //  _hubContext.Clients.Client(connectionId).SendAsync("ImageData", mapSectionResult, isFinalSection).Wait();
+      //  System.Threading.Thread.Sleep(200);
+      //}
+
+      _hubContext.Clients.Client(connectionId).SendAsync("ImageData", mapSectionResult, isFinalSection).Wait();
+
     }
 
   }

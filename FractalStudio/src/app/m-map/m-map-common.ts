@@ -1899,6 +1899,51 @@ export class CurWorkVal {
   }
 }
 
+export class RawMapDataProcessor {
+
+  public Histogram: Histogram;
+
+  //this.assembleHistorgram(arrayPair, sectionNumber);
+  constructor(public colorMap: ColorMap) {
+    this.Histogram = new Histogram();
+  }
+
+  public getPixelData(iterCounts: number[]): Uint8ClampedArray {
+
+    let elementCount = iterCounts.length;
+    let imgData = new Uint8ClampedArray(elementCount * 4);
+
+    // Address the image data buffer as Int32's
+    let pixelData = new Uint32Array(imgData.buffer);
+
+    let ptr: number;
+    for (ptr = 0; ptr < elementCount; ptr++) {
+      let wv = iterCounts[ptr];
+      wv = wv / 10000;
+      let cnt = Math.trunc(wv);
+
+      this.Histogram.addVal(cnt);
+
+      let escapeVal = wv - cnt;
+      let cNum = this.colorMap.getColor(cnt, escapeVal);
+      pixelData[ptr] = cNum;
+    }
+
+    return imgData;
+  }
+
+  private assembleHistorgram(arrayPair: HistArrayPair): void {
+
+    if (this.Histogram == null) {
+      this.Histogram = Histogram.fromHistArrayPair(arrayPair);
+    }
+    else {
+      this.Histogram.addFromArrayPair(arrayPair);
+    }
+  }
+
+}
+
 export class MapWorkingData implements IMapWorkingData {
 
   public elementCount: number;

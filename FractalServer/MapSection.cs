@@ -1,13 +1,17 @@
-﻿using Newtonsoft.Json;
+﻿//using MessagePack;
+using Newtonsoft.Json;
 
 namespace FractalServer
 {
+	//[MessagePackObject]
 	public class MapSection
 	{
 		[JsonProperty("sectionAnchor")]
+		//[Key(0)]
 		public Point SectionAnchor;
 
 		[JsonProperty("canvasSize")]
+		//[Key(1)]
 		public CanvasSize CanvasSize;
 
 		private MapSection()
