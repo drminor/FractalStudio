@@ -51,7 +51,6 @@ export class MMapDisplayComponent implements AfterViewInit {
   private canvasSize: ICanvasSize;
 
   private workMethod: WorkMethod;
-  //private useWorkers: boolean;
 
   // Array of WebWorkers
   private workers: Worker[];
@@ -72,6 +71,7 @@ export class MMapDisplayComponent implements AfterViewInit {
   private zoomBox: IBox;
 
   private mapDataProcessor: RawMapDataProcessor;
+  private mapSectionResults: MapSectionResult[];
 
 
   @Input('mapInfoWithColorMap')
@@ -108,7 +108,7 @@ export class MMapDisplayComponent implements AfterViewInit {
     else {
       // The new mapInfo has a value.
       // If we have existing map, or if we are using the Web Serivce, rebuild.
-      if (this._mapInfo === null || this.workMethod === WorkMethod.WebService) {
+      if (this._mapInfo === null) {
         // We have no working map, initialize our values and build one.
         this._colorMap = cm;
         this._mapInfo = mi;
@@ -122,11 +122,12 @@ export class MMapDisplayComponent implements AfterViewInit {
         if (!this._mapInfo.coords.isEqual(mi.coords)
           || this._mapInfo.threshold !== mi.threshold
           || this._mapInfo.maxIterations > mi.maxIterations
-          || (this._colorMap.serialNumber !== cm.serialNumber && this._mapInfo.maxIterations !== mi.maxIterations))
+          || (this._colorMap.serialNumber !== cm.serialNumber && this._mapInfo.maxIterations !== mi.maxIterations)
+          || (this._mapInfo.maxIterations < mi.maxIterations && this.workMethod === WorkMethod.WebService))
         {
           // The coordinates have changed,
           // or we are reducing the number of iterations,
-          // or we are increasing the number of iterations and we have a new color map, rebuild.
+          // or we are decreasing the number of iterations and we have a new color map, rebuild.
           this._colorMap = cm;
           this._mapInfo = mi;
           if (this.viewInitialized) {
@@ -222,6 +223,7 @@ export class MMapDisplayComponent implements AfterViewInit {
     this.overLayBox = null;
 
     this.mapDataProcessor = null;
+    this.mapSectionResults = [];
   }
 
   public getImageDataForExport(): void {
@@ -250,7 +252,6 @@ export class MMapDisplayComponent implements AfterViewInit {
     for (ptr = 0; ptr < this.workers.length; ptr++) {
       this.workers[ptr].postMessage(histRequest);
     }
-
   }
 
   assembleHistorgram(arrayPair: HistArrayPair, sectionNumber: number): void {
@@ -284,7 +285,51 @@ export class MMapDisplayComponent implements AfterViewInit {
     this.buildingComplete.emit();
   }
 
-  draw(imageData: ImageData, sectionNumber: number): void {
+  //private draw_old(imageData: ImageData, sectionNumber: number): void {
+
+  //  let canvasElement = this.canvasElement;
+
+  //  let ctx: CanvasRenderingContext2D = canvasElement.getContext('2d');
+
+  //  let cw: number = canvasElement.width;
+  //  let ch: number = canvasElement.height;
+
+  //  //console.log("Drawing on canvas with W = " + cw + " H = " + ch);
+
+  //  //if (sectionNumber > 2) return;
+
+  //  let mapWorkingData: IMapWorkingData = this.sections[sectionNumber];
+
+  //  if (cw !== this.canvasSize.width || ch !== this.canvasSize.height) {
+  //    console.log('Draw detects that our canvas size has changed since intialization.')
+  //  }
+
+  //  // Check the image data's width to the canvas width for this section.
+  //  if (imageData.width !== mapWorkingData.canvasSize.width) {
+  //    console.log('Draw is being called with ImageData whose width does not equal canvas width for section number ' + sectionNumber + '.');
+  //  }
+
+  //  // Check the image data's height to the canvas height for this section.
+  //  if (imageData.height !== mapWorkingData.canvasSize.height) {
+  //    console.log('Draw is being called with ImageData whose height does not equal the canvas height for section number ' + sectionNumber + '.');
+  //  }
+
+  //  let left: number = mapWorkingData.sectionAnchor.x;
+  //  let bot: number = mapWorkingData.sectionAnchor.y;
+
+  //  ctx.fillStyle = '#DD0031';
+  //  ctx.clearRect(left, bot, imageData.width, imageData.height);
+
+  //  ctx.putImageData(imageData, left, bot);
+
+  //  //if (this.overLayBox !== null) {
+  //  //  this.drawOverLayBox(this.overLayBox);
+  //  //}
+
+  //  //console.log('Just drew image data for sn=' + sectionNumber + ' left=' + left + ' bot =' + bot  + '.');
+  //}
+
+  private draw(imageData: ImageData, mapSection: MapSection): void {
 
     let canvasElement = this.canvasElement;
 
@@ -294,53 +339,6 @@ export class MMapDisplayComponent implements AfterViewInit {
     let ch: number = canvasElement.height;
 
     //console.log("Drawing on canvas with W = " + cw + " H = " + ch);
-
-    //if (sectionNumber > 2) return;
-
-    let mapWorkingData: IMapWorkingData = this.sections[sectionNumber];
-
-    if (cw !== this.canvasSize.width || ch !== this.canvasSize.height) {
-      console.log('Draw detects that our canvas size has changed since intialization.')
-    }
-
-    // Check the image data's width to the canvas width for this section.
-    if (imageData.width !== mapWorkingData.canvasSize.width) {
-      console.log('Draw is being called with ImageData whose width does not equal canvas width for section number ' + sectionNumber + '.');
-    }
-
-    // Check the image data's height to the canvas height for this section.
-    if (imageData.height !== mapWorkingData.canvasSize.height) {
-      console.log('Draw is being called with ImageData whose height does not equal the canvas height for section number ' + sectionNumber + '.');
-    }
-
-    let left: number = mapWorkingData.sectionAnchor.x;
-    let bot: number = mapWorkingData.sectionAnchor.y;
-
-    ctx.fillStyle = '#DD0031';
-    ctx.clearRect(left, bot, imageData.width, imageData.height);
-
-    ctx.putImageData(imageData, left, bot);
-
-    //if (this.overLayBox !== null) {
-    //  this.drawOverLayBox(this.overLayBox);
-    //}
-
-    //console.log('Just drew image data for sn=' + sectionNumber + ' left=' + left + ' bot =' + bot  + '.');
-  }
-
-  draw2(imageData: ImageData, mapSection: MapSection): void {
-
-    let canvasElement = this.canvasElement;
-
-    let ctx: CanvasRenderingContext2D = canvasElement.getContext('2d');
-
-    let cw: number = canvasElement.width;
-    let ch: number = canvasElement.height;
-
-    //console.log("Drawing on canvas with W = " + cw + " H = " + ch);
-
-    //if (sectionNumber > 2) return;
-
 
     if (cw !== this.canvasSize.width || ch !== this.canvasSize.height) {
       console.log('Draw detects that our canvas size has changed since intialization.')
@@ -363,10 +361,6 @@ export class MMapDisplayComponent implements AfterViewInit {
     ctx.clearRect(left, bot, imageData.width, imageData.height);
 
     ctx.putImageData(imageData, left, bot);
-
-    //if (this.overLayBox !== null) {
-    //  this.drawOverLayBox(this.overLayBox);
-    //}
 
     //console.log('Just drew image data for sn=' + sectionNumber + ' left=' + left + ' bot =' + bot  + '.');
   }
@@ -536,6 +530,7 @@ export class MMapDisplayComponent implements AfterViewInit {
     }
     else if (this.workMethod === WorkMethod.WebService) {
 
+      this.mapSectionResults = [];
       this.mapDataProcessor = new RawMapDataProcessor(regularColorMap);
       let jobRequest = new MapWorkRequest(this._mapInfo.coords, this._mapInfo.maxIterations, this.canvasSize);
 
@@ -555,27 +550,36 @@ export class MMapDisplayComponent implements AfterViewInit {
     let pixelData = this.mapDataProcessor.getPixelData(ms.imageData);
     let imageData = new ImageData(pixelData, ms.mapSection.canvasSize.width, ms.mapSection.canvasSize.height);
 
-    //let ls = imageData.length;
-    //console.log('Got ' + ls + ' worth of iteration counts.');
-    console.log('About to draw map section for x:' + ms.mapSection.sectionAnchor.x + ' and y:' + ms.mapSection.sectionAnchor.y);
-    this.draw2(imageData, ms.mapSection);
+    this.mapSectionResults.push(ms);
+    //console.log('About to draw map section for x:' + ms.mapSection.sectionAnchor.x + ' and y:' + ms.mapSection.sectionAnchor.y);
+    this.draw(imageData, ms.mapSection);
+  }
+
+  private reUseMapSectionResult(ms: MapSectionResult): void {
+    let pixelData = this.mapDataProcessor.getPixelData(ms.imageData);
+    let imageData = new ImageData(pixelData, ms.mapSection.canvasSize.width, ms.mapSection.canvasSize.height);
+
+    //console.log('About to draw map section for x:' + ms.mapSection.sectionAnchor.x + ' and y:' + ms.mapSection.sectionAnchor.y);
+    this.draw(imageData, ms.mapSection);
   }
 
   private webServiceMapWorkDone(): void {
     console.log("Web Service Map Work Request is complete.");
 
     this._buildingNewMap = false;
+    this.drawEndNote();
     this._histogram = this.mapDataProcessor.Histogram;
 
     console.log('The histogram has been assembled.');
-    //console.log('The historgram is ' + this._histogram + '.');
+    console.log('The historgram is ' + this._histogram + '.');
+    console.log('The Escape Velocity historgram is ' + this.mapDataProcessor.EscVelHist + '.');
+
     this.haveHistogram.emit(this._histogram);
   }
 
   private initMapDisplay(ce: HTMLCanvasElement): ICanvasSize {
 
     // Set our canvas size = to the number of pixels actually used to display our canvas HTML element.
-
     console.log('Doing initMapDisplay.');
     const result: ICanvasSize = new CanvasSize(
       ce.offsetWidth,
@@ -607,9 +611,7 @@ export class MMapDisplayComponent implements AfterViewInit {
   private initWebWorkers(sections: IMapWorkingData[]): Worker[] {
 
     let numberOfSections = sections.length;
-
     let result: Worker[] = new Array<Worker>(numberOfSections);
-
     let ptr: number = 0;
 
     for (ptr = 0; ptr < numberOfSections; ptr++) {
@@ -627,6 +629,7 @@ export class MMapDisplayComponent implements AfterViewInit {
 
           let mapWorkingData: IMapWorkingData = sections[sectionNumber];
           let imageData: ImageData = updatedMapDataMsg.getImageData(mapWorkingData.canvasSize);
+          let mapSection = new MapSection(mapWorkingData.sectionAnchor, mapWorkingData.canvasSize);
 
           let numberOfIterations = mapWorkingData.iterationCountForNextStep();
           if (numberOfIterations > 0) {
@@ -637,18 +640,17 @@ export class MMapDisplayComponent implements AfterViewInit {
             mapWorkingData.curIterations += numberOfIterations;
 
             // Call draw after sending the request to get the next ImageData.
-            this.draw(imageData, sectionNumber);
+            this.draw(imageData, mapSection);
           }
           else {
             // Call draw for the last ImageDataResponse
-            this.draw(imageData, sectionNumber);
+            this.draw(imageData, mapSection);
 
             if (this._buildingNewMap) {
               // Request the histogram data for this section.
               let histRequest = WebWorkerHistogramRequest.CreateRequest();
               //this.workers[sectionNumber].postMessage(histRequest);
               ww.postMessage(histRequest);
-
             }
 
             // And then draw the end note.
@@ -671,16 +673,10 @@ export class MMapDisplayComponent implements AfterViewInit {
         }
       });
 
-
       // Send the mapWorking data and color map to the Web Worker.
       let mapWorkingData: IMapWorkingData = sections[ptr];
       let startRequestMsg = WebWorkerStartRequest.CreateRequest(mapWorkingData, ptr);
       webWorker.postMessage(startRequestMsg);
-
-      //let iterateRequest = WebWorkerIterateRequest.CreateRequest(this._mapInfo.iterationsPerStep);
-      //webWorker.postMessage(iterateRequest);
-      //mapWorkingData.curIterations += this._mapInfo.iterationsPerStep;
-
 
       let numberOfIterations = mapWorkingData.iterationCountForNextStep();
       if (numberOfIterations > 0) {
@@ -693,8 +689,6 @@ export class MMapDisplayComponent implements AfterViewInit {
 
     return result;
   }
-
-
 
   private initWebWorkersForExport(workingMaps: IMapWorkingData[], iterCount: number): Worker[] {
 
@@ -765,7 +759,12 @@ export class MMapDisplayComponent implements AfterViewInit {
     }
   }
 
-  private updateWorkersColorMap() {
+  private updateWorkersColorMap(): void {
+    if (this.workMethod === WorkMethod.WebService) {
+      this.updateWebServiceColorMap();
+      return;
+    }
+
     if (this._buildingNewMap) {
       throw new RangeError('The buildingNewMap flag is true on call to updateWorkersColorMap.');
     }
@@ -776,6 +775,20 @@ export class MMapDisplayComponent implements AfterViewInit {
     for (ptr = 0; ptr < this.numberOfSections; ptr++) {
       let webWorker = this.workers[ptr];
       webWorker.postMessage(upColorMapMsg);
+    }
+  }
+
+  private updateWebServiceColorMap(): void {
+    let regularColorMap = this._colorMap.getRegularColorMap();
+    this.mapDataProcessor = new RawMapDataProcessor(regularColorMap);
+    let jobId = this.fService.JobId;
+
+    let ptr: number;
+    for (ptr = 0; ptr < this.mapSectionResults.length; ptr++) {
+      let msr = this.mapSectionResults[ptr];
+      if (msr.jobId === jobId) {
+        this.reUseMapSectionResult(msr);
+      }
     }
   }
 
@@ -800,7 +813,9 @@ export class MMapDisplayComponent implements AfterViewInit {
         //mapWorkinData.updateImageData(mapWorkinData.pixelData);
         let imageData = new ImageData(pixelData, mapWorkinData.canvasSize.width, mapWorkinData.canvasSize.height);
 
-        that.draw(imageData, 0);
+        let mapSection = new MapSection(new Point(0, 0), mapWorkinData.canvasSize);
+
+        that.draw(imageData, mapSection);
       } else {
         clearInterval(intId);
 

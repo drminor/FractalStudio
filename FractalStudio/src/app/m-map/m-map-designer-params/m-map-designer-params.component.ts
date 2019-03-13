@@ -188,6 +188,7 @@ export class MMapDesignerParamsComponent implements OnInit {
     });
 
     fr.readAsText(files.item(0));
+    fSelector.value = '';
   }
 
 }

@@ -76,9 +76,9 @@ export class FracServerService {
       return false;
     }
 
-    //if (this.imageDataSubject !== null) {
-    //  this.imageDataSubject.complete();
-    //}
+    if (this.imageDataSubject !== null) {
+      this.imageDataSubject.complete();
+    }
 
     this.http.delete(this.baseUrl + this.controllerPath + "/" + this.jobId);
     
@@ -93,10 +93,6 @@ export class FracServerService {
     this.doWhenHaveConnId = null;
     this.request = null;
   }
-
-  //private useReturnedMapWorkResult(result: MapWorkRequest) {
-  //  this.jobId = result.jobId;
-  //}
 
   private startHubConnection(url: string)/*: Promise<any>*/ {
 
@@ -140,7 +136,7 @@ export class FracServerService {
               console.log('Handling final job for this request.');
 
               this.imageDataSubject.complete();
-              this.jobId = -1;
+              //this.jobId = -1;
             }
             else {
               console.log('Handling final job for previous request.');
@@ -160,19 +156,9 @@ export class FracServerService {
   }
 
   private fixMapSectionResult(raw: any): MapSectionResult {
-
     let ts: any = raw.MapSection;
-    //let ts = raw[0];
-
     let ms = new MapSection(new Point(ts.SectionAnchor.X, ts.SectionAnchor.Y), new CanvasSize(ts.CanvasSize.Width, ts.CanvasSize.Height));
-    //let ms = new MapSection(new Point(ts[0].X, ts[0].Y), new CanvasSize(ts[1].Width, ts[1].Height));
-
-    //let rawIData = raw[1] as number[];
-    //let imageData = new Array<number>(...rawIData);
-
-    //let result = new MapSectionResult(ms, imageData);
     let result = new MapSectionResult(raw.JobId, ms, raw.ImageData as number[]);
-
     return result;
   }
 

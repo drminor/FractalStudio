@@ -228,9 +228,6 @@ export class ColorMapEditorComponent implements OnInit {
       let cmfe: ColorMapForExport = JSON.parse(rawResult) as ColorMapForExport;
       let loadedColorMap: ColorMapUI = ColorMapUI.fromColorMapForExport(cmfe, -1);
 
-      // Save a copy to use if we want to re-apply these colors.
-      this._lastLoadedColorMap = loadedColorMap;
-
       let newColorMap: ColorMapUI;
       if (this.colorMapForm.controls.useCutoffs.value === false) {
         //console.log('Loading ColorMap without cutoffs.');
@@ -241,10 +238,14 @@ export class ColorMapEditorComponent implements OnInit {
         newColorMap = loadedColorMap;
       }
 
+      // Save a copy to use if we want to re-apply these colors.
+      this._lastLoadedColorMap = newColorMap;
+
       this.colorMapUpdated.emit(newColorMap);
     });
 
     fr.readAsText(files.item(0));
+    fSelector.value = '';
   }
 
   onDivide(): void {
