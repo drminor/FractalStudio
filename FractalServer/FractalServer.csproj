@@ -70,8 +70,11 @@
     <Compile Include="MapInfoWithColorMapForExport.cs" />
     <Compile Include="MapWorkingData.cs" />
     <Compile Include="MapSectionWorkRequest.cs" />
+    <Compile Include="MPointWorkQd.cs" />
     <Compile Include="MPointWork.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Qd.cs" />
+    <Compile Include="QdWrapper.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Hjg.Pngcs\Hjg.Pngcs.csproj">
