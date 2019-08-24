@@ -3,12 +3,6 @@
 namespace FractalServer
 {
 
-	//public struct Complex
-	//{
-	//	public double re;
-	//	public double im;
-	//};
-
 	[StructLayout(LayoutKind.Sequential)]
 	public struct Qd
 	{
@@ -32,5 +26,6 @@ namespace FractalServer
 			string result = QdWrapper.CallGetDigits(Hi, Lo, 32);
 			return result;
 		}
+
 	}
 }

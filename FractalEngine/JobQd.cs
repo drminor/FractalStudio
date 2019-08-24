@@ -4,7 +4,7 @@ using System.Threading;
 
 namespace FractalEngine
 {
-	public class Job : JobBase<double>
+	public class JobQd : JobBase<Qd>
 	{
 		//private int _jobId;
 		//public readonly MapWorkRequest MapWorkRequest;
@@ -29,7 +29,7 @@ namespace FractalEngine
 
 		//private bool _done;
 
-		public Job(SMapWorkRequest sMapWorkRequest, string connectionId) : base(GetSamplePoints(sMapWorkRequest), sMapWorkRequest.MaxIterations, connectionId)	{ }
+		public JobQd(SMapWorkRequest sMapWorkRequest, string connectionId) : base(GetSamplePoints(sMapWorkRequest), sMapWorkRequest.MaxIterations, connectionId)	{ }
 
 
 		//public Job(MapWorkRequest mapWorkRequest, string connectionId)
@@ -73,49 +73,13 @@ namespace FractalEngine
 		//	_numberOfSectionRemainingToSend = _numberOfHSections * _numberOfVSections;
 		//}
 
-		private static SamplePoints<double> GetSamplePoints(SMapWorkRequest sMapWorkRequest)
+		private static SamplePoints<Qd> GetSamplePoints(SMapWorkRequest sMapWorkRequest)
 		{
-			int SECTION_WIDTH = 100;
-			int SECTION_HEIGHT = 100;
-
-			if (Coords.TryGetFromSCoords(sMapWorkRequest.SCoords, out Coords coords))
-			{
-				double[][] xValueSections = BuildValueSections(coords.LeftBot.X, coords.RightTop.X,
-					sMapWorkRequest.CanvasSize.Width, SECTION_WIDTH,
-					out int numSectionsH, out int lastExtentH);
-
-				//_numberOfHSections = numSectionsH;
-				//_lastSectionWidth = lastExtentH;
-
-				double[][] yValueSections;
-				if (!coords.IsUpsideDown)
-				{
-					yValueSections = BuildValueSections(coords.RightTop.Y, coords.LeftBot.Y,
-						sMapWorkRequest.CanvasSize.Height, SECTION_HEIGHT,
-						out int numSectionsV, out int lastExtentV);
-					//_numberOfVSections = numSectionsV;
-					//_lastSectionHeight = lastExtentV;
-				}
-				else
-				{
-					yValueSections = BuildValueSections(coords.LeftBot.Y, coords.RightTop.Y,
-						sMapWorkRequest.CanvasSize.Height, SECTION_HEIGHT,
-						out int numSectionsV, out int lastExtentV);
-					//_numberOfVSections = numSectionsV;
-					//_lastSectionHeight = lastExtentV;
-				}
-
-				return new SamplePoints<double>(xValueSections, yValueSections);
-			}
-			else
-			{
-				throw new ArgumentException("Cannot parse the SCoords into a Coords value.");
-			}
-
-
+			SamplePoints<Qd> result = new SamplePoints<Qd>(null, null);
+			return result;
 		}
 
-		private static double[][] BuildValueSections(double start, double end, int extent, int sectionExtent, out int sectionCount, out int lastExtent)
+			private double[][] BuildValueSections(double start, double end, int extent, int sectionExtent, out int sectionCount, out int lastExtent)
 		{
 			sectionCount = GetSectionCount(extent, sectionExtent, out lastExtent);
 
@@ -157,13 +121,13 @@ namespace FractalEngine
 			return result;
 		}
 
-		protected static int GetSectionCount(int totalExtent, int sectionExtent, out int lastExtent)
+		private int GetSectionCount(int totalExtent, int sectionExtent, out int lastExtent)
 		{
 			lastExtent = sectionExtent;
-			double r = totalExtent / (double)sectionExtent;
+			double r = totalExtent / (double) sectionExtent;
 
-			int result = (int)Math.Truncate(r);
-			if (r != result)
+			int result = (int) Math.Truncate(r);
+			if(r != result)
 			{
 				lastExtent = totalExtent - sectionExtent * result;
 				result++;

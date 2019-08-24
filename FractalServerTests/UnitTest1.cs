@@ -135,23 +135,23 @@ namespace FractalServerTests
 			System.Diagnostics.Debug.WriteLine($"Parse returned hi: {qd.Hi}, lo: {qd.Lo}.");
 		}
 
-		[TestMethod]
-		public void TestTryComplex()
-		{
-			int n = 2;
-			Qd inputVar = new Qd();
-			Qd outputVar = new Qd();
-			Qd[] array = new Qd[n];
-			inputVar.Hi = 1.0;
-			inputVar.Lo = 2.0;
+		//[TestMethod]
+		//public void TestTryComplex()
+		//{
+		//	int n = 2;
+		//	Qd inputVar = new Qd();
+		//	Qd outputVar = new Qd();
+		//	Qd[] array = new Qd[n];
+		//	inputVar.Hi = 1.0;
+		//	inputVar.Lo = 2.0;
 
-			QdWrapper.CallTryComplex(inputVar, ref outputVar, array);
+		//	QdWrapper.CallTryComplex(inputVar, ref outputVar, array);
 
-			System.Diagnostics.Debug.WriteLine("outputVar = ({0},{1})", outputVar.Hi, outputVar.Lo);
-			System.Diagnostics.Debug.WriteLine("Array on output");
-			for (int i = 0; i < array.GetLength(0); i++)
-				System.Diagnostics.Debug.WriteLine("{0}  {1}", array[i].Hi, array[i].Lo);
-		}
+		//	System.Diagnostics.Debug.WriteLine("outputVar = ({0},{1})", outputVar.Hi, outputVar.Lo);
+		//	System.Diagnostics.Debug.WriteLine("Array on output");
+		//	for (int i = 0; i < array.GetLength(0); i++)
+		//		System.Diagnostics.Debug.WriteLine("{0}  {1}", array[i].Hi, array[i].Lo);
+		//}
 
 		[TestMethod]
 		public void TestGetSamplePoints ()

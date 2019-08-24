@@ -6,7 +6,8 @@ namespace FractalServer
 {
 	public class QdWrapper
 	{
-		[DllImport(@"C:\DEV\VS2013Projects\QD-1_1_3\Numerics\Debug\FractalQd", SetLastError = true)]
+		//QD-1_1_3\Numerics\x64\Debug\FractalQd.dll
+		[DllImport(@"C:\DEV\VS2013Projects\QD-1_1_3\Numerics\x64\Debug\FractalQd", SetLastError = true)]
 		public static extern void CalcMap(int maxIterations, int xLen, [In] Qd[] xVals, int yLen, [In] Qd[] yVals, [In, Out] int[] cnts);
 
 		public static int[] CallCalcMap(int maxIterations, Qd[] xVals, Qd[] yVals)
@@ -20,7 +21,7 @@ namespace FractalServer
 			return result;
 		}
 
-		[DllImport(@"C:\DEV\VS2013Projects\QD-1_1_3\Numerics\Debug\FractalQd", SetLastError = true)]
+		[DllImport(@"C:\DEV\VS2013Projects\QD-1_1_3\Numerics\x64\Debug\FractalQd", SetLastError = true)]
 		public static extern void GetSamplePoints(Qd start,	Qd end, int n, [In, Out]  Qd[] array);
 
 		public static Qd[] CallGetSamplePoints(Qd start, Qd end, int n)
@@ -31,18 +32,18 @@ namespace FractalServer
 			return array;
 		}
 
-		[DllImport(@"C:\DEV\VS2013Projects\QD-1_1_3\Numerics\Debug\FractalQd", SetLastError = true)]
-		public static extern void TryComplex(Qd inputVar,
-				ref Qd outputVar, int n, [In, Out]  Qd[] array);
+		//[DllImport(@"C:\DEV\VS2013Projects\QD-1_1_3\Numerics\x64\Debug\FractalQd", SetLastError = true)]
+		//public static extern void TryComplex(Qd inputVar,
+		//		ref Qd outputVar, int n, [In, Out]  Qd[] array);
 
-		public static void CallTryComplex(Qd inputVar,
-				  ref Qd outputVar, Qd[] array)
-		{
-			int n = 2;
-			TryComplex(inputVar, ref outputVar, n, array);
-		}
+		//public static void CallTryComplex(Qd inputVar,
+		//		  ref Qd outputVar, Qd[] array)
+		//{
+		//	int n = 2;
+		//	TryComplex(inputVar, ref outputVar, n, array);
+		//}
 
-		[DllImport(@"C:\DEV\VS2013Projects\QD-1_1_3\Numerics\Debug\FractalQd", CharSet = CharSet.Ansi, SetLastError = true)]
+		[DllImport(@"C:\DEV\VS2013Projects\QD-1_1_3\Numerics\x64\Debug\FractalQd", CharSet = CharSet.Ansi, SetLastError = true)]
 		public static extern double Parse(string lpString, ref double lo);
 
 		public static double CallParse(string str, out double lo)
@@ -52,7 +53,7 @@ namespace FractalServer
 			return hi;
 		}
 
-		[DllImport(@"C:\DEV\VS2013Projects\QD-1_1_3\Numerics\Debug\FractalQd", CharSet = CharSet.Ansi, SetLastError = true)]
+		[DllImport(@"C:\DEV\VS2013Projects\QD-1_1_3\Numerics\x64\Debug\FractalQd", CharSet = CharSet.Ansi, SetLastError = true)]
 		public static extern void GetDigits(double hi, double lo, StringBuilder buf, int precision);
 
 		public static string CallGetDigits(double hi, double lo, int precision)
@@ -69,7 +70,7 @@ namespace FractalServer
 			return result;
 		}
 
-		[DllImport(@"C:\DEV\VS2013Projects\QD-1_1_3\Numerics\Debug\FractalQd")]
+		[DllImport(@"C:\DEV\VS2013Projects\QD-1_1_3\Numerics\x64\Debug\FractalQd")]
 		public static extern double quick_two_sum(double a, double b);
 
 		public static double CallQuickTwoSum(double a, double b)

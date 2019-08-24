@@ -15,7 +15,7 @@ namespace FractalEngine
 		private int _nextJobId;
 		private int _nextJobPtr;
 
-		private readonly Dictionary<int, Job> _jobs;
+		private readonly Dictionary<int, IJob> _jobs;
 
 		private readonly CancellationTokenSource _cts;
 
@@ -29,7 +29,7 @@ namespace FractalEngine
 
 			_nextJobId = 0;
 			_nextJobPtr = 0;
-			_jobs = new Dictionary<int, Job>();
+			_jobs = new Dictionary<int, IJob>();
 
 			_cts = new CancellationTokenSource();
 
@@ -44,7 +44,7 @@ namespace FractalEngine
 
 		#region Job Control
 
-		public int SubmitJob(Job job)
+		public int SubmitJob(IJob job)
 		{
 			int jobId;
 
@@ -61,7 +61,7 @@ namespace FractalEngine
 
 		public void CancelJob(int jobId)
 		{
-			Job job = this.RemoveJob(jobId);
+			IJob job = this.RemoveJob(jobId);
 
 			if(job != null)
 			{
@@ -73,13 +73,13 @@ namespace FractalEngine
 			}
 		}
 
-		private Job RemoveJob(int jobId)
+		private IJob RemoveJob(int jobId)
 		{
 			// TODO: consider keeping a list of removed jobs using WeakReferences.
 			// The job can be removed from the list of removedjobs once the last subjob is processed.
 			lock (_jobLock)
 			{
-				if (_jobs.TryGetValue(jobId, out Job job))
+				if (_jobs.TryGetValue(jobId, out IJob job))
 				{
 					_jobs.Remove(jobId);
 					return job;
@@ -107,9 +107,9 @@ namespace FractalEngine
 			}
 		}
 
-		private Job GetNextJob(CancellationToken cts)
+		private IJob GetNextJob(CancellationToken cts)
 		{
-			Job result = null;
+			IJob result = null;
 			do
 			{
 				if (cts.IsCancellationRequested)
@@ -177,7 +177,7 @@ namespace FractalEngine
 		{
 			do
 			{
-				Job job = GetNextJob(ct);
+				IJob job = GetNextJob(ct);
 				if (ct.IsCancellationRequested) return;
 
 				SubJob subJob = job.GetNextSubJob();
@@ -226,13 +226,23 @@ namespace FractalEngine
 				return;
 			}
 
-			MapSectionWorkRequest mswr = subJob.MapSectionWorkRequest;
+			int[] imageData;
 
-			MapWorkingData2 workingData = new MapWorkingData2(mswr.MapSection.CanvasSize, mswr.MaxIterations, mswr.XValues, mswr.YValues);
+			if (subJob.IsQd)
+			{
+				MapSectionWorkRequest<Qd> mswr = subJob.MapSectionWorkRequestQd;
+				MapCalculatorQd workingData = new MapCalculatorQd();
+				imageData = workingData.GetValues(mswr);
+			} 
+			else
+			{
+				MapSectionWorkRequest<double> mswr = subJob.MapSectionWorkRequest;
+				MapCalculator workingData = new MapCalculator();
+				imageData = workingData.GetValues(mswr);
+			}
 
-			int[] imageData = workingData.GetValues();
-
-			MapSectionResult mapSectionResult = new MapSectionResult(subJob.ParentJob.JobId, mswr.MapSection, imageData);
+			MapSection mapSection = subJob.MapSectionWorkRequest.MapSection;
+			MapSectionResult mapSectionResult = new MapSectionResult(subJob.ParentJob.JobId, mapSection, imageData);
 			subJob.result = mapSectionResult;
 
 			SendQueue.Add(subJob);

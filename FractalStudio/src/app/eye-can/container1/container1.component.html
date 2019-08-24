@@ -1,0 +1,27 @@
+<div style="float:left; width:939px; margin-bottom:0px">
+  <h2 style="margin-bottom:0px">Container1</h2>
+  <button type="button" (click)="runAnimation()" style="margin: 10px 0px 0px 0px">Run Animation</button>
+</div>
+
+<section>
+  <div [ngStyle]="{'float': 'left',
+                        'position': 'relative',
+                        'width': '939px',
+                        'height': '550px',
+                        'border': '2px solid black'
+                 }">
+
+    <div [ngStyle]="{'position': 'relative',
+                        'width': '939px',
+                        'height': '550px'
+                 }">
+
+      <app-base-canvas #baseCanvas></app-base-canvas>
+
+    </div>
+  </div>
+
+</section>
+
+
+

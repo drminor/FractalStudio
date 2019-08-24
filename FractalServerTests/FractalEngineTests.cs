@@ -33,11 +33,11 @@ namespace FractalServerTests
 			int maxIterations = 100;
             MapInfo mapInfo = new MapInfo(leftBot, rightTop, maxIterations);
 
-			Coords coords = new Coords(leftBot, rightTop);
+			SCoords coords = new SCoords(new SPoint(leftBot), new SPoint(rightTop));
 
 			string connectionId = "dummy";
 
-			MapWorkRequest mapWorkRequest = new MapWorkRequest(coords, maxIterations, canvasSize, connectionId);
+			SMapWorkRequest mapWorkRequest = new SMapWorkRequest(coords, maxIterations, canvasSize, connectionId);
 
 			Job job = new Job(mapWorkRequest, connectionId);
 			mapWorkRequest.JobId = job.JobId;
@@ -52,12 +52,14 @@ namespace FractalServerTests
 
 		private void ProcessSubJob(SubJob subJob)
 		{
-			MapSectionWorkRequest mswr = subJob.MapSectionWorkRequest;
+			MapSectionWorkRequest<double> mswr = subJob.MapSectionWorkRequest;
 
-			MapWorkingData2 workingData = new MapWorkingData2(mswr.MapSection.CanvasSize, mswr.MaxIterations, mswr.XValues, mswr.YValues);
+			//MapWorkingData2 workingData = new MapWorkingData2(mswr.MapSection.CanvasSize, mswr.MaxIterations, mswr.XValues, mswr.YValues);
+			//int[] packedCntsAndEscVels = workingData.GetValues();
 
-			int[] packedCntsAndEscVels = workingData.GetValues();
+			MapCalculator workingData = new MapCalculator();
+			int[] packedCntsAndEscVels = workingData.GetValues(mswr);
 		}
 
-    }
+	}
 }

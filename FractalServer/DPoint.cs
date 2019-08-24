@@ -44,6 +44,28 @@ namespace FractalServer
             Y = y;
         }
 
+		public static bool TryGetFromSPoint(SPoint sPoint, out DPoint dPoint)
+		{
+			if(double.TryParse(sPoint.X, out double x))
+			{
+				if(double.TryParse(sPoint.Y, out double y))
+				{
+					dPoint = new DPoint(x, y);
+					return true;
+				}
+				else
+				{
+					dPoint = new DPoint();
+					return false;
+				}
+			}
+			else
+			{
+				dPoint = new DPoint();
+				return false;
+			}
+		}
+
         [JsonIgnore]
         public double SizeSquared
         {
@@ -53,4 +75,62 @@ namespace FractalServer
             }
         }
     }
+
+	public class QdPoint
+	{
+		public Qd X;
+
+		public Qd Y;
+
+		public QdPoint()
+		{
+			X = new Qd("0");
+			Y = new Qd("0");
+		}
+
+		public QdPoint(Qd x, Qd y)
+		{
+			X = x;
+			Y = y;
+		}
+
+		public QdPoint(SPoint sPoint)
+		{
+			X = new Qd(sPoint.X);
+			Y = new Qd(sPoint.Y);
+		}
+	}
+
+	public class SPoint
+	{
+		[JsonProperty("x")]
+		public string X;
+
+		[JsonProperty("y")]
+		public string Y;
+
+		private SPoint()
+		{
+			X = "0";
+			Y = "0";
+		}
+
+		public SPoint(string x, string y)
+		{
+			X = x;
+			Y = y;
+		}
+
+		public SPoint(DPoint dPoint)
+		{
+			X = dPoint.X.ToString("R");
+			Y = dPoint.Y.ToString("R");
+		}
+
+		public SPoint(QdPoint qdPoint)
+		{
+			X = qdPoint.X.ToString();
+			Y = qdPoint.Y.ToString();
+		}
+	}
 }

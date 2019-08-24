@@ -44,12 +44,17 @@ namespace FractalStudio.Controllers
     [HttpPost]
     public IActionResult Post([FromBody] MapWorkRequest mapWorkRequest)
     {
-      Job job = new Job(mapWorkRequest, mapWorkRequest.ConnectionId);
+      SCoords sCoords = new SCoords(mapWorkRequest.Coords);
+
+      SMapWorkRequest sMapWorkRequest = new SMapWorkRequest(sCoords, mapWorkRequest.MaxIterations, mapWorkRequest.CanvasSize, mapWorkRequest.ConnectionId);
+
+      //JobFactory jobFactory = new JobFactory();
+      //IJob job = jobFactory.CreateJob(sMapWorkRequest, sMapWorkRequest.ConnectionId);
+
+      Job job = new Job(sMapWorkRequest, sMapWorkRequest.ConnectionId);
 
       int jobId = _engine.SubmitJob(job);
       mapWorkRequest.JobId = jobId;
-
-      //mapWorkRequest.Coords.RightTop.Y = _engine.NumberOfJobs;
 
       return Ok(mapWorkRequest);
     }

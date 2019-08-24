@@ -2,15 +2,15 @@
 
 namespace FractalServer
 {
-	public class MapSectionWorkRequest
+	public class MapSectionWorkRequest<T> where T: struct
 	{
 		public readonly MapSection MapSection;
 		public readonly int MaxIterations;
 
-		public readonly Double[] XValues;
-		public readonly Double[] YValues;
+		public readonly T[] XValues;
+		public readonly T[] YValues;
 
-		public MapSectionWorkRequest(MapSection mapSection, int maxIterations, double[] xValues, double[] yValues)
+		public MapSectionWorkRequest(MapSection mapSection, int maxIterations, T[] xValues, T[] yValues)
 		{
 			MaxIterations = maxIterations;
 			MapSection = mapSection ?? throw new ArgumentNullException(nameof(mapSection));
