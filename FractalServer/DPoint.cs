@@ -76,31 +76,6 @@ namespace FractalServer
         }
     }
 
-	public class QdPoint
-	{
-		public Qd X;
-
-		public Qd Y;
-
-		public QdPoint()
-		{
-			X = new Qd("0");
-			Y = new Qd("0");
-		}
-
-		public QdPoint(Qd x, Qd y)
-		{
-			X = x;
-			Y = y;
-		}
-
-		public QdPoint(SPoint sPoint)
-		{
-			X = new Qd(sPoint.X);
-			Y = new Qd(sPoint.Y);
-		}
-	}
-
 	public class SPoint
 	{
 		[JsonProperty("x")]
@@ -125,12 +100,6 @@ namespace FractalServer
 		{
 			X = dPoint.X.ToString("R");
 			Y = dPoint.Y.ToString("R");
-		}
-
-		public SPoint(QdPoint qdPoint)
-		{
-			X = qdPoint.X.ToString();
-			Y = qdPoint.Y.ToString();
 		}
 	}
 }

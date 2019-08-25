@@ -4,7 +4,7 @@ namespace FractalServer
 {
 	public class MapCalculator
     {
-		public int[] GetValues(MapSectionWorkRequest<double> mswr)
+		public int[] GetValues(MapSectionWorkRequest mswr)
 		{
 			int width = mswr.MapSection.CanvasSize.Width;
 			int height = mswr.MapSection.CanvasSize.Height;

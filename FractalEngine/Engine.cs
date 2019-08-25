@@ -10,31 +10,34 @@ namespace FractalEngine
 {
 	public class Engine
 	{
+		public const string OUTPUT_Q_PATH = @".\private$\FGenJobs";
+		public const string INPUT_Q_PATH = @".\private$\FGenResults";
+		public static TimeSpan DefaultWaitDuration = TimeSpan.FromSeconds(10);
+
 		private IClientConnector _clientConnector;
 
 		private int _nextJobId;
 		private int _nextJobPtr;
 
 		private readonly Dictionary<int, IJob> _jobs;
-
 		private readonly CancellationTokenSource _cts;
-
-		private object _jobLock = new object();
-
+		private readonly object _jobLock = new object();
 		private readonly ManualResetEvent HaveWork;
 
 		public Engine()
 		{
 			_clientConnector = null;
-
-			_nextJobId = 0;
-			_nextJobPtr = 0;
 			_jobs = new Dictionary<int, IJob>();
-
 			_cts = new CancellationTokenSource();
 
 			HaveWork = new ManualResetEvent(false);
+			WaitDuration = DefaultWaitDuration;
+
+			_nextJobId = 0;
+			_nextJobPtr = 0;
 		}
+
+		public TimeSpan WaitDuration { get; set; }
 
 		public void Quit()
 		{
@@ -144,7 +147,6 @@ namespace FractalEngine
 							result = _jobs.Values.ToArray()[_nextJobPtr++];
 							System.Diagnostics.Debug.WriteLine($"The next job has id = {result.JobId}.");
 
-							//result = _jobs[_nextJobPtr++];
 							break;
 						}
 					}
@@ -161,7 +163,6 @@ namespace FractalEngine
 
 		private readonly BlockingCollection<SubJob> WorkQueue = new BlockingCollection<SubJob>(10);
 		private readonly BlockingCollection<SubJob> SendQueue = new BlockingCollection<SubJob>(50);
-
 
 		public void Start(IClientConnector clientConnector)
 		{
@@ -180,15 +181,29 @@ namespace FractalEngine
 				IJob job = GetNextJob(ct);
 				if (ct.IsCancellationRequested) return;
 
-				SubJob subJob = job.GetNextSubJob();
-				if(subJob != null)
+				if(job.RequiresQuadPrecision())
 				{
-					workQueue.Add(subJob, ct);
+					// TODO: Send Job via MQ
 				}
 				else
 				{
-					// Remove the job.
-					RemoveJob(job.JobId);
+					if (job is Job localJob)
+					{
+						SubJob subJob = localJob.GetNextSubJob();
+						if (subJob != null)
+						{
+							workQueue.Add(subJob, ct);
+						}
+						else
+						{
+							// Remove the job.
+							RemoveJob(job.JobId);
+						}
+					}
+					else
+					{
+						throw new InvalidOperationException("Job does not require quad precision and it is not a local job.");
+					}
 				}
 
 			} while (true);
@@ -226,20 +241,9 @@ namespace FractalEngine
 				return;
 			}
 
-			int[] imageData;
-
-			if (subJob.IsQd)
-			{
-				MapSectionWorkRequest<Qd> mswr = subJob.MapSectionWorkRequestQd;
-				MapCalculatorQd workingData = new MapCalculatorQd();
-				imageData = workingData.GetValues(mswr);
-			} 
-			else
-			{
-				MapSectionWorkRequest<double> mswr = subJob.MapSectionWorkRequest;
-				MapCalculator workingData = new MapCalculator();
-				imageData = workingData.GetValues(mswr);
-			}
+			MapSectionWorkRequest mswr = subJob.MapSectionWorkRequest;
+			MapCalculator workingData = new MapCalculator();
+			int[] imageData = workingData.GetValues(mswr);
 
 			MapSection mapSection = subJob.MapSectionWorkRequest.MapSection;
 			MapSectionResult mapSectionResult = new MapSectionResult(subJob.ParentJob.JobId, mapSection, imageData);
@@ -256,10 +260,12 @@ namespace FractalEngine
 				{
 					if(sendQueue.TryTake(out SubJob subJob, -1, ct))
 					{
-						if (!subJob.ParentJob.CancelRequested)
-						{
-							bool isFinalSubJob = subJob.ParentJob.DecrementSubJobsRemainingToBeSent();
+						if (!(subJob.ParentJob is Job parentJob))
+							throw new InvalidOperationException("The send queue only supports sub jobs of IJobs that are implemented with the Job class.");
 
+						if (!parentJob.CancelRequested)
+						{
+							bool isFinalSubJob = parentJob.DecrementSubJobsRemainingToBeSent(); ;
 							System.Diagnostics.Debug.WriteLine($"Sending subjob with x: {subJob.result.MapSection.SectionAnchor.X} and y: {subJob.result.MapSection.SectionAnchor.Y}.");
 							_clientConnector.ReceiveImageData(subJob.ConnectionId, subJob.result, isFinalSubJob);
 						}
@@ -277,6 +283,13 @@ namespace FractalEngine
 				throw;
 			}
 		}
+
+		#endregion
+
+		#region MQ Methods
+
+
+
 
 		#endregion
 	}

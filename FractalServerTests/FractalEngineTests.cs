@@ -52,7 +52,7 @@ namespace FractalServerTests
 
 		private void ProcessSubJob(SubJob subJob)
 		{
-			MapSectionWorkRequest<double> mswr = subJob.MapSectionWorkRequest;
+			MapSectionWorkRequest mswr = subJob.MapSectionWorkRequest;
 
 			//MapWorkingData2 workingData = new MapWorkingData2(mswr.MapSection.CanvasSize, mswr.MaxIterations, mswr.XValues, mswr.YValues);
 			//int[] packedCntsAndEscVels = workingData.GetValues();

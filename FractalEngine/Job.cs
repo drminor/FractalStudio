@@ -4,76 +4,31 @@ using System.Threading;
 
 namespace FractalEngine
 {
-	public class Job : JobBase<double>
+	public class Job : JobBase
 	{
-		//private int _jobId;
-		//public readonly MapWorkRequest MapWorkRequest;
-		//public readonly string ConnectionId;
+		private readonly SamplePoints<double> _samplePoints;
 
-		//private const int SECTION_WIDTH = 100;
-		//private const int SECTION_HEIGHT = 100;
+		private int _numberOfSectionRemainingToSend;
 
-		//private readonly double[][] _xValueSections;
-		//private readonly double[][] _yValueSections;
+		private int _hSectionPtr;
+		private int _vSectionPtr;
 
-		//private int _numberOfHSections;
-		//private int _numberOfVSections;
+		public const int SECTION_WIDTH = 100;
+		public const int SECTION_HEIGHT = 100;
 
-		//private int _numberOfSectionRemainingToSend;
+		private bool _done;
 
-		//private int _lastSectionWidth;
-		//private int _lastSectionHeight;
+		public Job(SMapWorkRequest sMapWorkRequest, string connectionId) : base(sMapWorkRequest, connectionId)
+		{
+			_samplePoints = GetSamplePoints(sMapWorkRequest);
+			_hSectionPtr = 0;
+			_vSectionPtr = 0;
 
-		//private int _hSectionPtr;
-		//private int _vSectionPtr;
+			_done = false;
+			_numberOfSectionRemainingToSend = _samplePoints.NumberOfHSections * _samplePoints.NumberOfVSections;
+		}
 
-		//private bool _done;
-
-		public Job(SMapWorkRequest sMapWorkRequest, string connectionId) : base(GetSamplePoints(sMapWorkRequest), sMapWorkRequest.MaxIterations, connectionId)	{ }
-
-
-		//public Job(MapWorkRequest mapWorkRequest, string connectionId)
-		//{
-		//	MapWorkRequest = mapWorkRequest ?? throw new ArgumentNullException(nameof(mapWorkRequest));
-		//	//
-		//	ConnectionId = mapWorkRequest.ConnectionId ?? throw new ArgumentNullException(nameof(mapWorkRequest.ConnectionId));
-
-		//	ConnectionId = connectionId ?? throw new ArgumentNullException(nameof(connectionId));
-		//	_jobId = -1;
-
-		//	_xValueSections = BuildValueSections(mapWorkRequest.Coords.LeftBot.X, mapWorkRequest.Coords.RightTop.X,
-		//		mapWorkRequest.CanvasSize.Width, SECTION_WIDTH,
-		//		out int numSectionsH, out int lastExtentH);
-
-		//	_numberOfHSections = numSectionsH;
-		//	_lastSectionWidth = lastExtentH;
-
-		//	if (!mapWorkRequest.Coords.IsUpsideDown)
-		//	{
-		//		_yValueSections = BuildValueSections(mapWorkRequest.Coords.RightTop.Y, mapWorkRequest.Coords.LeftBot.Y,
-		//			mapWorkRequest.CanvasSize.Height, SECTION_HEIGHT,
-		//			out int numSectionsV, out int lastExtentV);
-		//		_numberOfVSections = numSectionsV;
-		//		_lastSectionHeight = lastExtentV;
-		//	}
-		//	else
-		//	{
-		//		_yValueSections = BuildValueSections(mapWorkRequest.Coords.LeftBot.Y, mapWorkRequest.Coords.RightTop.Y,
-		//			mapWorkRequest.CanvasSize.Height, SECTION_HEIGHT,
-		//			out int numSectionsV, out int lastExtentV);
-		//		_numberOfVSections = numSectionsV;
-		//		_lastSectionHeight = lastExtentV;
-		//	}
-
-		//	_hSectionPtr = 0;
-		//	_vSectionPtr = 0;
-
-		//	_done = false;
-		//	CancelRequested = false;
-		//	_numberOfSectionRemainingToSend = _numberOfHSections * _numberOfVSections;
-		//}
-
-		private static SamplePoints<double> GetSamplePoints(SMapWorkRequest sMapWorkRequest)
+		private SamplePoints<double> GetSamplePoints(SMapWorkRequest sMapWorkRequest)
 		{
 			int SECTION_WIDTH = 100;
 			int SECTION_HEIGHT = 100;
@@ -172,84 +127,71 @@ namespace FractalEngine
 			return result;
 		}
 
-		//public int JobId
-		//{
-		//	get { return _jobId; }
-		//	set
-		//	{
-		//		if (value == -1) throw new ArgumentException("-1 cannot be used as a JobId.");
-		//		if (_jobId != -1) throw new InvalidOperationException("The JobId cannot be set once it has already been set.");
+		public SubJob GetNextSubJob()
+		{
 
-		//		_jobId = value;
-		//	}
-		//}
+			if (_done) return null;
 
-		//public SubJob GetNextSubJob()
-		//{
+			if (_hSectionPtr > _samplePoints.NumberOfHSections - 1)
+			{
+				_hSectionPtr = 0;
+				_vSectionPtr++;
 
-		//	if (_done) return null;
+				if (_vSectionPtr > _samplePoints.NumberOfVSections - 1)
+				{
+					_done = true;
+					return null;
+				}
+			}
+			System.Diagnostics.Debug.WriteLine($"Creating SubJob for hSection: {_hSectionPtr}, vSection: {_vSectionPtr}.");
 
-		//	if (_hSectionPtr > _numberOfHSections - 1)
-		//	{
-		//		_hSectionPtr = 0;
-		//		_vSectionPtr++;
+			int w;
+			int h;
 
-		//		if (_vSectionPtr > _numberOfVSections - 1)
-		//		{
-		//			_done = true;
-		//			return null;
-		//		}
-		//	}
-		//	System.Diagnostics.Debug.WriteLine($"Creating SubJob for hSection: {_hSectionPtr}, vSection: {_vSectionPtr}.");
+			if (_hSectionPtr == _samplePoints.NumberOfHSections - 1)
+			{
+				w = _samplePoints.LastSectionWidth;
+			}
+			else
+			{
+				w = SECTION_WIDTH;
+			}
 
-		//	int w;
-		//	int h;
+			if (_vSectionPtr == _samplePoints.NumberOfVSections - 1)
+			{
+				h = _samplePoints.LastSectionHeight;
+			}
+			else
+			{
+				h = SECTION_HEIGHT;
+			}
 
-		//	if (_hSectionPtr == _numberOfHSections - 1)
-		//	{
-		//		w = _lastSectionWidth;
-		//	}
-		//	else
-		//	{
-		//		w = SECTION_WIDTH;
-		//	}
+			int left = _hSectionPtr * SECTION_WIDTH;
+			int top = _vSectionPtr * SECTION_HEIGHT;
 
-		//	if (_vSectionPtr == _numberOfVSections - 1)
-		//	{
-		//		h = _lastSectionHeight;
-		//	}
-		//	else
-		//	{
-		//		h = SECTION_HEIGHT;
-		//	}
+			MapSection mapSection = new MapSection(new FractalServer.Point(left, top), new CanvasSize(w, h));
 
-		//	int left = _hSectionPtr * SECTION_WIDTH;
-		//	int top = _vSectionPtr * SECTION_HEIGHT;
+			double[] xValues = _samplePoints.XValueSections[_hSectionPtr++];
+			double[] yValues = _samplePoints.YValueSections[_vSectionPtr];
 
-		//	MapSection mapSection = new MapSection(new FractalServer.Point(left, top), new CanvasSize(w, h));
+			MapSectionWorkRequest mswr = new MapSectionWorkRequest(mapSection, MaxIterations, xValues, yValues);
+			System.Diagnostics.Debug.WriteLine($"w: {w} h: {h} xLen: {xValues.Length} yLen: {yValues.Length}.");
 
-		//	double[] xValues = _xValueSections[_hSectionPtr++];
-		//	double[] yValues = _yValueSections[_vSectionPtr];
+			SubJob result = new SubJob(this, mswr, ConnectionId);
 
-		//	MapSectionWorkRequest<double> mswr = new MapSectionWorkRequest<double>(mapSection, MapWorkRequest.MaxIterations, xValues, yValues);
-		//	System.Diagnostics.Debug.WriteLine($"w: {w} h: {h} xLen: {xValues.Length} yLen: {yValues.Length}.");
 
-		//	SubJob result = new SubJob(this, mswr, ConnectionId);
+			return result;
+		}
 
-		//	return result;
-		//}
-
-		///// <summary>
-		///// Returns true if there are no remaing sub jobs to be sent.
-		///// </summary>
-		///// <returns></returns>
-		//public bool DecrementSubJobsRemainingToBeSent()
-		//{
-		//	int newVal = Interlocked.Decrement(ref _numberOfSectionRemainingToSend);
-		//	return newVal == 0;
-		//}
-
-		//public bool CancelRequested { get; set; }
+		/// <summary>
+		/// Returns true if there are no remaing sub jobs to be sent.
+		/// </summary>
+		/// <returns></returns>
+		public bool DecrementSubJobsRemainingToBeSent()
+		{
+			int newVal = Interlocked.Decrement(ref _numberOfSectionRemainingToSend);
+			return newVal == 0;
+		}
 
 	}
 }

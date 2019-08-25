@@ -28,12 +28,6 @@ namespace FractalServer
 			LeftBot = new SPoint(coords.LeftBot);
 			RightTop = new SPoint(coords.RightTop);
 		}
-
-		public SCoords(QdCoords qdCoords)
-		{
-			LeftBot = new SPoint(qdCoords.LeftBot);
-			RightTop = new SPoint(qdCoords.RightTop);
-		}
 	}
 
 	public class Coords
@@ -105,59 +99,5 @@ namespace FractalServer
             }
         }
     }
-
-	public class QdCoords
-	{
-		[JsonProperty("botLeft")]
-		public QdPoint LeftBot;
-
-		[JsonProperty("topRight")]
-		public QdPoint RightTop;
-
-		private QdCoords()
-		{
-			LeftBot = new QdPoint();
-			RightTop = new QdPoint();
-		}
-
-		public QdCoords(QdPoint leftBot, QdPoint rightTop)
-		{
-			LeftBot = leftBot ?? throw new ArgumentNullException(nameof(leftBot));
-			RightTop = rightTop ?? throw new ArgumentNullException(nameof(rightTop));
-		}
-
-		public QdCoords(SCoords sCoords)
-		{
-			LeftBot = new QdPoint(sCoords.LeftBot);
-			RightTop = new QdPoint(sCoords.RightTop);
-		}
-
-		//[JsonIgnore]
-		//public double Width
-		//{
-		//	get
-		//	{
-		//		return RightTop.X - LeftBot.X;
-		//	}
-		//}
-
-		//[JsonIgnore]
-		//public double Height
-		//{
-		//	get
-		//	{
-		//		return RightTop.Y - LeftBot.Y;
-		//	}
-		//}
-
-		//[JsonIgnore]
-		//public bool IsUpsideDown
-		//{
-		//	get
-		//	{
-		//		return Height < 0;
-		//	}
-		//}
-	}
 
 }

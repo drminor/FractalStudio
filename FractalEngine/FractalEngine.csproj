@@ -55,6 +55,7 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.Messaging" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -63,14 +64,16 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AsyncHelper.cs" />
     <Compile Include="BlockingCollectionExtensions.cs" />
     <Compile Include="Engine.cs" />
     <Compile Include="IClientConnector.cs" />
     <Compile Include="IJob.cs" />
-    <Compile Include="JobFactory.cs" />
-    <Compile Include="JobQd.cs" />
+    <None Include="JobFactory.cs" />
+    <None Include="MqJobDispatcher.cs" />
     <Compile Include="JobBase.cs" />
     <Compile Include="Job.cs" />
+    <Compile Include="JobForMq.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SubJob.cs" />
   </ItemGroup>
@@ -78,6 +81,10 @@
     <ProjectReference Include="..\FractalServer\FractalServer.csproj">
       <Project>{8efe2d37-974c-4979-af9a-e2c080bdd7e4}</Project>
       <Name>FractalServer</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\MqMessages\MqMessages.csproj">
+      <Project>{7e22eee8-9d53-4561-8909-bdbc4741d8a8}</Project>
+      <Name>MqMessages</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

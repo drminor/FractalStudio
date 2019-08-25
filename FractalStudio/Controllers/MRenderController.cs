@@ -51,7 +51,16 @@ namespace FractalStudio.Controllers
       //JobFactory jobFactory = new JobFactory();
       //IJob job = jobFactory.CreateJob(sMapWorkRequest, sMapWorkRequest.ConnectionId);
 
-      Job job = new Job(sMapWorkRequest, sMapWorkRequest.ConnectionId);
+      IJob job;
+
+      if(sMapWorkRequest.RequiresDoublePrecision())
+      {
+        job = new JobForMq(sMapWorkRequest, sMapWorkRequest.ConnectionId);
+      }
+      else
+      {
+        job = new Job(sMapWorkRequest, sMapWorkRequest.ConnectionId);
+      }
 
       int jobId = _engine.SubmitJob(job);
       mapWorkRequest.JobId = jobId;

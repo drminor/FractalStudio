@@ -6,7 +6,6 @@
 		string ConnectionId { get; }
 		bool CancelRequested { get; set; }
 
-		bool DecrementSubJobsRemainingToBeSent();
-		SubJob GetNextSubJob();
+		bool RequiresQuadPrecision();
 	}
 }

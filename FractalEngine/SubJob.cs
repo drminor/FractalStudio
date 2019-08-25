@@ -6,21 +6,21 @@ namespace FractalEngine
 	public class SubJob
 	{
 		public readonly IJob ParentJob;
-		public readonly MapSectionWorkRequest<double> MapSectionWorkRequest;
-		public readonly MapSectionWorkRequest<Qd> MapSectionWorkRequestQd;
+		public readonly MapSectionWorkRequest MapSectionWorkRequest;
+		//public readonly MapSectionWorkRequest<Qd> MapSectionWorkRequestQd;
 
 		public readonly string ConnectionId;
 
 		public MapSectionResult result;
 
-		public readonly bool IsQd;
+		//public readonly bool IsQd;
 
-		public SubJob(IJob parentJob, MapSectionWorkRequest<double> mapSectionWorkRequest, string connectionId)
+		public SubJob(IJob parentJob, MapSectionWorkRequest mapSectionWorkRequest, string connectionId)
 		{
 			ParentJob = parentJob ?? throw new ArgumentNullException(nameof(parentJob));
 			MapSectionWorkRequest = mapSectionWorkRequest ?? throw new ArgumentNullException(nameof(mapSectionWorkRequest));
-			MapSectionWorkRequestQd = null;
-			IsQd = false;
+			//MapSectionWorkRequestQd = null;
+			//IsQd = false;
 			ConnectionId = connectionId ?? throw new ArgumentNullException(nameof(connectionId));
 			result = null;
 		}
