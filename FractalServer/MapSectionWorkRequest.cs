@@ -14,8 +14,8 @@ namespace FractalServer
 		{
 			MaxIterations = maxIterations;
 			MapSection = mapSection ?? throw new ArgumentNullException(nameof(mapSection));
-			XValues = xValues ?? throw new ArgumentNullException(nameof(xValues));
-			YValues = yValues ?? throw new ArgumentNullException(nameof(yValues));
+			XValues = xValues; //?? throw new ArgumentNullException(nameof(xValues));
+			YValues = yValues; //?? throw new ArgumentNullException(nameof(yValues));
 		}
 	}
 }

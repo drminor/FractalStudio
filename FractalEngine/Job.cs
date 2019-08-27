@@ -16,7 +16,6 @@ namespace FractalEngine
 		public const int SECTION_WIDTH = 100;
 		public const int SECTION_HEIGHT = 100;
 
-		private bool _done;
 
 		public Job(SMapWorkRequest sMapWorkRequest, string connectionId) : base(sMapWorkRequest, connectionId)
 		{
@@ -24,7 +23,7 @@ namespace FractalEngine
 			_hSectionPtr = 0;
 			_vSectionPtr = 0;
 
-			_done = false;
+			IsCompleted = false;
 			_numberOfSectionRemainingToSend = _samplePoints.NumberOfHSections * _samplePoints.NumberOfVSections;
 		}
 
@@ -130,7 +129,7 @@ namespace FractalEngine
 		public SubJob GetNextSubJob()
 		{
 
-			if (_done) return null;
+			if (IsCompleted) return null;
 
 			if (_hSectionPtr > _samplePoints.NumberOfHSections - 1)
 			{
@@ -139,7 +138,7 @@ namespace FractalEngine
 
 				if (_vSectionPtr > _samplePoints.NumberOfVSections - 1)
 				{
-					_done = true;
+					IsCompleted = true;
 					return null;
 				}
 			}
@@ -187,10 +186,13 @@ namespace FractalEngine
 		/// Returns true if there are no remaing sub jobs to be sent.
 		/// </summary>
 		/// <returns></returns>
-		public bool DecrementSubJobsRemainingToBeSent()
+		public void DecrementSubJobsRemainingToBeSent()
 		{
 			int newVal = Interlocked.Decrement(ref _numberOfSectionRemainingToSend);
-			return newVal == 0;
+			if(newVal == 0)
+			{
+				IsLastSubJob = true;
+			}
 		}
 
 	}

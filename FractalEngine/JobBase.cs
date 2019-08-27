@@ -6,7 +6,6 @@ namespace FractalEngine
 	public class JobBase : IJob
 	{
 		private int _jobId;
-		public readonly SMapWorkRequest SMapWorkRequest;
 
 		#region Constructor
 
@@ -18,17 +17,22 @@ namespace FractalEngine
 			_jobId = -1;
 
 			CancelRequested = false;
+			IsLastSubJob = false;
 		}
 
 		#endregion
 
 		#region Public Properties
 
+		public SMapWorkRequest SMapWorkRequest { get; private set; }
+
 		public string ConnectionId { get; private set; }
 
 		public int MaxIterations => SMapWorkRequest.MaxIterations;
 
 		public bool CancelRequested { get; set; }
+		public bool IsCompleted { get; protected set; }
+		public bool IsLastSubJob { get; protected set; }
 
 		public int JobId
 		{
@@ -42,7 +46,7 @@ namespace FractalEngine
 			}
 		}
 
-		public bool RequiresQuadPrecision() => SMapWorkRequest.RequiresDoublePrecision();
+		public bool RequiresQuadPrecision() => SMapWorkRequest.RequiresQuadPrecision();
 
 		#endregion
 	}

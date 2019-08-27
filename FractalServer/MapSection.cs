@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using MqMessages;
+using Newtonsoft.Json;
 
 namespace FractalServer
 {
@@ -20,6 +21,12 @@ namespace FractalServer
 		{
 			SectionAnchor = sectionAnchor;
 			CanvasSize = canvasSize;
+		}
+
+		public MapSection(RectangleInt rectangleInt)
+		{
+			SectionAnchor = new Point(rectangleInt.Point.X, rectangleInt.Point.Y);
+			CanvasSize = new CanvasSize(rectangleInt.Size.W, rectangleInt.Size.H);
 		}
 
 

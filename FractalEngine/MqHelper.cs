@@ -1,15 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Experimental.System.Messaging;
+using System;
 using System.Diagnostics;
-using System.Linq;
-using System.Messaging;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace FractalEngine
 {
-	class AsyncHelper
+	class MqHelper
 	{
 		public static Task<Message> ReceiveMessageAsync(MessageQueue mq, TimeSpan timeout, object state = null)
 		{
@@ -27,7 +24,7 @@ namespace FractalEngine
 					}
 					catch (MessageQueueException mqe)
 					{
-						if (mqe.Message == "Timeout for the requested operation has expired.")
+						if(mqe.MessageQueueErrorCode == MessageQueueErrorCode.IOTimeout)
 						{
 							tcs.TrySetResult(null);
 						}
@@ -64,20 +61,29 @@ namespace FractalEngine
 			return tcs.Task;
 		}
 
-		public static async Task WaitWithToken(int millisecondsToWait, CancellationToken ct)
+		public static MessageQueue GetQ(string path, QueueAccessMode queueAccessMode, Type[] types)
 		{
-			try
+			if (MessageQueue.Exists(path) == false)
 			{
-				await Task.Delay(millisecondsToWait, ct);
+				Debug.WriteLine($"Creating message queue: {path}.");
+				MessageQueue.Create(path);
 			}
-			catch (TaskCanceledException)
-			{
 
-			}
-			catch (Exception e)
+			MessageQueue mq;
+
+			if (types != null)
 			{
-				Debug.WriteLine($"Received error while from Task.Delay. The error message is {e.Message}.");
+				mq = new MessageQueue(path, queueAccessMode)
+				{
+					Formatter = new XmlMessageFormatter(types)
+				};
 			}
+			else
+			{
+				mq = new MessageQueue(path, queueAccessMode);
+			}
+
+			return mq;
 		}
 
 	}

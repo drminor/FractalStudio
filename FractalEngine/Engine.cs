@@ -1,8 +1,12 @@
-﻿using FractalServer;
+﻿using Experimental.System.Messaging;
+using FractalServer;
+using MqMessages;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Messaging;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -133,7 +137,7 @@ namespace FractalEngine
 					{
 						if(_jobs.Count == 0)
 						{
-							System.Diagnostics.Debug.WriteLine("There are no jobs, Resetting HaveWork.");
+							//Debug.WriteLine("There are no jobs, Resetting HaveWork.");
 							_nextJobPtr = 0;
 							HaveWork.Reset();
 						}
@@ -145,7 +149,7 @@ namespace FractalEngine
 							}
 
 							result = _jobs.Values.ToArray()[_nextJobPtr++];
-							System.Diagnostics.Debug.WriteLine($"The next job has id = {result.JobId}.");
+							//Debug.WriteLine($"The next job has id = {result.JobId}.");
 
 							break;
 						}
@@ -169,6 +173,7 @@ namespace FractalEngine
 			this._clientConnector = clientConnector;
 
 			// Start one producer and one consumer.
+			Task.Run(async () => await MqImageResultListenerAsync(SendQueue, _cts.Token));
 			Task.Run(() => SendProcessor(SendQueue, _cts.Token), _cts.Token);
 			Task.Run(() => WorkProcessor(WorkQueue, SendQueue, _cts.Token), _cts.Token);
 			Task.Run(() => QueueWork(WorkQueue, _cts.Token), _cts.Token);
@@ -183,7 +188,7 @@ namespace FractalEngine
 
 				if(job.RequiresQuadPrecision())
 				{
-					// TODO: Send Job via MQ
+					SendJobToMq(job);
 				}
 				else
 				{
@@ -193,6 +198,10 @@ namespace FractalEngine
 						if (subJob != null)
 						{
 							workQueue.Add(subJob, ct);
+
+							//// FOR TESTING ONLY
+							//JobForMq t = new JobForMq(job.SMapWorkRequest, job.ConnectionId);
+							//SendJobToMq(t);
 						}
 						else
 						{
@@ -223,12 +232,12 @@ namespace FractalEngine
 			}
 			catch (OperationCanceledException)
 			{
-				System.Diagnostics.Debug.WriteLine("Work Queue Consuming Enumerable canceled.");
+				Debug.WriteLine("Work Queue Consuming Enumerable canceled.");
 				throw;
 			}
 			catch (InvalidOperationException)
 			{
-				System.Diagnostics.Debug.WriteLine("Work Queue Consuming Enumerable completed.");
+				Debug.WriteLine("Work Queue Consuming Enumerable completed.");
 				throw;
 			}
 		}
@@ -237,7 +246,7 @@ namespace FractalEngine
 		{
 			if (subJob.ParentJob.CancelRequested)
 			{
-				System.Diagnostics.Debug.WriteLine("Not Processing Sub Job.");
+				Debug.WriteLine("Not Processing Sub Job.");
 				return;
 			}
 
@@ -260,13 +269,16 @@ namespace FractalEngine
 				{
 					if(sendQueue.TryTake(out SubJob subJob, -1, ct))
 					{
-						if (!(subJob.ParentJob is Job parentJob))
-							throw new InvalidOperationException("The send queue only supports sub jobs of IJobs that are implemented with the Job class.");
-
-						if (!parentJob.CancelRequested)
+						if (!subJob.ParentJob.CancelRequested)
 						{
-							bool isFinalSubJob = parentJob.DecrementSubJobsRemainingToBeSent(); ;
-							System.Diagnostics.Debug.WriteLine($"Sending subjob with x: {subJob.result.MapSection.SectionAnchor.X} and y: {subJob.result.MapSection.SectionAnchor.Y}.");
+							if (subJob.ParentJob is Job parentJob)
+								parentJob.DecrementSubJobsRemainingToBeSent();
+
+							bool isFinalSubJob = subJob.ParentJob.IsLastSubJob;
+							Debug.WriteLine($"Sending subjob with x: {subJob.result.MapSection.SectionAnchor.X} " +
+								$"and y: {subJob.result.MapSection.SectionAnchor.Y}. " +
+								$"It has {subJob.result.ImageData.Length} count values.");
+
 							_clientConnector.ReceiveImageData(subJob.ConnectionId, subJob.result, isFinalSubJob);
 						}
 					}
@@ -274,13 +286,25 @@ namespace FractalEngine
 			}
 			catch (OperationCanceledException)
 			{
-				System.Diagnostics.Debug.WriteLine("Send Queue Consuming Enumerable canceled.");
+				Debug.WriteLine("Send Queue Consuming Enumerable canceled.");
 				throw;
 			}
 			catch (InvalidOperationException)
 			{
-				System.Diagnostics.Debug.WriteLine("Send Queue Consuming Enumerable completed.");
+				Debug.WriteLine("Send Queue Consuming Enumerable completed.");
 				throw;
+			}
+		}
+
+		private IJob GetJob(int jobId)
+		{
+			if (_jobs.TryGetValue(jobId, out IJob job))
+			{
+				return job;
+			}
+			else
+			{
+				return null;
 			}
 		}
 
@@ -288,8 +312,106 @@ namespace FractalEngine
 
 		#region MQ Methods
 
+		private async Task MqImageResultListenerAsync(BlockingCollection<SubJob> sendQueue, CancellationToken cToken)
+		{
+			Type[] rTtypes = new Type[] { typeof(FJobResult) };
 
+			using (MessageQueue inQ = MqHelper.GetQ(INPUT_Q_PATH, QueueAccessMode.Receive, rTtypes))
+			{
+				while (!cToken.IsCancellationRequested)
+				{
+					Message m = await MqHelper.ReceiveMessageAsync(inQ, WaitDuration);
 
+					if(m == null)
+					{
+						Debug.WriteLine("No FGenResult message present.");
+						continue;
+					}
+
+					Debug.WriteLine("Received a message.");
+					FJobResult jobResult = (FJobResult)m.Body;
+					int lineNumber = jobResult.Area.Point.Y;
+					Debug.WriteLine($"The line number is {lineNumber}.");
+
+					IJob parentJob = GetJob(jobResult.JobId);
+					if (parentJob == null)
+						continue;
+
+					if(lineNumber == parentJob.SMapWorkRequest.CanvasSize.Height - 1)
+					{
+						if(parentJob is JobForMq jobForMq)
+						{
+							jobForMq.SetIsLastSubJob(true);
+						}
+						else
+						{
+							throw new InvalidOperationException("Expecting the IJob to be implemented by an instance of the JobForMq class.");
+						}
+					}
+
+					MapSectionWorkRequest mswr = GetMSWR(jobResult, parentJob.SMapWorkRequest.MaxIterations);
+
+					SubJob subJob = new SubJob(parentJob, mswr, parentJob.ConnectionId)
+					{
+						result = GetMSR(jobResult, parentJob.JobId)
+					};
+
+					SendQueue.Add(subJob);
+				}
+			}
+		}
+
+		private void SendJobToMq(IJob job)
+		{
+			if (job.IsCompleted) return;
+
+			using (MessageQueue outQ = MqHelper.GetQ(OUTPUT_Q_PATH, QueueAccessMode.Send, null))
+			{
+				FJobRequest fJobRequest = GetFJobRequest(job.JobId, job.SMapWorkRequest);
+				outQ.Send(fJobRequest);
+				if(job is JobForMq jobForMq)
+				{
+					jobForMq.MarkAsCompleted();
+				}
+				else
+				{
+					throw new InvalidOperationException("Expecting the IJob to be implemented by an instance of the JobForMq class.");
+				}
+			}
+		}
+
+		private MapSectionWorkRequest GetMSWR(FJobResult jobResult, int maxIterations)
+		{
+			MapSection mapSection = new MapSection(jobResult.Area);
+			MapSectionWorkRequest result = new MapSectionWorkRequest(mapSection, maxIterations, null, null);
+			return result;
+		}
+
+		private MapSectionResult GetMSR(FJobResult fJobResult, int JobId)
+		{
+			int[] counts = fJobResult.GetValues();
+			for(int ptr = 0; ptr < counts.Length; ptr++)
+			{
+				counts[ptr] = counts[ptr] * 10000;
+			}
+
+			MapSection ms = new MapSection(fJobResult.Area);
+			MapSectionResult result = new MapSectionResult(fJobResult.JobId, ms, counts);
+			return result;
+		}
+
+		private FJobRequest GetFJobRequest(int jobId, SMapWorkRequest smwr)
+		{
+			SCoords sCoords = smwr.SCoords;
+			MqMessages.Coords coords = new MqMessages.Coords(sCoords.LeftBot.X, sCoords.RightTop.X, sCoords.LeftBot.Y, sCoords.RightTop.Y);
+
+			CanvasSize cs = smwr.CanvasSize;
+			SizeInt samplePoints = new SizeInt(cs.Width, cs.Height);
+
+			FJobRequest fJobRequest = new FJobRequest(jobId, coords, samplePoints, smwr.MaxIterations);
+
+			return fJobRequest;
+		}
 
 		#endregion
 	}

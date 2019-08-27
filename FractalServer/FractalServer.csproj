@@ -97,6 +97,10 @@
       <Project>{fd3b0d50-46b3-4a83-9a6d-c641569142cf}</Project>
       <Name>Hjg.Pngcs</Name>
     </ProjectReference>
+    <ProjectReference Include="..\MqMessages\MqMessages.csproj">
+      <Project>{7E22EEE8-9D53-4561-8909-BDBC4741D8A8}</Project>
+      <Name>MqMessages</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

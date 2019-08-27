@@ -53,7 +53,7 @@ namespace FractalStudio.Controllers
 
       IJob job;
 
-      if(sMapWorkRequest.RequiresDoublePrecision())
+      if(sMapWorkRequest.RequiresQuadPrecision())
       {
         job = new JobForMq(sMapWorkRequest, sMapWorkRequest.ConnectionId);
       }
