@@ -2,7 +2,6 @@ using FractalEngine;
 using FractalServer;
 using Microsoft.AspNetCore.SignalR;
 using System;
-using System.Threading.Tasks;
 
 namespace FractalStudio.Hubs
 {

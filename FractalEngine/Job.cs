@@ -128,7 +128,6 @@ namespace FractalEngine
 
 		public SubJob GetNextSubJob()
 		{
-
 			if (IsCompleted) return null;
 
 			if (_hSectionPtr > _samplePoints.NumberOfHSections - 1)
@@ -177,7 +176,6 @@ namespace FractalEngine
 			System.Diagnostics.Debug.WriteLine($"w: {w} h: {h} xLen: {xValues.Length} yLen: {yValues.Length}.");
 
 			SubJob result = new SubJob(this, mswr, ConnectionId);
-
 
 			return result;
 		}

@@ -50,7 +50,7 @@ export class FracServerService {
 
   public submitJob(request: MapWorkRequest): Observable<MapSectionResult> {
 
-    this.cancelJob();
+    //this.cancelJob();
     this.request = request;
     this.imageDataSubject = new Subject<MapSectionResult>();
     let res: Observable<MapSectionResult>  = this.imageDataSubject.asObservable();
@@ -76,13 +76,16 @@ export class FracServerService {
       return false;
     }
 
-    if (this.imageDataSubject !== null) {
-      this.imageDataSubject.complete();
-    }
+    //if (this.imageDataSubject !== null) {
+    //  this.imageDataSubject.complete();
+    //}
 
-    this.http.delete(this.baseUrl + this.controllerPath + "/" + this.jobId);
+    //this.http.get(this.baseUrl + this.controllerPath + "/" + this.jobId);
+    //let ad: string = this.baseUrl + this.controllerPath + "/" + this.jobId;
+    //this.http.delete(ad);
     
-    this.jobId = -1;
+    //this.jobId = -1;
+    return true;
   }
 
   private request: MapWorkRequest = null;

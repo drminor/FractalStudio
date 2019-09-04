@@ -131,6 +131,7 @@ export class MMapDisplayComponent implements AfterViewInit {
           this._colorMap = cm;
           this._mapInfo = mi;
           if (this.viewInitialized) {
+            this.clearTheCanvas();
             this.buildWorkingData();
           }
           return
@@ -546,6 +547,11 @@ export class MMapDisplayComponent implements AfterViewInit {
     }
   }
 
+  private cancelFServiceJob(): void {
+    console.log('Cancelling the Job: ' + this.fService.JobId + '.');
+    this.fService.cancelJob();
+  }
+
   private useMapSectionResult(ms: MapSectionResult): void {
     let pixelData = this.mapDataProcessor.getPixelData(ms.imageData);
     let imageData = new ImageData(pixelData, ms.mapSection.canvasSize.width, ms.mapSection.canvasSize.height);
@@ -931,11 +937,16 @@ export class MMapDisplayComponent implements AfterViewInit {
     //unitExtentX = (newMapInfo.topRight.x - newMapInfo.bottomLeft.x) / this.canvasSize.width;
     //unitExtentY = (newMapInfo.topRight.y - newMapInfo.bottomLeft.y) / this.canvasSize.height;
     //console.log('unit x: ' + unitExtentX + ' unit y' + unitExtentY);
-    
-    let ptr: number = 0;
-    for (; ptr < this.workers.length; ptr++) {
-      this.workers[ptr].terminate();
-    }
+
+    //if (this.workMethod === WorkMethod.WebService) {
+    //  //this.cancelFServiceJob();
+    //}
+    //else {
+    //  let ptr: number = 0;
+    //  for (; ptr < this.workers.length; ptr++) {
+    //    this.workers[ptr].terminate();
+    //  }
+    //}
 
     //this._mapInfo = newMapInfo;
     //this.zoomed.emit(this._mapInfo.coords);

@@ -61,6 +61,7 @@ namespace FractalStudio
       app.UseStaticFiles();
       app.UseHttpsRedirection();
       app.UseMvc();
+      
 
       // Start our Fractal [generation] engine
       // using a client connector (which wraps an instance of the Echo Hub context.)
@@ -75,6 +76,8 @@ namespace FractalStudio
       {
         routes.MapHub<FractalEngineHub>("/hubs/mgen");
       });
+
+
 
     }
   }

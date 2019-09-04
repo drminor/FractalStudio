@@ -6,7 +6,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Messaging;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -53,12 +52,17 @@ namespace FractalEngine
 
 		public int SubmitJob(IJob job)
 		{
+			//HaveWork.Reset();
+			//CancelAllJobs();
+			//Debug.WriteLine("Cancel All Jobs completed.");
+
 			int jobId;
 
 			lock (_jobLock)
 			{
 				jobId = NextJobId;
 				job.JobId = jobId;
+				Debug.WriteLine("Adding job to queue.");
 				_jobs.Add(jobId, job);
 				HaveWork.Set();
 			}
@@ -66,9 +70,18 @@ namespace FractalEngine
 			return jobId;
 		}
 
+		private void CancelAllJobs()
+		{
+			var jobIds = _jobs.Values.Select(v => v.JobId).ToList();
+			foreach(int jobId in jobIds)
+			{
+				CancelJob(jobId);
+			}
+		}
+
 		public void CancelJob(int jobId)
 		{
-			IJob job = this.RemoveJob(jobId);
+			IJob job = RemoveJob(jobId);
 
 			if(job != null)
 			{
@@ -77,6 +90,42 @@ namespace FractalEngine
 				{
 					_clientConnector.ConfirmJobCancel(job.ConnectionId, jobId);
 				}
+
+				if (job is JobForMq jobForMq)
+				{
+					// Stop listening for responses.
+					StopListenerTask(jobForMq);
+
+					// Send Cancel message to MQ.
+					SendDeleteJobRequestToMq(jobForMq);
+
+					// Remove "in transit" responses.
+					RemoveResponses(jobForMq.MqRequestCorrelationId);
+				}
+			}
+		}
+
+		private void StopListenerTask(JobForMq jobForMq)
+		{
+			if (jobForMq.ListenerTask == null) return;
+
+			Task task = jobForMq.ListenerTask.Item1;
+			CancellationTokenSource cts = jobForMq.ListenerTask.Item2;
+
+			// Remove reference from the Job to ensure garbage collection.
+			jobForMq.ListenerTask = null;
+
+			cts.Cancel();
+
+			try
+			{
+				task.Wait(20 * 1000);
+				Debug.WriteLine($"The response listener for Job: {jobForMq.JobId} has completed.");
+			}
+			catch (Exception e)
+			{
+				Debug.WriteLine($"Received an exception while trying to stop the response listener for Job: {jobForMq.JobId}. Got exception: {e.Message}.");
+				throw;
 			}
 		}
 
@@ -137,26 +186,60 @@ namespace FractalEngine
 					{
 						if(_jobs.Count == 0)
 						{
-							//Debug.WriteLine("There are no jobs, Resetting HaveWork.");
+							Debug.WriteLine("There are no jobs, Resetting HaveWork.");
 							_nextJobPtr = 0;
 							HaveWork.Reset();
 						}
 						else
 						{
-							if (_nextJobPtr > _jobs.Count - 1)
+							result = GetFirstUncompletedJob(_jobs.Values.ToArray(), ref _nextJobPtr);
+
+							if(result == null)
 							{
+								Debug.WriteLine("All jobs have been completed, Resetting HaveWork.");
 								_nextJobPtr = 0;
+								HaveWork.Reset();
 							}
-
-							result = _jobs.Values.ToArray()[_nextJobPtr++];
-							//Debug.WriteLine($"The next job has id = {result.JobId}.");
-
-							break;
+							else
+							{
+								Debug.WriteLine($"The next job has id = {result.JobId}.");
+								break;
+							}
 						}
 					}
 				}
 
 			} while (true);
+
+			Debug.WriteLine("Get Next Job is returning.");
+			return result;
+		}
+
+		private IJob GetFirstUncompletedJob(IJob[] jobs, ref int jobPtr)
+		{
+			IJob result = null;
+
+			if (jobPtr > jobs.Length - 1)
+				jobPtr = 0;
+
+			int originalPtr = jobPtr;
+
+			do
+			{
+				if (!jobs[jobPtr].IsCompleted)
+				{
+					result = jobs[jobPtr++];
+					break;
+				}
+				else
+				{
+					jobPtr++;
+				}
+
+				if (jobPtr > jobs.Length - 1)
+					jobPtr = 0;
+
+			} while (jobPtr != originalPtr);
 
 			return result;
 		}
@@ -170,10 +253,9 @@ namespace FractalEngine
 
 		public void Start(IClientConnector clientConnector)
 		{
-			this._clientConnector = clientConnector;
+			_clientConnector = clientConnector;
 
 			// Start one producer and one consumer.
-			Task.Run(async () => await MqImageResultListenerAsync(SendQueue, _cts.Token));
 			Task.Run(() => SendProcessor(SendQueue, _cts.Token), _cts.Token);
 			Task.Run(() => WorkProcessor(WorkQueue, SendQueue, _cts.Token), _cts.Token);
 			Task.Run(() => QueueWork(WorkQueue, _cts.Token), _cts.Token);
@@ -188,34 +270,49 @@ namespace FractalEngine
 
 				if(job.RequiresQuadPrecision())
 				{
-					SendJobToMq(job);
+					JobForMq jobForMq = GetJobForMqFromJob(job);
+					jobForMq.MqRequestCorrelationId = SendJobToMq(jobForMq);
+
+					CancellationTokenSource listenerCts = new CancellationTokenSource();
+					Debug.WriteLine($"Starting a new ImageResultListener for {jobForMq.JobId}.");
+					Task listenerTask = Task.Run(async () => await MqImageResultListenerAsync(jobForMq, SendQueue, listenerCts.Token));
+
+					jobForMq.ListenerTask = new Tuple<Task, CancellationTokenSource>(listenerTask, listenerCts);
+					jobForMq.MarkAsCompleted();
+				}
+				else if (job is Job localJob)
+				{
+					SubJob subJob = localJob.GetNextSubJob();
+					if (subJob != null)
+					{
+						workQueue.Add(subJob, ct);
+					}
+					//else
+					//{
+					//	// Remove the job.
+					//	RemoveJob(job.JobId);
+					//}
+				}
+				else if(job is JobForMq)
+				{
+					throw new InvalidOperationException("Job does not require quad precision and it is not a local job.");
 				}
 				else
 				{
-					if (job is Job localJob)
-					{
-						SubJob subJob = localJob.GetNextSubJob();
-						if (subJob != null)
-						{
-							workQueue.Add(subJob, ct);
-
-							//// FOR TESTING ONLY
-							//JobForMq t = new JobForMq(job.SMapWorkRequest, job.ConnectionId);
-							//SendJobToMq(t);
-						}
-						else
-						{
-							// Remove the job.
-							RemoveJob(job.JobId);
-						}
-					}
-					else
-					{
-						throw new InvalidOperationException("Job does not require quad precision and it is not a local job.");
-					}
+					throw new ArgumentException("The IJob is neither a Job or a JobForMq.");
 				}
 
 			} while (true);
+		}
+
+		private JobForMq GetJobForMqFromJob(IJob job)
+		{
+			if (!(job is JobForMq result))
+			{
+				result = new JobForMq(job.SMapWorkRequest, job.ConnectionId);
+			}
+
+			return result;
 		}
 
 		private void WorkProcessor(BlockingCollection<SubJob> workQueue, BlockingCollection<SubJob> sendQueue, CancellationToken ct)
@@ -254,7 +351,7 @@ namespace FractalEngine
 			MapCalculator workingData = new MapCalculator();
 			int[] imageData = workingData.GetValues(mswr);
 
-			MapSection mapSection = subJob.MapSectionWorkRequest.MapSection;
+			MapSection mapSection = mswr.MapSection;
 			MapSectionResult mapSectionResult = new MapSectionResult(subJob.ParentJob.JobId, mapSection, imageData);
 			subJob.result = mapSectionResult;
 
@@ -279,7 +376,10 @@ namespace FractalEngine
 								$"and y: {subJob.result.MapSection.SectionAnchor.Y}. " +
 								$"It has {subJob.result.ImageData.Length} count values.");
 
-							_clientConnector.ReceiveImageData(subJob.ConnectionId, subJob.result, isFinalSubJob);
+							if (_clientConnector != null)
+							{
+								_clientConnector.ReceiveImageData(subJob.ConnectionId, subJob.result, isFinalSubJob);
+							}
 						}
 					}
 				}
@@ -312,15 +412,14 @@ namespace FractalEngine
 
 		#region MQ Methods
 
-		private async Task MqImageResultListenerAsync(BlockingCollection<SubJob> sendQueue, CancellationToken cToken)
+		// TODO: Need to create a class to hold the listener.
+		private async Task MqImageResultListenerAsync(JobForMq jobForMq, BlockingCollection<SubJob> sendQueue, CancellationToken cToken)
 		{
-			Type[] rTtypes = new Type[] { typeof(FJobResult) };
-
-			using (MessageQueue inQ = MqHelper.GetQ(INPUT_Q_PATH, QueueAccessMode.Receive, rTtypes))
+			using (MessageQueue inQ = GetJobResponseQueue())
 			{
-				while (!cToken.IsCancellationRequested)
+				while (!cToken.IsCancellationRequested && !jobForMq.IsLastSubJob)
 				{
-					Message m = await MqHelper.ReceiveMessageAsync(inQ, WaitDuration);
+					Message m = await MqHelper.ReceiveMessageByCorrelationIdAsync(inQ, jobForMq.MqRequestCorrelationId, WaitDuration);
 
 					if(m == null)
 					{
@@ -330,64 +429,118 @@ namespace FractalEngine
 
 					Debug.WriteLine("Received a message.");
 					FJobResult jobResult = (FJobResult)m.Body;
+
 					int lineNumber = jobResult.Area.Point.Y;
 					Debug.WriteLine($"The line number is {lineNumber}.");
 
-					IJob parentJob = GetJob(jobResult.JobId);
-					if (parentJob == null)
-						continue;
-
-					if(lineNumber == parentJob.SMapWorkRequest.CanvasSize.Height - 1)
+					if (lineNumber == jobForMq.SMapWorkRequest.CanvasSize.Height - 1)
 					{
-						if(parentJob is JobForMq jobForMq)
-						{
-							jobForMq.SetIsLastSubJob(true);
-						}
-						else
-						{
-							throw new InvalidOperationException("Expecting the IJob to be implemented by an instance of the JobForMq class.");
-						}
+						jobForMq.SetIsLastSubJob(true);
 					}
 
-					MapSectionWorkRequest mswr = GetMSWR(jobResult, parentJob.SMapWorkRequest.MaxIterations);
-
-					SubJob subJob = new SubJob(parentJob, mswr, parentJob.ConnectionId)
-					{
-						result = GetMSR(jobResult, parentJob.JobId)
-					};
+					SubJob subJob = CreateSubJob(jobResult, jobForMq);
 
 					SendQueue.Add(subJob);
 				}
-			}
-		}
 
-		private void SendJobToMq(IJob job)
-		{
-			if (job.IsCompleted) return;
-
-			using (MessageQueue outQ = MqHelper.GetQ(OUTPUT_Q_PATH, QueueAccessMode.Send, null))
-			{
-				FJobRequest fJobRequest = GetFJobRequest(job.JobId, job.SMapWorkRequest);
-				outQ.Send(fJobRequest);
-				if(job is JobForMq jobForMq)
+				if(jobForMq.IsLastSubJob)
 				{
-					jobForMq.MarkAsCompleted();
+					Debug.WriteLine($"The result listener for {jobForMq.JobId} is stopping. We have received the last result.");
+				}
+				else if(cToken.IsCancellationRequested)
+				{
+					Debug.WriteLine($"The result listener for {jobForMq.JobId} has been cancelled.");
 				}
 				else
 				{
-					throw new InvalidOperationException("Expecting the IJob to be implemented by an instance of the JobForMq class.");
+					Debug.WriteLine($"The result listener for {jobForMq.JobId} is stopping for unknown reason.");
 				}
+
+				// Release reference to the Job to assist the garbage collector.
+				jobForMq = null;
 			}
 		}
 
-		private MapSectionWorkRequest GetMSWR(FJobResult jobResult, int maxIterations)
+		private MessageQueue GetJobResponseQueue()
+		{
+			Type[] rTtypes = new Type[] { typeof(FJobResult) };
+
+			MessagePropertyFilter mpf = new MessagePropertyFilter
+			{
+				Body = true,
+				//Id = true,
+				CorrelationId = true
+			};
+
+			MessageQueue result = MqHelper.GetQ(INPUT_Q_PATH, QueueAccessMode.Receive, rTtypes, mpf);
+			return result;
+		}
+
+		private void RemoveResponses(string correlationId)
+		{
+			if(correlationId == null)
+			{
+				Debug.WriteLine("Attempting to remove responses with a null cor id. Not removing any responses.");
+				return;
+			}
+
+			using (MessageQueue inQ = GetJobResponseQueue())
+			{
+				Message m = null;
+				do
+				{
+					m = MqHelper.GetMessageByCorId(inQ, correlationId, TimeSpan.FromMilliseconds(10));
+				}
+				while (m != null);
+			}
+		}
+
+		private string SendJobToMq(JobForMq job)
+		{
+			using (MessageQueue outQ = MqHelper.GetQ(OUTPUT_Q_PATH, QueueAccessMode.Send, null, null))
+			{
+				FJobRequest fJobRequest = CreateFJobRequest(job.JobId, job.SMapWorkRequest);
+				Debug.WriteLine($"Sending request with JobId {fJobRequest.JobId} to output Q.");
+
+				Message m = new Message(fJobRequest);
+				outQ.Send(m);
+
+				return m.Id;
+			}
+		}
+
+		private string SendDeleteJobRequestToMq(JobForMq job)
+		{
+			using (MessageQueue outQ = MqHelper.GetQ(OUTPUT_Q_PATH, QueueAccessMode.Send, null, null))
+			{
+				FJobRequest fJobRequest = FJobRequest.CreateDeleteRequest(job.JobId);
+				Message m = new Message(fJobRequest);
+				outQ.Send(m);
+
+				return m.Id;
+			}
+		}
+
+		private SubJob CreateSubJob(FJobResult jobResult, IJob parentJob)
+		{
+			MapSectionWorkRequest mswr = CreateMSWR(jobResult, parentJob.SMapWorkRequest.MaxIterations);
+
+			SubJob subJob = new SubJob(parentJob, mswr, parentJob.ConnectionId)
+			{
+				result = CreateMSR(jobResult, parentJob.JobId)
+			};
+
+			return subJob;
+		}
+
+		private MapSectionWorkRequest CreateMSWR(FJobResult jobResult, int maxIterations)
 		{
 			MapSection mapSection = new MapSection(jobResult.Area);
 			MapSectionWorkRequest result = new MapSectionWorkRequest(mapSection, maxIterations, null, null);
 			return result;
 		}
 
-		private MapSectionResult GetMSR(FJobResult fJobResult, int JobId)
+		private MapSectionResult CreateMSR(FJobResult fJobResult, int JobId)
 		{
 			int[] counts = fJobResult.GetValues();
 			for(int ptr = 0; ptr < counts.Length; ptr++)
@@ -400,7 +553,7 @@ namespace FractalEngine
 			return result;
 		}
 
-		private FJobRequest GetFJobRequest(int jobId, SMapWorkRequest smwr)
+		private FJobRequest CreateFJobRequest(int jobId, SMapWorkRequest smwr)
 		{
 			SCoords sCoords = smwr.SCoords;
 			MqMessages.Coords coords = new MqMessages.Coords(sCoords.LeftBot.X, sCoords.RightTop.X, sCoords.LeftBot.Y, sCoords.RightTop.Y);

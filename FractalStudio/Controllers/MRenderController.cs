@@ -20,24 +20,25 @@ namespace FractalStudio.Controllers
       _hubContext = hubContext;
     }
 
-    // GET: api/MRender
-    [HttpGet]
-    public IActionResult Get()
-    {
-      byte[] ones = new byte[] { 65, 65, 65 };
+    //// GET: api/MRender
+    //[HttpGet]
+    //public IActionResult Get()
+    //{
+    //  byte[] ones = new byte[] { 65, 65, 65 };
 
-      //return new ByteResult(ones);
+    //  //return new ByteResult(ones);
 
-      //return ones;
-      return new FileContentResult(ones, "application/octet-stream");
+    //  //return ones;
+    //  return new FileContentResult(ones, "application/octet-stream");
 
-    }
+    //}
 
     // GET: api/MRender/5
-    [HttpGet("{id}", Name = "Get")]
-    public string Get(int id)
+    [HttpGet("{id}")]
+    public IActionResult Get(int id)
     {
-      return "value";
+      _engine.CancelJob(id);
+      return Ok();
     }
 
     // POST: api/MRender
@@ -74,11 +75,12 @@ namespace FractalStudio.Controllers
     {
     }
 
-    // DELETE: api/ApiWithActions/5
+    // DELETE: api/MRender/5
     [HttpDelete("{id}")]
-    public void Delete(int id)
+    public IActionResult Delete(int id)
     {
       _engine.CancelJob(id);
+      return Ok();
     }
 
   }
