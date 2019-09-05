@@ -105,4 +105,36 @@ namespace FractalServer
 		}
 	}
 
+	public class SCoordsWorkRequest
+	{
+		[JsonProperty("coords")]
+		public SCoords SCoords;
+
+		[JsonProperty("canvasSize")]
+		public CanvasSize CanvasSize;
+
+		[JsonProperty("mapSection")]
+		public MapSection MapSection;
+
+		[JsonProperty("jobId")]
+		public int JobId;
+
+		private SCoordsWorkRequest()
+		{
+			SCoords = null;
+			CanvasSize = new CanvasSize(0, 0);
+			MapSection = new MapSection(new Point(0, 0), new CanvasSize(0, 0));
+			JobId = -1;
+		}
+
+		public SCoordsWorkRequest(SCoords sCoords, CanvasSize canvasSize, MapSection mapSection, int jobId)
+		{
+			SCoords = sCoords ?? throw new ArgumentNullException(nameof(sCoords));
+			CanvasSize = canvasSize ?? throw new ArgumentNullException(nameof(canvasSize));
+			MapSection = mapSection ?? throw new ArgumentNullException(nameof(mapSection));
+			JobId = jobId;
+		}
+
+	}
+
 }

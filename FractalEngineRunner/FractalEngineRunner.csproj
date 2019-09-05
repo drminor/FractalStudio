@@ -58,6 +58,10 @@
       <Project>{8efe2d37-974c-4979-af9a-e2c080bdd7e4}</Project>
       <Name>FractalServer</Name>
     </ProjectReference>
+    <ProjectReference Include="..\MqMessages\MqMessages.csproj">
+      <Project>{7E22EEE8-9D53-4561-8909-BDBC4741D8A8}</Project>
+      <Name>MqMessages</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

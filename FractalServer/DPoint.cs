@@ -101,5 +101,11 @@ namespace FractalServer
 			X = dPoint.X.ToString("R");
 			Y = dPoint.Y.ToString("R");
 		}
+
+		public override string ToString()
+		{
+			string result = $"x:{X}; y:{Y}";
+			return result;
+		}
 	}
 }

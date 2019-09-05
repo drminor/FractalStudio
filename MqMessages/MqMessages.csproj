@@ -42,6 +42,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Coords.cs" />
+    <Compile Include="FCoordsResult.cs" />
     <Compile Include="FJobRequest.cs" />
     <Compile Include="FJobRequestType.cs" />
     <Compile Include="FJobResult.cs" />

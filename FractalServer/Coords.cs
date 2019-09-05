@@ -28,6 +28,12 @@ namespace FractalServer
 			LeftBot = new SPoint(coords.LeftBot);
 			RightTop = new SPoint(coords.RightTop);
 		}
+
+		public override string ToString()
+		{
+			string result = $"sx:{LeftBot.X}; sy:{LeftBot.Y}; ex:{RightTop.X}; ey:{RightTop.Y}";
+			return result;
+		}
 	}
 
 	public class Coords
