@@ -2,19 +2,10 @@ import { Component, ViewChild, ElementRef } from '@angular/core';
 
 import { ColorNumbers } from '../../m-map/ColorNumbers';
 
-import {
-  IPoint, Point, IBox, Box,
-  ColorMapEntryBlendStyle,
-  IMapInfo, MapInfo, Histogram,
-  apRational, RoundingMode, apRationalSettings
+import { IPoint, Point, IBox, Box,   ColorMapEntryBlendStyle, IMapInfo, MapInfo, Histogram
 } from '../../m-map/m-map-common';
 
-import { ColorMapUI, ColorMapUIEntry, ColorMapForExport, MapInfoWithColorMap, MapInfoWithColorMapForExport } from '../m-map-common-ui';
-
-//import { apRational, RoundingMode, apRationalSettings } from '../../apMath/apRational';
-
-import { apsrRational, apsrRationalSettings } from '../../apMath/apsrRational';
-
+import { ColorMapUI, ColorMapUIEntry, MapInfoWithColorMap } from '../m-map-common-ui';
 
 import { MMapDisplayComponent } from '../../m-map/m-map.display/m-map.display.component';
 
@@ -39,11 +30,17 @@ export class MMapDesignerComponent {
   _colorMap: ColorMapUI = null;
   set colorMap(value: ColorMapUI) {
     if (this._colorMap === null || (this._colorMap !== null && value === null)) {
+      console.log('Designer component is Updating the color map.');
       this._colorMap = value;
     }
     else {
       if (this._colorMap.serialNumber !== value.serialNumber) {
+        console.log('Designer component is Updating the color map. The serial #s are different.');
+
         this._colorMap = value;
+      }
+      else {
+        console.log('Not updating the value of colorMap, the new serial #s match.');
       }
     }
   }
@@ -58,7 +55,7 @@ export class MMapDesignerComponent {
     this._miwcm = value;
     this.colorMap = value.colorMapUi;
     this.mapInfo = value.mapInfo;
-    this.isBuilding = true;
+    //this.isBuilding = true;
   }
 
   get mapInfoWithColorMap(): MapInfoWithColorMap {
@@ -95,11 +92,6 @@ export class MMapDesignerComponent {
 
     this.colorEditorOffSet = '946px'; // 7 pixels to accomodate border, margin and 1 pixel gap.
     this.colorEditorWidth = '385px';
-
-    //this.doApRatTest();
-    //this.doApRatTest2();
-    this.doApRatTest3();
-
   }
 
   onColorMapUpdated(colorMap: ColorMapUI) {
@@ -245,98 +237,6 @@ export class MMapDesignerComponent {
 
     let result: ColorMapUI = new ColorMapUI(ranges, '#000000', serialNumber);
     return result;
-  }
-
-  private doApRatTest3() {
-
-    let apRatSettings = new apsrRationalSettings(25, 7);
-
-    let x = apRatSettings.parse(105.001);
-    console.log('X is ' + x.toString() + ' fancy:' + x.toStringF());
-
-    let y = apRatSettings.parse('0.000456789'); 
-    console.log('Y is ' + y.toString() + ' fancy:' + y.toStringF());
-
-    let z = y.clone().roundCustom(5);
-    console.log('Z is ' + z.toString() + ' fancy:' + z.toStringF());
-
-  }
-
-  private doApRatTest2() {
-
-    let apRatSettings = new apRationalSettings(25, RoundingMode.HalfUp);
-
-    let x = apRatSettings.parse(1.001);
-    let y = x.clone();
-
-    let ptr = 0;
-
-    for (; ptr < 100; ptr++) {
-      y.multiply(x);
-      console.log('At interation ' + ptr + ' Y is ' + y.toFixed() + ' raw: ' + y.toString());
-    }
-  }
-
-  private doApRatTest() {
-
-    let apRatTestSettings = new apRationalSettings(10, RoundingMode.HalfUp);
-    apRatTestSettings.posExp = 4;
-    apRatTestSettings.negExp = 3;
-
-    let x: apRational = apRational.parse('-0.000035123', apRatTestSettings);
-    console.log('Created a apRational with value = ' + x.toString());
-
-    let s = x.stringify();
-    console.log('Stringify of x = |' + s + '|');
-
-    let a = apRatTestSettings.parse('201.123456789123456789');
-
-    this.reportApRatValue('A', a);
-    let b = a.clone().round();
-    this.reportApRatValue('A Rounded', b);
-
-    let apRatSettings = new apRationalSettings(15, RoundingMode.HalfUp);
-    apRatSettings.posExp = 20;
-    apRatSettings.negExp = 8;
-
-    //let c = apRational.parse('0.00000000123456789123456789', apRatSettings);
-    let c = apRatSettings.parse('0.00000000123456789123456789');
-
-    this.reportApRatValue('C', c);
-    let d = c.clone().round();
-    this.reportApRatValue('C rounded', d);
-
-    let m = c.clone().multiply(d);
-    this.reportApRatValue('C * D', m);
-
-    let nc = m.clone().divide(d);
-    this.reportApRatValue('C * D / D', nc);
-
-    let m2 = a.clone().multiply(c);
-    this.reportApRatValue('A * C', m2);
-
-    let nc2 = m2.divide(c);
-    this.reportApRatValue('A * C / C', nc2);
-
-    a = apRatSettings.parse('2.3');
-
-    let p = a.clone().plus(a);
-    this.reportApRatValue('A + A', p);
-
-    let p2 = p.clone().plus(c);
-    this.reportApRatValue('A + A + C', p2);
-
-    let u = p.clone().minus(a);
-    this.reportApRatValue('A + A - A', u);
-
-    let u2 = p2.clone().minus(c);
-    this.reportApRatValue('A + A + C - C', u2);
-  }
-
-  private reportApRatValue(name:string, x: apRational): void {
-    let f = x.toFixed();
-    let e = x.toExponential();
-    console.log(name + '= ' + f + ' (' + e + ')');
   }
 
 }

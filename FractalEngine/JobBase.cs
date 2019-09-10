@@ -9,11 +9,9 @@ namespace FractalEngine
 
 		#region Constructor
 
-		public JobBase(SMapWorkRequest sMapWorkRequest, string connectionId)
+		public JobBase(SMapWorkRequest sMapWorkRequest)
 		{
 			SMapWorkRequest = sMapWorkRequest ?? throw new ArgumentNullException(nameof(sMapWorkRequest));
-
-			ConnectionId = connectionId ?? throw new ArgumentNullException(nameof(connectionId));
 			_jobId = -1;
 
 			CancelRequested = false;
@@ -26,7 +24,7 @@ namespace FractalEngine
 
 		public SMapWorkRequest SMapWorkRequest { get; private set; }
 
-		public string ConnectionId { get; private set; }
+		public string ConnectionId => SMapWorkRequest.ConnectionId;
 
 		public int MaxIterations => SMapWorkRequest.MaxIterations;
 

@@ -1,4 +1,21 @@
-import { IPoint, IBox, ICanvasSize } from './m-map-common';
+import { IPoint, IBox, ICanvasSize, SCoords } from './m-map-common';
+import { read } from 'fs';
+
+//export enum JobRequestType {
+//  Generate,
+//  IncreaseInterations,
+//  TransformCoords,
+//  Delete
+//}
+
+export enum TransformType {
+  In,
+  Out,
+  Left,
+  Right,
+  Up,
+  Down
+}
 
 export class MapSection {
   constructor(public sectionAnchor: IPoint, public canvasSize: ICanvasSize) { }
@@ -17,3 +34,30 @@ export class MapWorkRequest {
     this.jobId = -1;
   }
 }
+
+export class SMapWorkRequest {
+  public connectionId: string;
+  public jobId: number;
+
+  constructor(public coords: SCoords, public maxIterations: number, public canvasSize: ICanvasSize) {
+    this.connectionId = null;
+    this.jobId = -1;
+  }
+}
+
+export class SCoordsWorkRequest {
+  public jobId: number;
+
+  constructor(public transformType: TransformType, public coords: SCoords, public canvasSize: ICanvasSize, public mapSection: MapSection) {
+    this.jobId = -1;
+  }
+
+  public static clone(req: SCoordsWorkRequest): SCoordsWorkRequest {
+
+    let result = new SCoordsWorkRequest(req.transformType, req.coords, req.canvasSize, req.mapSection);
+    return result;
+  }
+
+}
+
+

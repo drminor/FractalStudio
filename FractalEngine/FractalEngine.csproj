@@ -72,7 +72,7 @@
     <Compile Include="Engine.cs" />
     <Compile Include="IClientConnector.cs" />
     <Compile Include="IJob.cs" />
-    <None Include="JobFactory.cs" />
+    <Compile Include="JobFactory.cs" />
     <Compile Include="JobBase.cs" />
     <Compile Include="Job.cs" />
     <Compile Include="JobForMq.cs" />

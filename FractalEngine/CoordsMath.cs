@@ -19,12 +19,21 @@ namespace FractalEngine
 
 		public TimeSpan WaitDuration { get; set; }
 
-		public SCoords ZoomIn(SCoordsWorkRequest sCoordsWorkRequest)
+		//public SCoords ZoomIn(SCoordsWorkRequest sCoordsWorkRequest)
+		//{
+		//	FJobRequest fJobRequest = CreateFJobRequest(sCoordsWorkRequest, TransformType.In);
+		//	string requestMsgId = SendJobToMq(fJobRequest);
+
+		//	//SCoords result = new SCoords(sCoordsWorkRequest.SCoords.LeftBot, sCoordsWorkRequest.SCoords.RightTop);
+		//	SCoords result = GetResponseFromMq(requestMsgId);
+		//	return result;
+		//}
+
+		public SCoords DoOp(SCoordsWorkRequest sCoordsWorkRequest)
 		{
-			FJobRequest fJobRequest = CreateFJobRequest(sCoordsWorkRequest, TransformType.In);
+			FJobRequest fJobRequest = CreateFJobRequest(sCoordsWorkRequest);
 			string requestMsgId = SendJobToMq(fJobRequest);
 
-			//SCoords result = new SCoords(sCoordsWorkRequest.SCoords.LeftBot, sCoordsWorkRequest.SCoords.RightTop);
 			SCoords result = GetResponseFromMq(requestMsgId);
 			return result;
 		}
@@ -83,7 +92,7 @@ namespace FractalEngine
 			}
 		}
 
-		private FJobRequest CreateFJobRequest(SCoordsWorkRequest sCoordsWorkRequest, TransformType transformType)
+		private FJobRequest CreateFJobRequest(SCoordsWorkRequest sCoordsWorkRequest)
 		{
 			SCoords sCoords = sCoordsWorkRequest.SCoords;
 			MqMessages.Coords coords = new MqMessages.Coords(sCoords.LeftBot.X, sCoords.RightTop.X, sCoords.LeftBot.Y, sCoords.RightTop.Y);
@@ -94,7 +103,8 @@ namespace FractalEngine
 			MapSection ms = sCoordsWorkRequest.MapSection;
 
 			RectangleInt area = new RectangleInt(new PointInt(ms.SectionAnchor.X, ms.SectionAnchor.Y), new SizeInt(ms.CanvasSize.Width, ms.CanvasSize.Height));
-			FJobRequest fJobRequest = new FJobRequest(sCoordsWorkRequest.JobId, FJobRequestType.TransformCoords, coords, samplePoints, area, 0, transformType);
+			FJobRequest fJobRequest = new FJobRequest(sCoordsWorkRequest.JobId, FJobRequestType.TransformCoords,
+				coords, samplePoints, area, 0, sCoordsWorkRequest.TransformType);
 
 			return fJobRequest;
 		}

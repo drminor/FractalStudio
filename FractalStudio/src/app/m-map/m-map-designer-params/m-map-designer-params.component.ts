@@ -1,10 +1,9 @@
 import { Component, EventEmitter, Output, Input, ViewChild, ElementRef, OnInit } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 
-import {
-  IPoint, Point, IBox, Box, IMapInfo, MapInfo } from '../m-map-common';
+import { IPoint, Point, IBox, Box, IMapInfo, MapInfo } from '../m-map-common';
 
-import { ColorMapUI, ColorMapUIEntry, ColorMapForExport, MapInfoWithColorMap, MapInfoWithColorMapForExport } from '../m-map-common-ui';
+import { ColorMapForExport, MapInfoWithColorMap, MapInfoWithColorMapForExport } from '../m-map-common-ui';
 
 
 @Component({
@@ -133,6 +132,7 @@ export class MMapDesignerParamsComponent implements OnInit {
     }
 
     let newMapInfo = new MapInfo(newCoords, mi.maxIterations, mi.threshold, mi.iterationsPerStep);
+
     this.mapInfoUpdated.emit(newMapInfo);
   }
 

@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 
-import { Box, Point, IBox, ICanvasSize, CanvasSize } from '../m-map/m-map-common';
-import { MapWorkRequest, MapSectionResult } from '../m-map/m-map-common-server';
+import { Box, Point, IBox, ICanvasSize, CanvasSize, SCoords } from '../m-map/m-map-common';
+import { MapWorkRequest, MapSectionResult, SMapWorkRequest } from '../m-map/m-map-common-server';
 import { FracServerService } from '../frac-server/frac-server.service';
 
 
@@ -33,7 +33,8 @@ export class FracTestClientComponent  {
     //let canvasSize: ICanvasSize = new CanvasSize(188, 125);
     let canvasSize: ICanvasSize = new CanvasSize(1800, 1200);
 
-    let jobRequest = new MapWorkRequest(coords, maxIterations, canvasSize);
+    let sCoords = SCoords.fromBox(coords);
+    let jobRequest = new SMapWorkRequest(sCoords, maxIterations, canvasSize);
 
     let cc = this.fService.submitJob(jobRequest);
     cc.subscribe(

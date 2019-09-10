@@ -5,7 +5,7 @@ import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import * as signalR from '@aspnet/signalr';
 import * as msgPackHubProtocol from '@aspnet/signalr-protocol-msgpack';
 
-import { MapWorkRequest, MapSectionResult, MapSection } from '../m-map/m-map-common-server';
+import { SCoordsWorkRequest, TransformType, SMapWorkRequest, MapSectionResult, MapSection } from '../m-map/m-map-common-server';
 import { Point, CanvasSize } from '../m-map/m-map-common';
 
 interface IHaveConnIdCallback {
@@ -17,6 +17,8 @@ export class FracServerService {
 
   public baseUrl = 'https://localhost:44330';
   public controllerPath = '/api/mrender';
+  public transformControllerPath = '/api/transform';
+
   public hubUrl = '/hubs/mgen';
 
   public hubConnection: signalR.HubConnection;
@@ -28,6 +30,10 @@ export class FracServerService {
   private imageDataSubject: Subject<MapSectionResult>;
   private jobId: number;
 
+
+  private request: SMapWorkRequest;
+  private coordsResult: SCoordsWorkRequest;
+
   constructor(private http: HttpClient) {
     this.hubConnection = null;
     this.hubConnId = null;
@@ -36,6 +42,7 @@ export class FracServerService {
 
     this.imageDataSubject = null;
     this.jobId = -1;
+    this.request = null;
   }
 
   public get haveHubConnection(): boolean {
@@ -48,9 +55,7 @@ export class FracServerService {
     return result;
   }
 
-  public submitJob(request: MapWorkRequest): Observable<MapSectionResult> {
-
-    //this.cancelJob();
+  public submitJob(request: SMapWorkRequest): Observable<MapSectionResult> {
     this.request = request;
     this.imageDataSubject = new Subject<MapSectionResult>();
     let res: Observable<MapSectionResult>  = this.imageDataSubject.asObservable();
@@ -71,46 +76,50 @@ export class FracServerService {
     return res;
   }
 
-  public cancelJob(): boolean {
+  public cancelJob(): Observable<SMapWorkRequest> {
     if (this.jobId === -1) {
-      return false;
+      return null;
     }
 
     //if (this.imageDataSubject !== null) {
     //  this.imageDataSubject.complete();
     //}
 
-    //this.http.get(this.baseUrl + this.controllerPath + "/" + this.jobId);
-    //let ad: string = this.baseUrl + this.controllerPath + "/" + this.jobId;
-    //this.http.delete(ad);
+    let delRequest = new SMapWorkRequest(null, 0, null);
+    delRequest.jobId = this.jobId;
+    delRequest.connectionId = 'delete';
+    let res: Observable<SMapWorkRequest> = this.http.post<SMapWorkRequest>(this.baseUrl + this.controllerPath, delRequest);
     
-    //this.jobId = -1;
-    return true;
+    res.subscribe(resp => this.delRequestResponseHandler(resp));
+    return res;
   }
 
-  private request: MapWorkRequest = null;
-
+  private delRequestResponseHandler(delRequest: SMapWorkRequest) {
+    if (delRequest.jobId !== this.jobId) {
+      console.log('The job ids dont match during handling the delRequestResponse.');
+    }
+    console.log('Handling delRequestResponse. Setting the jobId to -1.');
+    this.jobId = -1;
+  }
+  
   private submitJobInternal(): void {
-    let res: Observable<MapWorkRequest> = this.http.post<MapWorkRequest>(this.baseUrl + this.controllerPath, this.request);
-    res.subscribe(ret => this.jobId = ret.jobId);
+    console.log('The job is requesting an interation count of ' + this.request.maxIterations + '.');
+    let res: Observable<SMapWorkRequest> = this.http.post<SMapWorkRequest>(this.baseUrl + this.controllerPath, this.request);
+    res.subscribe(ret => this.sMapWorkRequestHandler(ret));
     this.doWhenHaveConnId = null;
     this.request = null;
   }
 
-  private startHubConnection(url: string)/*: Promise<any>*/ {
+  private sMapWorkRequestHandler(request: SMapWorkRequest) {
+    console.log('Handling a SMapWorkRequest response. Setting the JobId to ' + request.jobId + '.');
+    this.jobId = request.jobId;
+  }
 
-    //let builder = new HubConnectionBuilder();
-    //this.hubConnection = builder.withUrl(url).build();
-
-    //this.hubConnection = builder
-    //  .withUrl(url)
-    //  .withHubProtocol(new signalR.protocols.msgpack.MessagePackHubProtocol())
-    //  .build();
+  private startHubConnection(url: string) {
 
     this.hubConnection = new signalR.HubConnectionBuilder()
       .withUrl(url)
       .withHubProtocol(new msgPackHubProtocol.MessagePackHubProtocol())
-      //.withHubProtocol(new signalR.protocols.msgpack.MessagePackHubProtocol())
       .build();
 
     // message coming from the server
@@ -183,6 +192,13 @@ export class FracServerService {
 
   //  return result / data.length;
   //}
+
+  public submitCoordsTransformRequest(cRequest: SCoordsWorkRequest): Observable<SCoordsWorkRequest> {
+    console.log('Submitting a Transform Request with type: ' + cRequest.transformType + '.');
+    let res: Observable<SCoordsWorkRequest> = this.http.post<SCoordsWorkRequest>(this.baseUrl + this.transformControllerPath, cRequest);
+
+    return res;
+  }
 
 
 }

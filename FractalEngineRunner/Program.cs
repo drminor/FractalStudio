@@ -10,10 +10,14 @@ namespace FractalEngineRunner
 		static Engine _engine;
 		static CoordsMath _coordsMath;
 
+		static SCoords _curCoords;
+		static readonly CanvasSize _samplePoints = new CanvasSize(100, 100);
+
 		static void Main(string[] args)
 		{
 			_engine = new Engine();
 			_coordsMath = new CoordsMath();
+			_curCoords = GetInitialCoords();
 
 			IClientConnector clientConnector = null;
 			_engine.Start(clientConnector);
@@ -24,15 +28,15 @@ namespace FractalEngineRunner
 
 			while (com != "quit")
 			{
-				FJobRequestType? requestType = GetRequestType(com, out int jobId);
+				Request request = ParseCom(com);
 
-				if (!requestType.HasValue)
+				if (request == null)
 				{
 					Console.WriteLine("Command not recognized.");
 				}
 				else
 				{
-					ProcessRequest(requestType.Value, jobId);
+					ProcessRequest(request);
 				}
 
 				Console.Write("Enter Command: ");
@@ -44,9 +48,11 @@ namespace FractalEngineRunner
 			Console.Read();
 		}
 
-		static void ProcessRequest(FJobRequestType requestType, int jobId)
+		static void ProcessRequest(Request request)
 		{
-			switch (requestType)
+			int jobId = request.JobId;
+
+			switch (request.RequestType)
 			{
 				case FJobRequestType.Generate:
 					Console.WriteLine($"Submitting Generate Job with JobId {jobId}.");
@@ -54,15 +60,16 @@ namespace FractalEngineRunner
 					_engine.SubmitJob(job);
 					break;
 
-				//case FJobRequestType.IncreaseInterations:
-				//	break;
+				case FJobRequestType.IncreaseInterations:
+					Console.WriteLine($"Resetting the current coordinates.");
+					_curCoords = GetInitialCoords();
+					WriteCoords(_curCoords);
+					break;
 
 				case FJobRequestType.TransformCoords:
 					Console.WriteLine($"Submitting Transform Job with JobId {jobId}.");
-					SCoordsWorkRequest sCoordsWorkRequest = GetTransformWorkRequest(jobId);
-
-					SCoords sCoords = _coordsMath.ZoomIn(sCoordsWorkRequest);
-					Console.WriteLine($"The new coords are: {sCoords.ToString()}.");
+					_curCoords = HandleTransCoRequest(request, _curCoords);
+					WriteCoords(_curCoords);
 					break;
 
 				case FJobRequestType.Delete:
@@ -71,72 +78,160 @@ namespace FractalEngineRunner
 					break;
 
 				default:
-					Console.WriteLine($"Not processing job with request type: {requestType}.");
+					Console.WriteLine($"Not processing job with request type: {request.RequestType}.");
 					break;
 			}
+		}
+
+		static void WriteCoords(SCoords coords)
+		{
+			Console.WriteLine("The new coords are:");
+			Console.WriteLine($"sx: {_curCoords.LeftBot.X}");
+			Console.WriteLine($"ex: {_curCoords.RightTop.X}");
+			Console.WriteLine($"sy: {_curCoords.LeftBot.Y}");
+			Console.WriteLine($"ey: {_curCoords.RightTop.Y}");
+		}
+
+		static SCoords HandleTransCoRequest(Request request, SCoords curCoords)
+		{
+			SCoordsWorkRequest sCoordsWorkRequest = null;
+
+			switch (request.TransformType)
+			{
+				case TransformType.In:
+					sCoordsWorkRequest = GetTransformWorkRequestZ(request.JobId, curCoords, _samplePoints);
+					break;
+
+				case TransformType.Out:
+					sCoordsWorkRequest = GetTransformWorkRequest(request.JobId, curCoords, request.TransformType.Value, request.Amount);
+					break;
+
+				case TransformType.Down:
+					sCoordsWorkRequest = GetTransformWorkRequest(request.JobId, curCoords, request.TransformType.Value, request.Amount);
+					break;
+
+				case TransformType.Up:
+					sCoordsWorkRequest = GetTransformWorkRequest(request.JobId, curCoords, request.TransformType.Value, request.Amount);
+					break;
+
+				case TransformType.Left:
+					sCoordsWorkRequest = GetTransformWorkRequest(request.JobId, curCoords, request.TransformType.Value, request.Amount);
+					break;
+
+				case TransformType.Right:
+					sCoordsWorkRequest = GetTransformWorkRequest(request.JobId, curCoords, request.TransformType.Value, request.Amount);
+					break;
+
+				default:
+					Console.WriteLine("Peforming no op.");
+					return null;
+			}
+
+			SCoords result = _coordsMath.DoOp(sCoordsWorkRequest);
+			return result;
 		}
 
 		static IJob GetJobRequest(int jobId)
 		{
 			SMapWorkRequest sMapRequest = CreateWorkRequest(jobId);
 
-			IJob result = new JobForMq(sMapRequest, sMapRequest.ConnectionId);
+			IJob result = new JobForMq(sMapRequest);
 			return result;
 		}
 
-		static SCoordsWorkRequest GetTransformWorkRequest(int jobId)
+		static SCoordsWorkRequest GetTransformWorkRequestZ(int jobId, SCoords curCoords, CanvasSize samplePoints)
 		{
-			SPoint leftBot = new SPoint("-1", "-1");
-			SPoint rightTop = new SPoint("2", "1");
-			SCoords sCoords = new SCoords(leftBot, rightTop);
-
-			CanvasSize samplePoints = new CanvasSize(100, 100);
-			MapSection mapSection = new MapSection(new Point(10, 10), new CanvasSize(10, 10));
-			SCoordsWorkRequest result = new SCoordsWorkRequest(sCoords, samplePoints, mapSection, jobId);
+			MapSection mapSection = new MapSection(new Point(40, 40), new CanvasSize(20, 20));
+			SCoordsWorkRequest result = new SCoordsWorkRequest(TransformType.In, curCoords, samplePoints, mapSection, jobId);
 
 			return result;
 		}
 
-		static FJobRequestType? GetRequestType(string com, out int jobId)
+		static SCoordsWorkRequest GetTransformWorkRequest(int jobId, SCoords curCoords, TransformType transformType, int amount)
+		{
+			CanvasSize samplePoints = new CanvasSize(0, 0);
+			MapSection mapSection = new MapSection(new Point(amount, 0), new CanvasSize(0,0));
+			SCoordsWorkRequest result = new SCoordsWorkRequest(transformType, curCoords, samplePoints, mapSection, jobId);
+
+			return result;
+		}
+
+		static Request ParseCom(string com)
 		{
 			char[] delimiters = new char[] { ' ' };
 			string[] parts = com.Split(delimiters, StringSplitOptions.RemoveEmptyEntries);
 
 			if(parts.Length < 2)
 			{
-				jobId = -1;
 				return null;
 			}
 
-			if(!int.TryParse(parts[1], out jobId))
+			if(!int.TryParse(parts[1], out int jobId))
 			{
 				// Cannot parse the JobId.
-				jobId = -1;
 				return null;
 			}
 
 			if(parts[0].StartsWith("g"))
 			{
 				// Generate request.
-				return FJobRequestType.Generate;
+				return new Request(jobId, FJobRequestType.Generate, null, 0);
 			}
 			else if (parts[0].StartsWith("d"))
 			{
 				// Delete request.
-				return FJobRequestType.Delete;
+				return new Request(jobId, FJobRequestType.Delete, null, 0);
+			}
+			else if(parts[0].StartsWith("r"))
+			{
+				// Currently using this to reset the cur coords.
+				return new Request(jobId, FJobRequestType.IncreaseInterations, null, 0);
 			}
 			else if (parts[0].StartsWith("t"))
 			{
+				if(parts.Length < 4)
+				{
+					// Invalid input.
+					return null;
+				}
+
 				// transform request.
-				return FJobRequestType.TransformCoords;
+				TransformType? transformType = GetTType(parts[2].ToLower().Trim().ToCharArray()[0]);
+				if(!transformType.HasValue)
+				{
+					return null;
+				}
+
+				if(!double.TryParse(parts[3], out double dAmount))
+				{
+					Console.WriteLine("Could not parse the amount. Using 0.5");
+					dAmount = 0.5;
+				}
+
+				int amount = (int) Math.Round(dAmount * 10000);
+
+				return new Request(jobId, FJobRequestType.TransformCoords, transformType, amount);
 			}
 			else
 			{
 				// Invalid input.
-				jobId = -1;
 				return null;
 			}
+		}
 
+		static TransformType? GetTType(char t)
+		{
+			switch(t)
+			{
+				case 'i': return TransformType.In;
+				case 'o': return TransformType.Out;
+				case 'r': return TransformType.Right;
+				case 'l': return TransformType.Left ;
+				case 'u': return TransformType.Up;
+				case 'd': return TransformType.Down;
+
+				default: return null;
+			}
 		}
 
 		static SMapWorkRequest CreateWorkRequest(int jobId)
@@ -154,6 +249,15 @@ namespace FractalEngineRunner
 			};
 
 			return mapWorkRequest;
+		}
+
+		static SCoords GetInitialCoords()
+		{
+			DPoint leftBot = new DPoint(2, -1);
+			DPoint rightTop = new DPoint(4, 1);
+			SCoords coords = new SCoords(new SPoint(leftBot), new SPoint(rightTop));
+
+			return coords;
 		}
 
 	}

@@ -43,30 +43,20 @@ namespace FractalStudio.Controllers
 
     // POST: api/MRender
     [HttpPost]
-    public IActionResult Post([FromBody] MapWorkRequest mapWorkRequest)
+    public IActionResult Post([FromBody] SMapWorkRequest sMapWorkRequest)
     {
-      SCoords sCoords = new SCoords(mapWorkRequest.Coords);
-
-      SMapWorkRequest sMapWorkRequest = new SMapWorkRequest(sCoords, mapWorkRequest.MaxIterations, mapWorkRequest.CanvasSize, mapWorkRequest.ConnectionId);
-
-      //JobFactory jobFactory = new JobFactory();
-      //IJob job = jobFactory.CreateJob(sMapWorkRequest, sMapWorkRequest.ConnectionId);
-
-      IJob job;
-
-      if(sMapWorkRequest.RequiresQuadPrecision())
+      if (sMapWorkRequest.ConnectionId.ToLower() == "delete")
       {
-        job = new JobForMq(sMapWorkRequest, sMapWorkRequest.ConnectionId);
+        _engine.CancelJob(sMapWorkRequest.JobId);
       }
       else
       {
-        job = new Job(sMapWorkRequest, sMapWorkRequest.ConnectionId);
+        IJob job = new JobFactory().CreateJob(sMapWorkRequest);
+        int jobId = _engine.SubmitJob(job);
+        sMapWorkRequest.JobId = jobId;
       }
 
-      int jobId = _engine.SubmitJob(job);
-      mapWorkRequest.JobId = jobId;
-
-      return Ok(mapWorkRequest);
+      return Ok(sMapWorkRequest);
     }
 
     // PUT: api/MRender/5

@@ -184,27 +184,22 @@ namespace FractalEngine
 				{
 					lock (_jobLock)
 					{
-						if(_jobs.Count == 0)
+						IJob[] jobs = _jobs.Values.Where(j => !j.IsCompleted).ToArray();
+
+						if (jobs == null || jobs.Length == 0)
 						{
-							Debug.WriteLine("There are no jobs, Resetting HaveWork.");
+							Debug.WriteLine("There are no un completed jobs, resetting HaveWork.");
 							_nextJobPtr = 0;
 							HaveWork.Reset();
 						}
 						else
 						{
-							result = GetFirstUncompletedJob(_jobs.Values.ToArray(), ref _nextJobPtr);
-
-							if(result == null)
-							{
-								Debug.WriteLine("All jobs have been completed, Resetting HaveWork.");
+							if (_nextJobPtr > jobs.Length - 1)
 								_nextJobPtr = 0;
-								HaveWork.Reset();
-							}
-							else
-							{
-								Debug.WriteLine($"The next job has id = {result.JobId}.");
-								break;
-							}
+
+							result = jobs[_nextJobPtr++];
+							Debug.WriteLine($"The next job has id = {result.JobId}.");
+							break;
 						}
 					}
 				}
@@ -215,34 +210,34 @@ namespace FractalEngine
 			return result;
 		}
 
-		private IJob GetFirstUncompletedJob(IJob[] jobs, ref int jobPtr)
-		{
-			IJob result = null;
+		//private IJob GetFirstUncompletedJob(IJob[] jobs, ref int jobPtr)
+		//{
+		//	IJob result = null;
 
-			if (jobPtr > jobs.Length - 1)
-				jobPtr = 0;
+		//	if (jobPtr > jobs.Length - 1)
+		//		jobPtr = 0;
 
-			int originalPtr = jobPtr;
+		//	int originalPtr = jobPtr;
 
-			do
-			{
-				if (!jobs[jobPtr].IsCompleted)
-				{
-					result = jobs[jobPtr++];
-					break;
-				}
-				else
-				{
-					jobPtr++;
-				}
+		//	do
+		//	{
+		//		if (!jobs[jobPtr].IsCompleted)
+		//		{
+		//			result = jobs[jobPtr++];
+		//			break;
+		//		}
+		//		else
+		//		{
+		//			jobPtr++;
+		//		}
 
-				if (jobPtr > jobs.Length - 1)
-					jobPtr = 0;
+		//		if (jobPtr > jobs.Length - 1)
+		//			jobPtr = 0;
 
-			} while (jobPtr != originalPtr);
+		//	} while (jobPtr != originalPtr);
 
-			return result;
-		}
+		//	return result;
+		//}
 
 		#endregion
 
@@ -287,11 +282,6 @@ namespace FractalEngine
 					{
 						workQueue.Add(subJob, ct);
 					}
-					//else
-					//{
-					//	// Remove the job.
-					//	RemoveJob(job.JobId);
-					//}
 				}
 				else if(job is JobForMq)
 				{
@@ -309,7 +299,7 @@ namespace FractalEngine
 		{
 			if (!(job is JobForMq result))
 			{
-				result = new JobForMq(job.SMapWorkRequest, job.ConnectionId);
+				result = new JobForMq(job.SMapWorkRequest);
 			}
 
 			return result;

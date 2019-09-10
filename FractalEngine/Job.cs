@@ -17,7 +17,7 @@ namespace FractalEngine
 		public const int SECTION_HEIGHT = 100;
 
 
-		public Job(SMapWorkRequest sMapWorkRequest, string connectionId) : base(sMapWorkRequest, connectionId)
+		public Job(SMapWorkRequest sMapWorkRequest) : base(sMapWorkRequest)
 		{
 			_samplePoints = GetSamplePoints(sMapWorkRequest);
 			_hSectionPtr = 0;
@@ -69,7 +69,7 @@ namespace FractalEngine
 
 		}
 
-		private static double[][] BuildValueSections(double start, double end, int extent, int sectionExtent, out int sectionCount, out int lastExtent)
+		private double[][] BuildValueSections(double start, double end, int extent, int sectionExtent, out int sectionCount, out int lastExtent)
 		{
 			sectionCount = GetSectionCount(extent, sectionExtent, out lastExtent);
 
@@ -111,7 +111,7 @@ namespace FractalEngine
 			return result;
 		}
 
-		protected static int GetSectionCount(int totalExtent, int sectionExtent, out int lastExtent)
+		protected int GetSectionCount(int totalExtent, int sectionExtent, out int lastExtent)
 		{
 			lastExtent = sectionExtent;
 			double r = totalExtent / (double)sectionExtent;

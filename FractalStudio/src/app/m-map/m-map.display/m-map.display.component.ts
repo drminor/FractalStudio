@@ -1,21 +1,18 @@
 import { Component, AfterViewInit, ElementRef, ViewChild, Input, EventEmitter, Output } from '@angular/core';
-
-//import { ColorNumbers } from '../ColorNumbers';
+import { Observable } from 'rxjs';
 
 import {
-  IPoint, Point, IBox, Box, ICanvasSize, CanvasSize,
+  IPoint, Point, IBox, Box, ICanvasSize, CanvasSize, ColorMap, 
   IMapInfo, IMapWorkingData, MapWorkingData,
   WebWorkerImageDataResponse, WebWorkerMessage, WebWorkerStartRequest,
   WebWorkerIterateRequest, WebWorkerUpdateColorMapRequest,
   Histogram, WebWorkerHistogramRequest, WebWorkerHistorgramResponse,
-  HistArrayPair,
-  RawMapDataProcessor
+  HistArrayPair,  RawMapDataProcessor,  SCoords
 } from '../m-map-common';
 
+import { ColorMapUI, MapInfoWithColorMap } from '../m-map-common-ui';
 
-import { ColorMapUI, ColorMapUIEntry, ColorMapForExport, MapInfoWithColorMap } from '../m-map-common-ui';
-
-import { MapWorkRequest, MapSection, MapSectionResult } from '../../m-map/m-map-common-server';
+import { MapSection, MapSectionResult, SMapWorkRequest, SCoordsWorkRequest, TransformType } from '../../m-map/m-map-common-server';
 import { FracServerService } from '../../frac-server/frac-server.service';
 
 enum WorkMethod {
@@ -104,8 +101,11 @@ export class MMapDisplayComponent implements AfterViewInit {
         // Do nothing.
         //this.buildingComplete.emit();
       }
+      console.log('The new mapinfo is null, we are not raising buildingComplete event.'); 
     }
     else {
+      console.log('The new interation count is ' + mi.maxIterations + '.');
+
       // The new mapInfo has a value.
       // If we have existing map, or if we are using the Web Serivce, rebuild.
       if (this._mapInfo === null) {
@@ -131,7 +131,7 @@ export class MMapDisplayComponent implements AfterViewInit {
           this._colorMap = cm;
           this._mapInfo = mi;
           if (this.viewInitialized) {
-            this.clearTheCanvas();
+            //this.clearTheCanvas();
             this.buildWorkingData();
           }
           return
@@ -502,13 +502,14 @@ export class MMapDisplayComponent implements AfterViewInit {
     this._histogram = null;
     this.resetSectionCompleteFlags();
 
-    let regularColorMap = this._colorMap.getRegularColorMap();
+    let regularColorMap: ColorMap;
 
     if (this.workMethod === WorkMethod.WebWorkers) {
       // Clear existing workers, if any
       this.terminateWorkers(this.workers);
 
       // Create a MapWorkingData for each section.
+      regularColorMap = this._colorMap.getRegularColorMap();
       this.sections = MapWorkingData.getWorkingDataSections(this.canvasSize, this._mapInfo, regularColorMap, this.numberOfSections);
 
       //let ptr: number = 0;
@@ -524,6 +525,8 @@ export class MMapDisplayComponent implements AfterViewInit {
         //console.log('The number of sections must be set to 1, if useWorkers = false.');
         throw new RangeError('The number of sections must be set to 1, if useWorkers = false.');
       }
+
+      regularColorMap = this._colorMap.getRegularColorMap();
       this.sections = new Array<IMapWorkingData>(1);
       this.sections[0] = new MapWorkingData(this.canvasSize, this._mapInfo, regularColorMap, new Point(0, 0));
 
@@ -531,26 +534,87 @@ export class MMapDisplayComponent implements AfterViewInit {
     }
     else if (this.workMethod === WorkMethod.WebService) {
 
-      this.mapSectionResults = [];
-      this.mapDataProcessor = new RawMapDataProcessor(regularColorMap);
-      let jobRequest = new MapWorkRequest(this._mapInfo.coords, this._mapInfo.maxIterations, this.canvasSize);
+      let dc1 = this.fService.cancelJob();
 
-      let cc = this.fService.submitJob(jobRequest);
-      cc.subscribe(
-        resp => this.useMapSectionResult(resp),
-        err => console.log(err),
-        () => this.webServiceMapWorkDone()
-      );
+      if (dc1 != null) {
+        dc1.subscribe(
+          () => this.afterDelRequestComplete(),
+          () => console.log('Received an error while cancelling a MapWorkRequest job.'),
+          () => console.log('Cancel MapWorkRequestJob is complete.'));
+      }
+      else {
+        console.log('Not clearing the canvas -- no current job.');
+        this.submitMapWorkRequest();
+      }
     }
     else {
       throw new Error("The work method is not recognized.");
     }
   }
 
-  private cancelFServiceJob(): void {
-    console.log('Cancelling the Job: ' + this.fService.JobId + '.');
-    this.fService.cancelJob();
+  private afterDelRequestComplete() {
+    console.log('Clearing the canvas -- we just cancelled the last job.');
+    this.clearTheCanvas();
+    this.submitMapWorkRequest();
   }
+
+  private submitMapWorkRequest() {
+    let regularColorMap = this._colorMap.getRegularColorMap();
+
+    this.mapSectionResults = [];
+    this.mapDataProcessor = new RawMapDataProcessor(regularColorMap);
+
+    let sCoords = SCoords.fromBox(this._mapInfo.coords);
+    let jobRequest: SMapWorkRequest = new SMapWorkRequest(sCoords, this._mapInfo.maxIterations, this.canvasSize);
+
+    // JUST FOR TESTING
+    this.requestNewCoords(TransformType.Right, sCoords, this.canvasSize, 0.5);
+    // END TESTING
+
+    let cc = this.fService.submitJob(jobRequest);
+    cc.subscribe(
+      resp => this.useMapSectionResult(resp),
+      err => console.log(err),
+      () => this.webServiceMapWorkDone()
+    );
+
+  }
+
+  // The amount should be > 0 and < 1.
+  private requestNewCoords(transformType: TransformType, curCoords: SCoords, canvasSize: ICanvasSize, amount: number) {
+
+    if (amount == 0) {
+      console.log('getNewCoords received an amount = 0, returning original coords with no transform.');
+      return curCoords;
+    }
+
+    if (amount < 0 || amount > 1) {
+      console.log('getNewCoords received an amount < 0 or > 1, using 0.5.');
+      amount = 0.5;
+    }
+
+    let scaledIntAmount = Math.round(amount * 10000);
+
+    let ms: MapSection = new MapSection(new Point(scaledIntAmount, 0), new CanvasSize(10, 10));
+    let request: SCoordsWorkRequest = new SCoordsWorkRequest(transformType, curCoords, this.canvasSize, ms);
+    let cc:Observable<SCoordsWorkRequest> = this.fService.submitCoordsTransformRequest(request);
+    cc.subscribe(
+      v => this.useNewCoords(v),
+      err => console.log('Received error while getting new coords. The error is ' + err + '.'),
+      () => console.log('Request new Coords is complete.')
+    );
+  }
+
+  private useNewCoords(coordsResult: SCoordsWorkRequest) {
+    if (coordsResult !== null) {
+      let newCoords = coordsResult.coords;
+      console.log('The new coords has an sx = ' + newCoords.botLeft.x.toString() + '.');
+    }
+    else {
+      console.log('The new coords is null.');
+    }
+  }
+
 
   private useMapSectionResult(ms: MapSectionResult): void {
     let pixelData = this.mapDataProcessor.getPixelData(ms.imageData);

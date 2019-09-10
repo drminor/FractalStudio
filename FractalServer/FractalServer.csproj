@@ -91,6 +91,10 @@
     <Compile Include="MPointWork.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SamplePoints.cs" />
+    <Compile Include="SCoords.cs" />
+    <Compile Include="SCoordsWorkRequest.cs" />
+    <Compile Include="SMapWorkRequest.cs" />
+    <Compile Include="TransformType_NotUsed.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Hjg.Pngcs\Hjg.Pngcs.csproj">

@@ -39,7 +39,7 @@ namespace FractalServerTests
 
 			SMapWorkRequest mapWorkRequest = new SMapWorkRequest(coords, maxIterations, canvasSize, connectionId);
 
-			Job job = new Job(mapWorkRequest, connectionId);
+			Job job = new Job(mapWorkRequest);
 			mapWorkRequest.JobId = job.JobId;
 
 			SubJob subJob = null;

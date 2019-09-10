@@ -1,33 +1,23 @@
 ﻿using FractalServer;
-using System;
 
 namespace FractalEngine
 {
 	public class JobFactory
 	{
-		const double tiny = 1e-10;
-
-		public IJob CreateJob(SMapWorkRequest sMapWorkRequest, string connectionId)
+		public IJob CreateJob(SMapWorkRequest sMapWorkRequest)
 		{
-			QdCoords qdCoords = new QdCoords(sMapWorkRequest.SCoords);
+			IJob result;
 
-			double lbx = qdCoords.LeftBot.X.Hi;
-			double rtx = qdCoords.RightTop.X.Hi;
-
-			if(Math.Abs(rtx - lbx) < tiny)
+			if (sMapWorkRequest.RequiresQuadPrecision())
 			{
-				return new JobQd(sMapWorkRequest, connectionId);
+				result = new JobForMq(sMapWorkRequest);
+			}
+			else
+			{
+				result = new Job(sMapWorkRequest);
 			}
 
-			double lby = qdCoords.LeftBot.Y.Hi;
-			double rty = qdCoords.RightTop.Y.Hi;
-
-			if (Math.Abs(rty - lby) < tiny)
-			{
-				return new JobQd(sMapWorkRequest, connectionId);
-			}
-
-			return new Job(sMapWorkRequest, connectionId);
+			return result;
 		}
 	}
 }
