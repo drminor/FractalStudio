@@ -1,6 +1,7 @@
 using FractalEngine;
 using FractalServer;
 using FractalStudio.Hubs;
+using FSTypes;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 
@@ -37,7 +38,7 @@ namespace FractalStudio.Controllers
     [HttpGet("{id}")]
     public IActionResult Get(int id)
     {
-      _engine.CancelJob(id);
+      //_engine.CancelJob(id);
       return Ok();
     }
 
@@ -69,7 +70,7 @@ namespace FractalStudio.Controllers
     [HttpDelete("{id}")]
     public IActionResult Delete(int id)
     {
-      _engine.CancelJob(id);
+      //_engine.CancelJob(id);
       return Ok();
     }
 

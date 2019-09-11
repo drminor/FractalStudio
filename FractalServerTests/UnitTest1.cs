@@ -1,4 +1,5 @@
 ﻿using FractalServer;
+using FSTypes;
 using Hjg.Pngcs;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PngImageBuilder;

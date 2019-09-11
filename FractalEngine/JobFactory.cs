@@ -1,4 +1,4 @@
-﻿using FractalServer;
+﻿using FSTypes;
 
 namespace FractalEngine
 {

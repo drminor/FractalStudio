@@ -1,5 +1,6 @@
 ﻿using Experimental.System.Messaging;
 using FractalServer;
+using FSTypes;
 using MqMessages;
 using System;
 using System.Collections.Concurrent;

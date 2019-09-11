@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace FractalServer
+namespace FSTypes
 {
 	public class MapSectionWorkRequest
 	{

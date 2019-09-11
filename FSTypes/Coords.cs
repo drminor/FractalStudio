@@ -1,7 +1,7 @@
 ﻿using System;
 using Newtonsoft.Json;
 
-namespace FractalServer
+namespace FSTypes
 {
 	public class Coords
     {

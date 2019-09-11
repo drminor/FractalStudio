@@ -1,4 +1,5 @@
 ﻿using System;
+using FSTypes;
 using Newtonsoft.Json;
 
 namespace FractalServer

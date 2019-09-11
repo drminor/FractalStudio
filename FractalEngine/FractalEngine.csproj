@@ -84,6 +84,10 @@
       <Project>{8efe2d37-974c-4979-af9a-e2c080bdd7e4}</Project>
       <Name>FractalServer</Name>
     </ProjectReference>
+    <ProjectReference Include="..\FSTypes\FSTypes.csproj">
+      <Project>{6E598E37-990B-4456-A5E0-DF0092B78418}</Project>
+      <Name>FSTypes</Name>
+    </ProjectReference>
     <ProjectReference Include="..\MqMessages\MqMessages.csproj">
       <Project>{7e22eee8-9d53-4561-8909-bdbc4741d8a8}</Project>
       <Name>MqMessages</Name>

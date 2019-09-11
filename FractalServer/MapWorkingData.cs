@@ -1,4 +1,5 @@
-﻿using Hjg.Pngcs;
+﻿using FSTypes;
+using Hjg.Pngcs;
 using System.Drawing;
 
 namespace FractalServer

@@ -89,6 +89,10 @@
       <Project>{8efe2d37-974c-4979-af9a-e2c080bdd7e4}</Project>
       <Name>FractalServer</Name>
     </ProjectReference>
+    <ProjectReference Include="..\FSTypes\FSTypes.csproj">
+      <Project>{6e598e37-990b-4456-a5e0-df0092b78418}</Project>
+      <Name>FSTypes</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Hjg.Pngcs\Hjg.Pngcs.csproj">
       <Project>{fd3b0d50-46b3-4a83-9a6d-c641569142cf}</Project>
       <Name>Hjg.Pngcs</Name>

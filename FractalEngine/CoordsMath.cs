@@ -1,5 +1,5 @@
 ﻿using Experimental.System.Messaging;
-using FractalServer;
+using FSTypes;
 using MqMessages;
 using System;
 using System.Diagnostics;
@@ -18,16 +18,6 @@ namespace FractalEngine
 		}
 
 		public TimeSpan WaitDuration { get; set; }
-
-		//public SCoords ZoomIn(SCoordsWorkRequest sCoordsWorkRequest)
-		//{
-		//	FJobRequest fJobRequest = CreateFJobRequest(sCoordsWorkRequest, TransformType.In);
-		//	string requestMsgId = SendJobToMq(fJobRequest);
-
-		//	//SCoords result = new SCoords(sCoordsWorkRequest.SCoords.LeftBot, sCoordsWorkRequest.SCoords.RightTop);
-		//	SCoords result = GetResponseFromMq(requestMsgId);
-		//	return result;
-		//}
 
 		public SCoords DoOp(SCoordsWorkRequest sCoordsWorkRequest)
 		{

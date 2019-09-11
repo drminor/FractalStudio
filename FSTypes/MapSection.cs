@@ -1,7 +1,7 @@
 ﻿using MqMessages;
 using Newtonsoft.Json;
 
-namespace FractalServer
+namespace FSTypes
 {
 	public class MapSection
 	{

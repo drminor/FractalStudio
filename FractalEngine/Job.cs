@@ -1,4 +1,5 @@
 ﻿using FractalServer;
+using FSTypes;
 using System;
 using System.Threading;
 
@@ -167,7 +168,7 @@ namespace FractalEngine
 			int left = _hSectionPtr * SECTION_WIDTH;
 			int top = _vSectionPtr * SECTION_HEIGHT;
 
-			MapSection mapSection = new MapSection(new FractalServer.Point(left, top), new CanvasSize(w, h));
+			MapSection mapSection = new MapSection(new Point(left, top), new CanvasSize(w, h));
 
 			double[] xValues = _samplePoints.XValueSections[_hSectionPtr++];
 			double[] yValues = _samplePoints.YValueSections[_vSectionPtr];

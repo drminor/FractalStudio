@@ -2,7 +2,7 @@
 //using MessagePack;
 using Newtonsoft.Json;
 
-namespace FractalServer
+namespace FSTypes
 {
 
 	//[MessagePackObject]

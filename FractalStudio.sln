@@ -27,6 +27,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MqMessages", "MqMessages\Mq
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FractalEngineRunner", "FractalEngineRunner\FractalEngineRunner.csproj", "{8176D67A-734F-4217-A947-DA08732A2734}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FSTypes", "FSTypes\FSTypes.csproj", "{6E598E37-990B-4456-A5E0-DF0092B78418}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -167,6 +169,22 @@ Global
 		{8176D67A-734F-4217-A947-DA08732A2734}.Release45|Any CPU.Build.0 = Release|Any CPU
 		{8176D67A-734F-4217-A947-DA08732A2734}.Release45|x86.ActiveCfg = Release|Any CPU
 		{8176D67A-734F-4217-A947-DA08732A2734}.Release45|x86.Build.0 = Release|Any CPU
+		{6E598E37-990B-4456-A5E0-DF0092B78418}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6E598E37-990B-4456-A5E0-DF0092B78418}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6E598E37-990B-4456-A5E0-DF0092B78418}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{6E598E37-990B-4456-A5E0-DF0092B78418}.Debug|x86.Build.0 = Debug|Any CPU
+		{6E598E37-990B-4456-A5E0-DF0092B78418}.Debug45|Any CPU.ActiveCfg = Debug|Any CPU
+		{6E598E37-990B-4456-A5E0-DF0092B78418}.Debug45|Any CPU.Build.0 = Debug|Any CPU
+		{6E598E37-990B-4456-A5E0-DF0092B78418}.Debug45|x86.ActiveCfg = Debug|Any CPU
+		{6E598E37-990B-4456-A5E0-DF0092B78418}.Debug45|x86.Build.0 = Debug|Any CPU
+		{6E598E37-990B-4456-A5E0-DF0092B78418}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6E598E37-990B-4456-A5E0-DF0092B78418}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6E598E37-990B-4456-A5E0-DF0092B78418}.Release|x86.ActiveCfg = Release|Any CPU
+		{6E598E37-990B-4456-A5E0-DF0092B78418}.Release|x86.Build.0 = Release|Any CPU
+		{6E598E37-990B-4456-A5E0-DF0092B78418}.Release45|Any CPU.ActiveCfg = Release|Any CPU
+		{6E598E37-990B-4456-A5E0-DF0092B78418}.Release45|Any CPU.Build.0 = Release|Any CPU
+		{6E598E37-990B-4456-A5E0-DF0092B78418}.Release45|x86.ActiveCfg = Release|Any CPU
+		{6E598E37-990B-4456-A5E0-DF0092B78418}.Release45|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

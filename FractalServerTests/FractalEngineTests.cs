@@ -1,14 +1,11 @@
 ﻿using FractalEngine;
 using FractalServer;
-using Hjg.Pngcs;
+using FSTypes;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using PngImageBuilder;
-using System.Drawing;
-using System.IO;
 
 namespace FractalServerTests
 {
-    [TestClass]
+	[TestClass]
     public class FractalEngineTests
 	{
         [TestMethod]

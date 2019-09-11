@@ -58,6 +58,7 @@
   <ItemGroup>
     <ProjectReference Include="..\FractalEngine\FractalEngine.csproj" />
     <ProjectReference Include="..\FractalServer\FractalServer.csproj" />
+    <ProjectReference Include="..\FSTypes\FSTypes.csproj" />
   </ItemGroup>
 
   <ItemGroup>

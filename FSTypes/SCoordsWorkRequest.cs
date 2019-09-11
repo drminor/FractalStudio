@@ -3,7 +3,7 @@ using MqMessages;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
-namespace FractalServer
+namespace FSTypes
 {
 	public class SCoordsWorkRequest
 	{
