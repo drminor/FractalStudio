@@ -2,7 +2,9 @@ import { Component, ViewChild, ElementRef } from '@angular/core';
 
 import { ColorNumbers } from '../../m-map/ColorNumbers';
 
-import { IPoint, Point, IBox, Box,   ColorMapEntryBlendStyle, IMapInfo, MapInfo, Histogram
+import {
+  IPoint, Point, IBox, Box, SPoint, SCoords,
+  ColorMapEntryBlendStyle, IMapInfo, MapInfo, Histogram
 } from '../../m-map/m-map-common';
 
 import { ColorMapUI, ColorMapUIEntry, MapInfoWithColorMap } from '../m-map-common-ui';
@@ -137,7 +139,7 @@ export class MMapDesignerComponent {
   }
 
   onMapInfoUpdated(mapInfo: IMapInfo) {
-    console.log('Received the updated mapinfo from Param Form ' + mapInfo.bottomLeft.x + '.');
+    console.log('Received the updated mapinfo from Param Form ' + mapInfo.coords.botLeft.x + '.');
     this.history.push(this.mapInfo);
     this.updateDownloadLinkVisibility(false);
 
@@ -160,7 +162,7 @@ export class MMapDesignerComponent {
     this.atHome = false;
   }
 
-  onZoomed(mapCoords: IBox) {
+  onZoomed(mapCoords: SCoords) {
     console.log('Received the updated mapinfo from zoom ' + mapCoords.botLeft.x + '.');
     this.history.push(this.mapInfo);
     this.updateDownloadLinkVisibility(false);
@@ -208,10 +210,10 @@ export class MMapDesignerComponent {
   }
 
   private buildMapInfo(): IMapInfo {
-    const bottomLeft: IPoint = new Point(-2.4, -1.2);
-    const topRight: IPoint = new Point(1.2, 1.2);
+    const bottomLeft = SPoint.fromNumericVals(-2.4, -1.2);
+    const topRight = SPoint.fromNumericVals(1.2, 1.2);
 
-    let mapCoords = new Box(bottomLeft, topRight);
+    let mapCoords = new SCoords(bottomLeft, topRight);
 
     let maxIterations = 100;
     let threshold = 4;

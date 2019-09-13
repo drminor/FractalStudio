@@ -23,11 +23,11 @@ namespace FSTypes
 			RightTop = rightTop ?? throw new ArgumentNullException(nameof(rightTop));
 		}
 
-		public SCoords(Coords coords)
-		{
-			LeftBot = new SPoint(coords.LeftBot);
-			RightTop = new SPoint(coords.RightTop);
-		}
+		//public SCoords(Coords coords)
+		//{
+		//	LeftBot = new SPoint(coords.LeftBot);
+		//	RightTop = new SPoint(coords.RightTop);
+		//}
 
 		public override string ToString()
 		{

@@ -38,23 +38,23 @@ namespace FSTypes
 
 		public bool RequiresQuadPrecision()
 		{
-			//if (Coords.TryGetFromSCoords(SCoords, out Coords coords))
-			//{
-			//	if (!HasPrecision(coords.Width) || !HasPrecision(coords.Height))
-			//	{
-			//		return true;
-			//	}
-			//	else
-			//	{
-			//		return false;
-			//	}
-			//}
-			//else
-			//{
-			//	// Cannot parse the values -- invalid string values.
-			//	return false;
-			//}
-			return true;
+			if (Coords.TryGetFromSCoords(SCoords, out Coords coords))
+			{
+				if (!HasPrecision(coords.Width) || !HasPrecision(coords.Height))
+				{
+					return true;
+				}
+				else
+				{
+					return false;
+				}
+			}
+			else
+			{
+				// Cannot parse the values -- invalid string values.
+				return false;
+			}
+			//return true;
 		}
 
 		private bool HasPrecision(double x)

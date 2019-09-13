@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Output, Input, ViewChild, ElementRef, OnInit } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 
-import { IPoint, Point, IBox, Box, IMapInfo, MapInfo } from '../m-map-common';
+import { IBox, Box, IMapInfo, MapInfo, SPoint, SCoords } from '../m-map-common';
 
 import { ColorMapForExport, MapInfoWithColorMap, MapInfoWithColorMapForExport } from '../m-map-common-ui';
 
@@ -70,9 +70,9 @@ export class MMapDesignerParamsComponent implements OnInit {
   private getMapInfo(frm: FormGroup): IMapInfo {
     let result: IMapInfo;
 
-    let botLeft: IPoint = Point.fromStringVals(frm.controls["startX"].value, frm.controls["startY"].value);
-    let topRight: IPoint = Point.fromStringVals(frm.controls["endX"].value, frm.controls["endY"].value);
-    let coords: IBox = new Box(botLeft, topRight);
+    let botLeft = new SPoint(frm.controls["startX"].value, frm.controls["startY"].value);
+    let topRight = new SPoint(frm.controls["endX"].value, frm.controls["endY"].value);
+    let coords = new SCoords(botLeft, topRight);
 
     let maxIterations = parseInt(frm.controls["maxIterations"].value);
     let threshold = parseInt(frm.controls.threshold.value);
@@ -120,20 +120,30 @@ export class MMapDesignerParamsComponent implements OnInit {
   }
 
   private moveMap(dir: string, percent: number) {
-    let newCoords: IBox;
+    let newCoords: SCoords;
 
     let mi = this.mapInfoWithColorMap.mapInfo;
 
     if (dir === 'o') {
-      newCoords = mi.coords.getExpandedBox(percent);
+      newCoords = this.getZoomOutCoords(mi.coords, percent);
     }
     else {
-      newCoords = mi.coords.getShiftedBox(dir, percent);
+      newCoords = this.getShiftedCoords(mi.coords, dir, percent);
     }
 
     let newMapInfo = new MapInfo(newCoords, mi.maxIterations, mi.threshold, mi.iterationsPerStep);
 
     this.mapInfoUpdated.emit(newMapInfo);
+  }
+
+  private getZoomOutCoords(curCoords: SCoords, percent: number): SCoords {
+    let result: SCoords = new SCoords(curCoords.botLeft, curCoords.topRight);
+    return result;
+  }
+
+  private getShiftedCoords(curCoords: SCoords, dir: string, percent: number): SCoords {
+    let result: SCoords = new SCoords(curCoords.botLeft, curCoords.topRight);
+    return result;
   }
 
   onGoBack() {

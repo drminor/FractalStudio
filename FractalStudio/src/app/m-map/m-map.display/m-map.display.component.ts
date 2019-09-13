@@ -7,7 +7,7 @@ import {
   WebWorkerImageDataResponse, WebWorkerMessage, WebWorkerStartRequest,
   WebWorkerIterateRequest, WebWorkerUpdateColorMapRequest,
   Histogram, WebWorkerHistogramRequest, WebWorkerHistorgramResponse,
-  HistArrayPair,  RawMapDataProcessor,  SCoords
+  HistArrayPair,  RawMapDataProcessor, SCoords, SPoint
 } from '../m-map-common';
 
 import { ColorMapUI, MapInfoWithColorMap } from '../m-map-common-ui';
@@ -34,7 +34,7 @@ export class MMapDisplayComponent implements AfterViewInit {
   @ViewChild('myControlCanvas') canvasControlRef: ElementRef;
   @ViewChild('myHiddenCanvas') canvasHiddenRef: ElementRef;
 
-  @Output() zoomed = new EventEmitter<IBox>();
+  @Output() zoomed = new EventEmitter<SCoords>();
   @Output() haveImageData = new EventEmitter<Blob>();
   @Output() haveHistogram = new EventEmitter<Histogram>();
   @Output() buildingComplete = new EventEmitter();
@@ -564,12 +564,7 @@ export class MMapDisplayComponent implements AfterViewInit {
     this.mapSectionResults = [];
     this.mapDataProcessor = new RawMapDataProcessor(regularColorMap);
 
-    let sCoords = SCoords.fromBox(this._mapInfo.coords);
-    let jobRequest: SMapWorkRequest = new SMapWorkRequest(sCoords, this._mapInfo.maxIterations, this.canvasSize);
-
-    // JUST FOR TESTING
-    this.requestNewCoords(TransformType.Right, sCoords, this.canvasSize, 0.5);
-    // END TESTING
+    let jobRequest: SMapWorkRequest = new SMapWorkRequest(this._mapInfo.coords, this._mapInfo.maxIterations, this.canvasSize);
 
     let cc = this.fService.submitJob(jobRequest);
     cc.subscribe(
@@ -579,42 +574,6 @@ export class MMapDisplayComponent implements AfterViewInit {
     );
 
   }
-
-  // The amount should be > 0 and < 1.
-  private requestNewCoords(transformType: TransformType, curCoords: SCoords, canvasSize: ICanvasSize, amount: number) {
-
-    if (amount == 0) {
-      console.log('getNewCoords received an amount = 0, returning original coords with no transform.');
-      return curCoords;
-    }
-
-    if (amount < 0 || amount > 1) {
-      console.log('getNewCoords received an amount < 0 or > 1, using 0.5.');
-      amount = 0.5;
-    }
-
-    let scaledIntAmount = Math.round(amount * 10000);
-
-    let ms: MapSection = new MapSection(new Point(scaledIntAmount, 0), new CanvasSize(10, 10));
-    let request: SCoordsWorkRequest = new SCoordsWorkRequest(transformType, curCoords, this.canvasSize, ms);
-    let cc:Observable<SCoordsWorkRequest> = this.fService.submitCoordsTransformRequest(request);
-    cc.subscribe(
-      v => this.useNewCoords(v),
-      err => console.log('Received error while getting new coords. The error is ' + err + '.'),
-      () => console.log('Request new Coords is complete.')
-    );
-  }
-
-  private useNewCoords(coordsResult: SCoordsWorkRequest) {
-    if (coordsResult !== null) {
-      let newCoords = coordsResult.coords;
-      console.log('The new coords has an sx = ' + newCoords.botLeft.x.toString() + '.');
-    }
-    else {
-      console.log('The new coords is null.');
-    }
-  }
-
 
   private useMapSectionResult(ms: MapSectionResult): void {
     let pixelData = this.mapDataProcessor.getPixelData(ms.imageData);
@@ -834,17 +793,19 @@ export class MMapDisplayComponent implements AfterViewInit {
       this.updateWebServiceColorMap();
       return;
     }
+    else {
+      if (this._buildingNewMap) {
+        //throw new RangeError('The buildingNewMap flag is true on call to updateWorkersColorMap.');
+        console.log('The buildingNewMap flag is true on call to updateWorkersColorMap.');
+      }
+      let regularColorMap = this._colorMap.getRegularColorMap();
+      let upColorMapMsg = WebWorkerUpdateColorMapRequest.CreateRequest(regularColorMap);
 
-    if (this._buildingNewMap) {
-      throw new RangeError('The buildingNewMap flag is true on call to updateWorkersColorMap.');
-    }
-    let regularColorMap = this._colorMap.getRegularColorMap();
-    let upColorMapMsg = WebWorkerUpdateColorMapRequest.CreateRequest(regularColorMap);
-
-    let ptr: number = 0;
-    for (ptr = 0; ptr < this.numberOfSections; ptr++) {
-      let webWorker = this.workers[ptr];
-      webWorker.postMessage(upColorMapMsg);
+      let ptr: number = 0;
+      for (ptr = 0; ptr < this.numberOfSections; ptr++) {
+        let webWorker = this.workers[ptr];
+        webWorker.postMessage(upColorMapMsg);
+      }
     }
   }
 
@@ -905,8 +866,10 @@ export class MMapDisplayComponent implements AfterViewInit {
   private zoomOut(pos: IPoint): void {
     this.zoomBox = null;
     let coords = this._mapInfo.coords;
-    let newCoords = coords.getExpandedBox(50);
-    this.zoomed.emit(newCoords);
+
+    //let newCoords = coords.getExpandedBox(50);
+    this.requestZOutCoords(coords, this.canvasSize, 0.5);
+    //this.zoomed.emit(newCoords);
   }
 
   private zoomIn(box: IBox): void {
@@ -973,48 +936,127 @@ export class MMapDisplayComponent implements AfterViewInit {
     //console.log('Current MapInfo = ' + this.mapInfo.toString());
     //console.log('Canvas = w:' + this.canvasSize.width + ' h:' + this.canvasSize.height + '.');
 
-    let unitExtentX: number = (this._mapInfo.topRight.x - this._mapInfo.bottomLeft.x) / this.canvasSize.width;
-    let unitExtentY: number = (this._mapInfo.topRight.y - this._mapInfo.bottomLeft.y) / this.canvasSize.height;
+    // Update the zoom box to use an origin at the bottom-left instead of the top-left.
+    //let iSy = this.canvasSize.height - zBox.topRight.y;
+    //let iEy = this.canvasSize.height - zBox.botLeft.y;
+    //let zBoxInverted = new Box(new Point(zBox.botLeft.x, iSy), new Point(zBox.topRight.x, iEy));
+    //this.requestZInCoords(this._mapInfo.coords, this.canvasSize, zBoxInverted);
 
-    //console.log('unit x: ' + unitExtentX + ' unit y' + unitExtentY);
+    this.requestZInCoords(this._mapInfo.coords, this.canvasSize, zBox);
 
-    let msx = this._mapInfo.bottomLeft.x + zBox.botLeft.x * unitExtentX;
-    let mex = this._mapInfo.bottomLeft.x + zBox.topRight.x * unitExtentX;
-    //console.log('new map sx: ' + msx + ' new map ex: ' + mex + '.');
+    ////TODO: sc.Use fService
+    //let lcoords = Box.fromSCoords(this._mapInfo.coords);
 
-    // Canvas origin is the top, right -- map coordinate origin is the bottom, right.
-    // Invert the canvas coordinates.
-    let invCanvasSY = this.canvasSize.height - zBox.topRight.y;
-    let invCanvasEY = this.canvasSize.height - zBox.botLeft.y;
+    //let unitExtentX: number = (lcoords.topRight.x - lcoords.botLeft.x) / this.canvasSize.width;
+    //let unitExtentY: number = (lcoords.topRight.y - lcoords.botLeft.y) / this.canvasSize.height;
 
-    //console.log('Inverted Canvas sy:' + invCanvasSY + ' ey:' + invCanvasEY + '.');
+    ////console.log('unit x: ' + unitExtentX + ' unit y' + unitExtentY);
 
-    let msy = this._mapInfo.bottomLeft.y + invCanvasSY * unitExtentY;
-    let mey = this._mapInfo.bottomLeft.y + invCanvasEY * unitExtentY;
-    //console.log('new map sy: ' + msy + ' new map ey: ' + mey + '.');
+    //let msx = lcoords.botLeft.x + zBox.botLeft.x * unitExtentX;
+    //let mex = lcoords.botLeft.x + zBox.topRight.x * unitExtentX;
+    ////console.log('new map sx: ' + msx + ' new map ex: ' + mex + '.');
 
-    let coords: IBox = new Box(new Point(msx, msy), new Point(mex, mey));
-    //let newMapInfo: IMapInfo = new MapInfo(coords, this._mapInfo.maxIterations, this._mapInfo.iterationsPerStep, this._mapInfo.upsideDown);
+    //// Canvas origin is the top, right -- map coordinate origin is the bottom, right.
+    //// Invert the canvas coordinates.
+    //let invCanvasSY = this.canvasSize.height - zBox.topRight.y;
+    //let invCanvasEY = this.canvasSize.height - zBox.botLeft.y;
 
-    //console.log('New MapInfo = ' + newMapInfo.toString());
+    ////console.log('Inverted Canvas sy:' + invCanvasSY + ' ey:' + invCanvasEY + '.');
 
-    //unitExtentX = (newMapInfo.topRight.x - newMapInfo.bottomLeft.x) / this.canvasSize.width;
-    //unitExtentY = (newMapInfo.topRight.y - newMapInfo.bottomLeft.y) / this.canvasSize.height;
-    //console.log('unit x: ' + unitExtentX + ' unit y' + unitExtentY);
+    //let msy = lcoords.botLeft.y + invCanvasSY * unitExtentY;
+    //let mey = lcoords.botLeft.y + invCanvasEY * unitExtentY;
+    ////console.log('new map sy: ' + msy + ' new map ey: ' + mey + '.');
 
-    //if (this.workMethod === WorkMethod.WebService) {
-    //  //this.cancelFServiceJob();
-    //}
-    //else {
-    //  let ptr: number = 0;
-    //  for (; ptr < this.workers.length; ptr++) {
-    //    this.workers[ptr].terminate();
-    //  }
-    //}
+    //let coords: IBox = new Box(new Point(msx, msy), new Point(mex, mey));
+    ////let newMapInfo: IMapInfo = new MapInfo(coords, this._mapInfo.maxIterations, this._mapInfo.iterationsPerStep, this._mapInfo.upsideDown);
 
-    //this._mapInfo = newMapInfo;
-    //this.zoomed.emit(this._mapInfo.coords);
-    this.zoomed.emit(coords);
+    ////console.log('New MapInfo = ' + newMapInfo.toString());
+
+    ////unitExtentX = (newMapInfo.topRight.x - newMapInfo.bottomLeft.x) / this.canvasSize.width;
+    ////unitExtentY = (newMapInfo.topRight.y - newMapInfo.bottomLeft.y) / this.canvasSize.height;
+    ////console.log('unit x: ' + unitExtentX + ' unit y' + unitExtentY);
+
+    ////if (this.workMethod === WorkMethod.WebService) {
+    ////  //this.cancelFServiceJob();
+    ////}
+    ////else {
+    ////  let ptr: number = 0;
+    ////  for (; ptr < this.workers.length; ptr++) {
+    ////    this.workers[ptr].terminate();
+    ////  }
+    ////}
+
+    ////this._mapInfo = newMapInfo;
+    ////this.zoomed.emit(this._mapInfo.coords);
+    //let sCoords = SCoords.fromBox(coords);
+    //this.zoomed.emit(sCoords);
+  }
+
+  // The amount should be > 0 and < 1.
+  private requestZOutCoords(curCoords: SCoords, canvasSize: ICanvasSize, amount: number) {
+
+    if (amount == 0) {
+      console.log('getNewCoords received an amount = 0, returning original coords with no transform.');
+      return curCoords;
+    }
+
+    if (amount < 0 || amount > 1) {
+      console.log('getNewCoords received an amount < 0 or > 1, using 0.5.');
+      amount = 0.5;
+    }
+
+    let scaledIntAmount = Math.round(amount * 10000);
+
+    let ms: MapSection = new MapSection(new Point(scaledIntAmount, 0), new CanvasSize(10, 10));
+    let request: SCoordsWorkRequest = new SCoordsWorkRequest(TransformType.Out, curCoords, this.canvasSize, ms);
+    let cc: Observable<SCoordsWorkRequest> = this.fService.submitCoordsTransformRequest(request);
+    cc.subscribe(
+      v => this.newZoomOutCoordsHandler(v),
+      err => console.log('Received error while getting new ZOut coords. The error is ' + err + '.'),
+      () => console.log('Request new ZOut Coords is complete.')
+    );
+  }
+
+  private requestZInCoords(curCoords: SCoords, canvasSize: ICanvasSize, area: IBox) {
+
+    let ms: MapSection = MapSection.fromBox(area);
+    let request: SCoordsWorkRequest = new SCoordsWorkRequest(TransformType.In, curCoords, this.canvasSize, ms);
+    let cc: Observable<SCoordsWorkRequest> = this.fService.submitCoordsTransformRequest(request);
+    cc.subscribe(
+      v => this.newZoomInCoordsHandler(v),
+      err => console.log('Received error while getting new ZIn coords. The error is ' + err + '.'),
+      () => console.log('Request new ZIn Coords is complete.')
+    );
+  }
+
+  private newZoomInCoordsHandler(coordsResult: SCoordsWorkRequest) {
+    if (coordsResult !== null) {
+      let newCoords = SCoords.clone(coordsResult.coords);
+      console.log('The new in coords has an sx = ' + newCoords.botLeft.x.toString() + '.');
+      console.log('The new in coords has an ex = ' + newCoords.topRight.x.toString() + '.');
+      console.log('The new in coords has an sy = ' + newCoords.botLeft.y.toString() + '.');
+      console.log('The new in coords has an ey = ' + newCoords.topRight.y.toString() + '.');
+
+      this.zoomed.emit(newCoords);
+    }
+    else {
+      console.log('The new coords is null on handle ZIn results.');
+    }
+  }
+
+  private newZoomOutCoordsHandler(coordsResult: SCoordsWorkRequest) {
+    if (coordsResult !== null) {
+      let newCoords = SCoords.clone(coordsResult.coords);
+      console.log('The new out coords has an sx = ' + newCoords.botLeft.x.toString() + '.');
+      console.log('The new out coords has an ex = ' + newCoords.topRight.x.toString() + '.');
+      console.log('The new out coords has an sy = ' + newCoords.botLeft.y.toString() + '.');
+      console.log('The new out coords has an ey = ' + newCoords.topRight.y.toString() + '.');
+
+      this.zoomed.emit(newCoords);
+    }
+    else {
+      console.log('The new coords is null on handle ZOut results.');
+    }
   }
 
   private getIntegerBox(box: IBox): IBox {

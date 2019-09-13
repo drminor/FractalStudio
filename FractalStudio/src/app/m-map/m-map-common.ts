@@ -202,13 +202,13 @@ export interface IBox {
 }
 
 export interface IMapInfo {
-  coords: IBox;
-  bottomLeft: IPoint;
-  topRight: IPoint;
+  coords: SCoords;
+  //bottomLeft: IPoint;
+  //topRight: IPoint;
   maxIterations: number;
   threshold: number;
   iterationsPerStep: number;
-  upsideDown: boolean;
+  //upsideDown: boolean;
   isEqual(other: IMapInfo): boolean;
 
   toString(): string
@@ -275,6 +275,24 @@ export class Point implements IPoint {
 
 export class SPoint {
   constructor(public x: string, public y: string) { }
+
+  public static fromNumericVals(nx: number, ny: number): SPoint {
+    let result = new SPoint(nx.toString(), ny.toString());
+    return result;
+  }
+
+  public static clone(p: SPoint): SPoint {
+    const result = new SPoint(p.x, p.y);
+    return result;
+  }
+
+  public isEqual(p: SPoint): boolean {
+    if (p === null) return false;
+    if (p.x !== this.x) return false;
+    if (p.y !== this.y) return false;
+
+    return true;
+  }
 }
 
 export class SCoords {
@@ -287,6 +305,19 @@ export class SCoords {
 
     return result;
   }
+
+  public static clone(s: SCoords): SCoords {
+    const result = new SCoords(SPoint.clone(s.botLeft), SPoint.clone(s.topRight));
+    return result;
+  }
+
+  public isEqual(c: SCoords): boolean {
+    if (c === null) return false;
+    if (!c.botLeft.isEqual(this.botLeft)) return false;
+    if (!c.topRight.isEqual(this.topRight)) return false;
+
+    return true;
+  }
 }
 
 
@@ -296,6 +327,11 @@ export class Box implements IBox {
   public static fromPointExtent(botLeft: IPoint, width: number, height: number): IBox {
     const result: IBox = new Box(botLeft, new Point(botLeft.x + width, botLeft.y + height));
 
+    return result;
+  }
+
+  public static fromSCoords(coords: SCoords): IBox {
+    let result = new Box(Point.fromStringVals(coords.botLeft.x, coords.botLeft.y), Point.fromStringVals(coords.topRight.x, coords.topRight.y));
     return result;
   }
 
@@ -563,23 +599,23 @@ export class CanvasSize implements ICanvasSize {
 }
 
 export class MapInfo implements IMapInfo {
-  constructor(public coords: IBox, public maxIterations: number, public threshold: number, public iterationsPerStep: number) {
+  constructor(public coords: SCoords, public maxIterations: number, public threshold: number, public iterationsPerStep: number) {
     if (coords === null) {
       throw new Error('When creating a MapInfo, the coords argument cannot be null.');
     }
   }
 
-  public static fromPoints(bottomLeft: IPoint, topRight: IPoint, maxIterations: number, threshold: number, iterationsPerStep: number): IMapInfo {
-    let coords: IBox = new Box(bottomLeft, topRight);
-    let result: IMapInfo = new MapInfo(coords, maxIterations, threshold, iterationsPerStep);
-    return result;
-  }
+  //public static fromPoints(bottomLeft: IPoint, topRight: IPoint, maxIterations: number, threshold: number, iterationsPerStep: number): IMapInfo {
+  //  let coords: IBox = new Box(bottomLeft, topRight);
+  //  let result: IMapInfo = new MapInfo(coords, maxIterations, threshold, iterationsPerStep);
+  //  return result;
+  //}
 
   public static fromIMapInfo(mi: IMapInfo) {
-    let bl = new Point(mi.coords.botLeft.x, mi.coords.botLeft.y);
-    let tr = new Point(mi.coords.topRight.x, mi.coords.topRight.y);
+    let bl = new SPoint(mi.coords.botLeft.x, mi.coords.botLeft.y);
+    let tr = new SPoint(mi.coords.topRight.x, mi.coords.topRight.y);
 
-    let coords: IBox = new Box(bl, tr);
+    let coords: SCoords = new SCoords(bl, tr);
 
     let threshold: number;
     if (mi.threshold === undefined) {
@@ -594,17 +630,17 @@ export class MapInfo implements IMapInfo {
 
   }
 
-  public get bottomLeft(): IPoint {
-    return this.coords.botLeft;
-  }
+  //public get bottomLeft(): IPoint {
+  //  return this.coords.botLeft;
+  //}
 
-  public get topRight(): IPoint {
-    return this.coords.topRight;
-  }
+  //public get topRight(): IPoint {
+  //  return this.coords.topRight;
+  //}
 
-  public get upsideDown(): boolean {
-    return this.coords.isUpsideDown;
-  }
+  //public get upsideDown(): boolean {
+  //  return this.coords.isUpsideDown;
+  //}
 
   public isEqual(other: IMapInfo): boolean {
     if (other === null) return false;
@@ -1154,24 +1190,26 @@ export class MapWorkingData implements IMapWorkingData {
 
   constructor(public canvasSize: ICanvasSize, public mapInfo: IMapInfo, public colorMap: ColorMap, public sectionAnchor: IPoint) {
 
-
     this.elementCount = this.getNumberOfElementsForCanvas(this.canvasSize);
     this.workingVals = this.buildWorkingVals(this.elementCount);
 
+    // TODO: Make sure the mapInfo.coords dosen't have high precision values.
+    let lCoords = Box.fromSCoords(mapInfo.coords);
+
     // X coordinates get larger as one moves from the left of the map to  the right.
-    this.xVals = MapWorkingData.buildVals(this.canvasSize.width, this.mapInfo.bottomLeft.x, this.mapInfo.topRight.x);
+    this.xVals = MapWorkingData.buildVals(this.canvasSize.width, lCoords.botLeft.x, lCoords.topRight.x);
 
     // Y coordinates get larger as one moves from the bottom of the map to the top.
     // But ImageData "blocks" are drawn from top to bottom.
 
-    if (mapInfo.upsideDown) {
+    if (lCoords.isUpsideDown) {
       // The y coordinates are already reversed, just use buildVals
-      this.yVals = MapWorkingData.buildVals(this.canvasSize.height, this.mapInfo.bottomLeft.y, this.mapInfo.topRight.y);
+      this.yVals = MapWorkingData.buildVals(this.canvasSize.height, lCoords.botLeft.y, lCoords.topRight.y);
     }
     else {
       // if we only have a single section, then we must reverse the y values.
       // The y coordinates are not reversed, reverse them here.
-      this.yVals = MapWorkingData.buildVals(this.canvasSize.height, this.mapInfo.topRight.y, this.mapInfo.bottomLeft.y);
+      this.yVals = MapWorkingData.buildVals(this.canvasSize.height, lCoords.topRight.y, lCoords.botLeft.y);
     }
 
     this.curIterations = 0;
@@ -1393,7 +1431,6 @@ export class MapWorkingData implements IMapWorkingData {
 
     console.log('At getWorkingDataSections, ColorMap = ' + colorMap + '.');
 
-
     let result: IMapWorkingData[] = Array<IMapWorkingData>(numberOfSections);
 
     // Calculate the heigth of each section, rounded down to the nearest whole number.
@@ -1403,21 +1440,24 @@ export class MapWorkingData implements IMapWorkingData {
     // Calculate the height of the last section.
     let lastSectionHeight: number = canvasSize.height - sectionHeightWN * (numberOfSections - 1);
 
-    let left = mapInfo.bottomLeft.x;
-    let right = mapInfo.topRight.x;
+    // TODO: Make sure the mapInfo.coords dosen't have high precision values.
+    let lCoords = Box.fromSCoords(mapInfo.coords);
+
+    let left = lCoords.botLeft.x
+    let right = lCoords.topRight.x;
 
     let bottomPtr = 0;
     let topPtr = sectionHeightWN;
 
     let yVals: number[];
 
-    if (mapInfo.upsideDown) {
+    if (lCoords.isUpsideDown) {
       // The y coordinates are already reversed, just use buildVals
-      yVals = MapWorkingData.buildVals(canvasSize.height, mapInfo.bottomLeft.y, mapInfo.topRight.y);
+      yVals = MapWorkingData.buildVals(canvasSize.height, lCoords.botLeft.y, lCoords.topRight.y);
     }
     else {
       // The y coordinates are not reversed, reverse them here.
-      yVals = MapWorkingData.buildVals(canvasSize.height, mapInfo.topRight.y, mapInfo.bottomLeft.y);
+      yVals = MapWorkingData.buildVals(canvasSize.height, lCoords.topRight.y, lCoords.botLeft.y);
     }
 
     let ptr: number = 0;
@@ -1433,7 +1473,8 @@ export class MapWorkingData implements IMapWorkingData {
       let secBotLeft = new Point(left, secBottom);
       let secTopRight = new Point(right, secTop);
 
-      let coords: IBox = new Box(secBotLeft, secTopRight);
+      let tCoords: IBox = new Box(secBotLeft, secTopRight);
+      let coords: SCoords = SCoords.fromBox(tCoords);
       let secMapInfo = new MapInfo(coords, mapInfo.maxIterations, mapInfo.threshold, mapInfo.iterationsPerStep);
 
       let yOffset = ptr * sectionHeightWN;
@@ -1455,7 +1496,8 @@ export class MapWorkingData implements IMapWorkingData {
     let secTop = yVals[topPtr];
     let secTopRight = new Point(right, secTop);
 
-    let coords: IBox = new Box(secBotLeft, secTopRight);
+    let tCoords: IBox = new Box(secBotLeft, secTopRight);
+    let coords: SCoords = SCoords.fromBox(tCoords);
     let secMapInfo = new MapInfo(coords, mapInfo.maxIterations, mapInfo.threshold, mapInfo.iterationsPerStep);
 
     let yOffset = ptr * sectionHeightWN;

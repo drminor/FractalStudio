@@ -1,14 +1,12 @@
 ﻿using System;
 using MqMessages;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
 
 namespace FSTypes
 {
 	public class SCoordsWorkRequest
 	{
 		[JsonProperty("transformType")]
-		//[JsonConverter(typeof(StringEnumConverter))]
 		public TransformType TransformType;
 
 		[JsonProperty("coords")]

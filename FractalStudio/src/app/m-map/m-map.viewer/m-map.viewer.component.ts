@@ -2,7 +2,7 @@ import { Component, ViewChild, ElementRef } from '@angular/core';
 
 import {
   IPoint, Point, IMapInfo, MapInfo, IBox, Box,
-  Histogram, ICanvasSize, CanvasSize
+  Histogram, ICanvasSize, CanvasSize, SCoords, SPoint
 } from '../../m-map/m-map-common';
 
 import { ColorMapUI, ColorMapUIEntry, ColorMapForExport, MapInfoWithColorMap, MapInfoWithColorMapForExport } from '../m-map-common-ui';
@@ -74,7 +74,9 @@ export class MMapViewerComponent {
 
         let coords: IBox;
         if (this._miwcm !== null && this._miwcm.mapInfo !== null) {
-          coords = this._miwcm.mapInfo.coords;
+          // TODO: sc.Don't convert SCoords to IBox
+          coords = Box.fromSCoords(this._miwcm.mapInfo.coords);
+          //coords = this._miwcm.mapInfo.coords;
         }
         else {
           coords = null;
@@ -112,7 +114,9 @@ export class MMapViewerComponent {
     let coords: IBox = null;
 
     if (value !== null) {
-      coords = value.mapInfo.coords;
+      //coords = value.mapInfo.coords;
+      // TODO: sc.Don't convert SCoords to IBox
+      coords = Box.fromSCoords(value.mapInfo.coords);
     }
 
     let params = this.virtualMapParamsProp;
@@ -200,7 +204,9 @@ export class MMapViewerComponent {
     console.log('Viewer component is updating its cur map property.');
     if (this._miwcm !== null) {
 
-      let newMapInfo = new MapInfo(value, this._miwcm.mapInfo.maxIterations, this._miwcm.mapInfo.threshold, this._miwcm.mapInfo.iterationsPerStep);
+      let coords = SCoords.fromBox(value);
+
+      let newMapInfo = new MapInfo(coords, this._miwcm.mapInfo.maxIterations, this._miwcm.mapInfo.threshold, this._miwcm.mapInfo.iterationsPerStep);
       let newMapInfoWithColorMap = new MapInfoWithColorMap(newMapInfo, this._miwcm.colorMapUi);
       this.curMapInfoWithColorMap = newMapInfoWithColorMap;
 

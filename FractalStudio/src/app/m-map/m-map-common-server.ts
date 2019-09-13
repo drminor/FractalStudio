@@ -1,4 +1,4 @@
-import { IPoint, IBox, ICanvasSize, SCoords } from './m-map-common';
+import { IPoint, IBox, ICanvasSize, SCoords, Point, CanvasSize } from './m-map-common';
 import { read } from 'fs';
 
 //export enum JobRequestType {
@@ -19,6 +19,11 @@ export enum TransformType {
 
 export class MapSection {
   constructor(public sectionAnchor: IPoint, public canvasSize: ICanvasSize) { }
+
+  public static fromBox(box: IBox): MapSection {
+    const result = new MapSection(new Point(box.botLeft.x, box.botLeft.y), box.size);
+    return result;
+  }
 }
 
 export class MapSectionResult {
