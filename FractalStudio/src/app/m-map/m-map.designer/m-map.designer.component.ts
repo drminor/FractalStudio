@@ -42,7 +42,7 @@ export class MMapDesignerComponent {
         this._colorMap = value;
       }
       else {
-        console.log('Not updating the value of colorMap, the new serial #s match.');
+        console.log('Designer component is not updating the value of colorMap, the new serial #s match.');
       }
     }
   }
@@ -139,7 +139,7 @@ export class MMapDesignerComponent {
   }
 
   onMapInfoUpdated(mapInfo: IMapInfo) {
-    console.log('Received the updated mapinfo from Param Form ' + mapInfo.coords.botLeft.x + '.');
+    console.log('Received the updated mapinfo from Param Form ' + mapInfo.sCoords.botLeft.x + '.');
     this.history.push(this.mapInfo);
     this.updateDownloadLinkVisibility(false);
 

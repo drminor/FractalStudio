@@ -1,5 +1,6 @@
 ﻿using FSTypes;
 using System;
+using System.Diagnostics;
 
 namespace FractalServer
 {
@@ -49,19 +50,28 @@ namespace FractalServer
             return _cntr;
         }
 
-        private double GetEscapeVelocity(DPoint z, DPoint c, double xSquared, double ySquared)
-        {
-            for (_cntr2 = 0; _cntr2 < 2; _cntr2++)
-            {
-                z.Y = 2 * z.X * z.Y + c.Y;
-                z.X = xSquared - ySquared + c.X;
+		private double GetEscapeVelocity(DPoint z, DPoint c, double xSquared, double ySquared)
+		{
+			for (_cntr2 = 0; _cntr2 < 2; _cntr2++)
+			{
+				z.Y = 2 * z.X * z.Y + c.Y;
+				z.X = xSquared - ySquared + c.X;
 
-                xSquared = _z.X * _z.X;
-                ySquared = _z.Y * _z.Y;
-            }
+				xSquared = _z.X * _z.X;
+				ySquared = _z.Y * _z.Y;
+			}
 
-            double modulus = Math.Log10(xSquared + ySquared) / 2;
-            double nu = Math.Log10(modulus / Log2) / Log2;
+			double modulus = Math.Log10(xSquared + ySquared) / 2;
+			double nu = Math.Log10(modulus / Log2) / Log2;
+
+			nu /= 4;
+
+			if (nu > 1)
+			{
+				Debug.WriteLine($"The value of nu is {nu}, using 1.0");
+				nu = 1;
+			}
+
 
             double result = 1 - nu / 4;
 

@@ -12,16 +12,19 @@ namespace FractalEngine
 		public const string INPUT_COORDS_Q_PATH = @".\private$\FCoordResults";
 		public static TimeSpan DefaultWaitDuration = TimeSpan.FromSeconds(10);
 
+		private int _nextJobId;
+
 		public CoordsMath()
 		{
 			WaitDuration = DefaultWaitDuration;
+			_nextJobId = -1;
 		}
 
 		public TimeSpan WaitDuration { get; set; }
 
 		public SCoords DoOp(SCoordsWorkRequest sCoordsWorkRequest)
 		{
-			FJobRequest fJobRequest = CreateFJobRequest(sCoordsWorkRequest);
+			FJobRequest fJobRequest = CreateFJobRequest(sCoordsWorkRequest, ++_nextJobId);
 			string requestMsgId = SendJobToMq(fJobRequest);
 
 			SCoords result = GetResponseFromMq(requestMsgId);
@@ -82,7 +85,7 @@ namespace FractalEngine
 			}
 		}
 
-		private FJobRequest CreateFJobRequest(SCoordsWorkRequest sCoordsWorkRequest)
+		private FJobRequest CreateFJobRequest(SCoordsWorkRequest sCoordsWorkRequest, int jobId)
 		{
 			SCoords sCoords = sCoordsWorkRequest.SCoords;
 			MqMessages.Coords coords = new MqMessages.Coords(sCoords.LeftBot.X, sCoords.RightTop.X, sCoords.LeftBot.Y, sCoords.RightTop.Y);
@@ -93,7 +96,9 @@ namespace FractalEngine
 			MapSection ms = sCoordsWorkRequest.MapSection;
 
 			RectangleInt area = new RectangleInt(new PointInt(ms.SectionAnchor.X, ms.SectionAnchor.Y), new SizeInt(ms.CanvasSize.Width, ms.CanvasSize.Height));
-			FJobRequest fJobRequest = new FJobRequest(sCoordsWorkRequest.JobId, FJobRequestType.TransformCoords,
+
+
+			FJobRequest fJobRequest = new FJobRequest(jobId, FJobRequestType.TransformCoords,
 				coords, samplePoints, area, 0, sCoordsWorkRequest.TransformType);
 
 			return fJobRequest;

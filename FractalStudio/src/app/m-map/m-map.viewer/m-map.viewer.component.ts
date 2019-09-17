@@ -75,7 +75,7 @@ export class MMapViewerComponent {
         let coords: IBox;
         if (this._miwcm !== null && this._miwcm.mapInfo !== null) {
           // TODO: sc.Don't convert SCoords to IBox
-          coords = Box.fromSCoords(this._miwcm.mapInfo.coords);
+          coords = Box.fromSCoords(this._miwcm.mapInfo.sCoords);
           //coords = this._miwcm.mapInfo.coords;
         }
         else {
@@ -116,7 +116,7 @@ export class MMapViewerComponent {
     if (value !== null) {
       //coords = value.mapInfo.coords;
       // TODO: sc.Don't convert SCoords to IBox
-      coords = Box.fromSCoords(value.mapInfo.coords);
+      coords = Box.fromSCoords(value.mapInfo.sCoords);
     }
 
     let params = this.virtualMapParamsProp;

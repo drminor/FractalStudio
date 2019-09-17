@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using Newtonsoft.Json;
 
 namespace FSTypes
@@ -40,7 +41,8 @@ namespace FSTypes
 		{
 			if (Coords.TryGetFromSCoords(SCoords, out Coords coords))
 			{
-				if (!HasPrecision(coords.Width) || !HasPrecision(coords.Height))
+				if (!HasPrecision(GetSamplePointDiff(coords.LeftBot.X, coords.RightTop.X, CanvasSize.Width))
+					|| !HasPrecision(GetSamplePointDiff(coords.LeftBot.Y, coords.RightTop.Y, CanvasSize.Height)))
 				{
 					return true;
 				}
@@ -52,22 +54,36 @@ namespace FSTypes
 			else
 			{
 				// Cannot parse the values -- invalid string values.
+				Debug.WriteLine("Cannot parse the SCoords value.");
 				return false;
 			}
-			//return true;
+		}
+
+		private double GetSamplePointDiff(double s, double e, int extent)
+		{
+			double unit = (e - s) / extent;
+			double second = s + unit;
+			double diff = second - s;
+			return diff;
 		}
 
 		private bool HasPrecision(double x)
 		{
-			if (x == 0) return false;
-
-			double temp = x / 1000;
-			if (x != temp * 1000)
-			{
+			if (x == 0)
 				return false;
-			}
+
+			if (IsSubnormal(x))
+				return false;
 
 			return true;
+		}
+
+		const long ExponentMask = 0x7FF0000000000000;
+		private bool IsSubnormal(double v)
+		{
+			long bithack = BitConverter.DoubleToInt64Bits(v);
+			if (bithack == 0) return false;
+			return (bithack & ExponentMask) == 0;
 		}
 	}
 

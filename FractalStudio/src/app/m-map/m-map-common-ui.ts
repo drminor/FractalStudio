@@ -1,6 +1,6 @@
 import { ColorNumbers } from './ColorNumbers';
 
-import { IMapInfo, MapInfo, ColorMapEntry, ColorMapEntryBlendStyle, ColorMap } from './m-map-common';
+import { IMapInfo, MapInfo, ColorMapEntry, ColorMapEntryBlendStyle, ColorMap, MapInfoForExport, IMapInfoForExport } from './m-map-common';
 
 
 export class ColorMapEntryForExport {
@@ -332,7 +332,7 @@ export class MapInfoWithColorMap {
     //console.log('Loaded the MapInfoWithColorMapForExport and it has version = ' + miwcmfe.version + '.');
 
     // Create a new MapInfo from the loaded data.
-    let mapInfo = MapInfo.fromIMapInfo(miwcmfe.mapInfo);
+    let mapInfo = MapInfo.fromMapInfoForExport(miwcmfe.mapInfo);
 
     // Create a new ColorMapUI from the loaded data.
     let colorMap = ColorMapUI.fromColorMapForExport(miwcmfe.colorMap, serialNumber);
@@ -345,5 +345,5 @@ export class MapInfoWithColorMap {
 export class MapInfoWithColorMapForExport {
   public version: number = 1.0;
 
-  constructor(public mapInfo: IMapInfo, public colorMap: ColorMapForExport) { }
+  constructor(public mapInfo: IMapInfoForExport, public colorMap: ColorMapForExport) { }
 }

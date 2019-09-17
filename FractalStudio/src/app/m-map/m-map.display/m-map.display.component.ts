@@ -119,7 +119,7 @@ export class MMapDisplayComponent implements AfterViewInit {
       else {
         // The new mapInfo has a value, and we have a working map.
 
-        if (!this._mapInfo.coords.isEqual(mi.coords)
+        if (!this._mapInfo.sCoords.isEqual(mi.sCoords)
           || this._mapInfo.threshold !== mi.threshold
           || this._mapInfo.maxIterations > mi.maxIterations
           || (this._colorMap.serialNumber !== cm.serialNumber && this._mapInfo.maxIterations !== mi.maxIterations)
@@ -138,33 +138,35 @@ export class MMapDisplayComponent implements AfterViewInit {
         }
 
         if (this._colorMap.serialNumber !== cm.serialNumber) {
+          console.log('map-display found the colormap serial #s to be different.');
           // We would not be here if we have an updated maxIterations.
           this._mapInfo.iterationsPerStep = mi.iterationsPerStep;
           this._colorMap = cm;
 
           if (this.viewInitialized) {
-            console.log('m-map.display.component is receiving an updated color map.');
             this.updateWorkersColorMap();
           }
         }
         else {
+          console.log('map-display found the colormap serial #s to be the same.');
           if (this._mapInfo.maxIterations !== mi.maxIterations) {
             this._mapInfo.iterationsPerStep = mi.iterationsPerStep;
             this._mapInfo.maxIterations = mi.maxIterations;
             this.doMoreIterations(mi.maxIterations);
           }
           else {
-            if (this._mapInfo.iterationsPerStep !== mi.iterationsPerStep) {
-              // The only change is to the iterationsPerStep.
-              // We must force a change so that our caller will get a signal
-              // that the rebuild is complete.
-              this._mapInfo.iterationsPerStep = mi.iterationsPerStep;
+            console.log('map-display found no change in the mapinfo or color map.');
+            //if (this._mapInfo.iterationsPerStep !== mi.iterationsPerStep) {
+            //  // The only change is to the iterationsPerStep.
+            //  // We must force a change so that our caller will get a signal
+            //  // that the rebuild is complete.
+            //  this._mapInfo.iterationsPerStep = mi.iterationsPerStep;
 
-              if (this.viewInitialized) {
-                console.log('m-map.display.component is getting an update of only the iterationsPerStep and is forcing a colorMapUpdate.');
-                this.updateWorkersColorMap();
-              }
-            }
+            //  if (this.viewInitialized) {
+            //    console.log('m-map.display.component is getting an update of only the iterationsPerStep and is forcing a colorMapUpdate.');
+            //    this.updateWorkersColorMap();
+            //  }
+            //}
           }
 
         }
@@ -200,13 +202,10 @@ export class MMapDisplayComponent implements AfterViewInit {
     this.numberOfSections = 4;
     //this.workMethod = WorkMethod.WebWorkers;
     this.workMethod = WorkMethod.WebService;
-    //this.useWorkers = true;
 
     //// For simplicity, do not use Web Workers and use only one section.
     //this.numberOfSections = 1;
-    ////this.useWorkers = false;
     //this.workMethod = WorkMethod.ForeGround;
-
 
     this.zoomBox = null;
     this.canvasElement = null;
@@ -564,7 +563,7 @@ export class MMapDisplayComponent implements AfterViewInit {
     this.mapSectionResults = [];
     this.mapDataProcessor = new RawMapDataProcessor(regularColorMap);
 
-    let jobRequest: SMapWorkRequest = new SMapWorkRequest(this._mapInfo.coords, this._mapInfo.maxIterations, this.canvasSize);
+    let jobRequest: SMapWorkRequest = new SMapWorkRequest(this._mapInfo.sCoords, this._mapInfo.maxIterations, this.canvasSize);
 
     let cc = this.fService.submitJob(jobRequest);
     cc.subscribe(
@@ -576,7 +575,7 @@ export class MMapDisplayComponent implements AfterViewInit {
   }
 
   private useMapSectionResult(ms: MapSectionResult): void {
-    let pixelData = this.mapDataProcessor.getPixelData(ms.imageData);
+    let pixelData = this.mapDataProcessor.getPixelData(ms.imageData, true);
     let imageData = new ImageData(pixelData, ms.mapSection.canvasSize.width, ms.mapSection.canvasSize.height);
 
     this.mapSectionResults.push(ms);
@@ -584,8 +583,8 @@ export class MMapDisplayComponent implements AfterViewInit {
     this.draw(imageData, ms.mapSection);
   }
 
-  private reUseMapSectionResult(ms: MapSectionResult): void {
-    let pixelData = this.mapDataProcessor.getPixelData(ms.imageData);
+  private reUseMapSectionResult(ms: MapSectionResult, updateHist: boolean): void {
+    let pixelData = this.mapDataProcessor.getPixelData(ms.imageData, updateHist);
     let imageData = new ImageData(pixelData, ms.mapSection.canvasSize.width, ms.mapSection.canvasSize.height);
 
     //console.log('About to draw map section for x:' + ms.mapSection.sectionAnchor.x + ' and y:' + ms.mapSection.sectionAnchor.y);
@@ -789,15 +788,16 @@ export class MMapDisplayComponent implements AfterViewInit {
   }
 
   private updateWorkersColorMap(): void {
+    console.log('m-map.display.component updating the image based on the new color map.');
+
     if (this.workMethod === WorkMethod.WebService) {
       this.updateWebServiceColorMap();
-      return;
     }
     else {
-      if (this._buildingNewMap) {
-        //throw new RangeError('The buildingNewMap flag is true on call to updateWorkersColorMap.');
-        console.log('The buildingNewMap flag is true on call to updateWorkersColorMap.');
-      }
+      //if (this._buildingNewMap) {
+      //  //throw new RangeError('The buildingNewMap flag is true on call to updateWorkersColorMap.');
+      //  console.log('The buildingNewMap flag is true on call to updateWorkersColorMap.');
+      //}
       let regularColorMap = this._colorMap.getRegularColorMap();
       let upColorMapMsg = WebWorkerUpdateColorMapRequest.CreateRequest(regularColorMap);
 
@@ -811,14 +811,26 @@ export class MMapDisplayComponent implements AfterViewInit {
 
   private updateWebServiceColorMap(): void {
     let regularColorMap = this._colorMap.getRegularColorMap();
-    this.mapDataProcessor = new RawMapDataProcessor(regularColorMap);
+    let updateHist: boolean;
+    if (this.mapDataProcessor == null) {
+      this.mapDataProcessor = new RawMapDataProcessor(regularColorMap);
+      updateHist = true;
+    }
+    else {
+      this.mapDataProcessor.colorMap = regularColorMap;
+      updateHist = false;
+    }
+
     let jobId = this.fService.JobId;
 
     let ptr: number;
     for (ptr = 0; ptr < this.mapSectionResults.length; ptr++) {
       let msr = this.mapSectionResults[ptr];
       if (msr.jobId === jobId) {
-        this.reUseMapSectionResult(msr);
+        this.reUseMapSectionResult(msr, updateHist);
+      }
+      else {
+        console.log('Not using MapSectionResult to redraw during updateWebServiceColorMap because the jobId doesnt match.');
       }
     }
   }
@@ -865,7 +877,7 @@ export class MMapDisplayComponent implements AfterViewInit {
 
   private zoomOut(pos: IPoint): void {
     this.zoomBox = null;
-    let coords = this._mapInfo.coords;
+    let coords = this._mapInfo.sCoords;
 
     //let newCoords = coords.getExpandedBox(50);
     this.requestZOutCoords(coords, this.canvasSize, 0.5);
@@ -942,7 +954,9 @@ export class MMapDisplayComponent implements AfterViewInit {
     //let zBoxInverted = new Box(new Point(zBox.botLeft.x, iSy), new Point(zBox.topRight.x, iEy));
     //this.requestZInCoords(this._mapInfo.coords, this.canvasSize, zBoxInverted);
 
-    this.requestZInCoords(this._mapInfo.coords, this.canvasSize, zBox);
+    let upSideDownCoords = this._mapInfo.sCoords.getUpSideDown();
+
+    this.requestZInCoords(upSideDownCoords, this.canvasSize, zBox);
 
     ////TODO: sc.Use fService
     //let lcoords = Box.fromSCoords(this._mapInfo.coords);
@@ -1032,6 +1046,7 @@ export class MMapDisplayComponent implements AfterViewInit {
   private newZoomInCoordsHandler(coordsResult: SCoordsWorkRequest) {
     if (coordsResult !== null) {
       let newCoords = SCoords.clone(coordsResult.coords);
+      newCoords = newCoords.getUpSideDown();
       console.log('The new in coords has an sx = ' + newCoords.botLeft.x.toString() + '.');
       console.log('The new in coords has an ex = ' + newCoords.topRight.x.toString() + '.');
       console.log('The new in coords has an sy = ' + newCoords.botLeft.y.toString() + '.');

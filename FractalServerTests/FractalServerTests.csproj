@@ -74,7 +74,7 @@
   <ItemGroup>
     <Compile Include="OrangeGradiant.cs" />
     <Compile Include="FractalEngineTests.cs" />
-    <Compile Include="UnitTest1.cs" />
+    <Compile Include="BuildMapTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

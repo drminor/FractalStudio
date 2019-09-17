@@ -241,6 +241,7 @@ export class ColorMapEditorComponent implements OnInit {
       // Save a copy to use if we want to re-apply these colors.
       this._lastLoadedColorMap = newColorMap;
 
+      console.log('The color-map-editor has loaded a color map with highcolor = ' + newColorMap.highColorCss + '.');
       this.colorMapUpdated.emit(newColorMap);
     });
 

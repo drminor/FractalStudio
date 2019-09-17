@@ -5,12 +5,11 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PngImageBuilder;
 using System.Drawing;
 using System.IO;
-using System.Text;
 
 namespace FractalServerTests
 {
     [TestClass]
-    public class UnitTest1
+    public class BuildMapTests
     {
         public const string BasePath = @"C:\Users\david_000\Documents\Mbrodts";
 

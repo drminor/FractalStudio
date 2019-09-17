@@ -66,8 +66,6 @@ namespace FractalEngine
 			{
 				throw new ArgumentException("Cannot parse the SCoords into a Coords value.");
 			}
-
-
 		}
 
 		private double[][] BuildValueSections(double start, double end, int extent, int sectionExtent, out int sectionCount, out int lastExtent)
@@ -142,7 +140,7 @@ namespace FractalEngine
 					return null;
 				}
 			}
-			System.Diagnostics.Debug.WriteLine($"Creating SubJob for hSection: {_hSectionPtr}, vSection: {_vSectionPtr}.");
+			//System.Diagnostics.Debug.WriteLine($"Creating SubJob for hSection: {_hSectionPtr}, vSection: {_vSectionPtr}.");
 
 			int w;
 			int h;

@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Output, Input, ViewChild, ElementRef, OnInit } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 
-import { IBox, Box, IMapInfo, MapInfo, SPoint, SCoords } from '../m-map-common';
+import { IBox, Box, IMapInfo, MapInfo, SPoint, SCoords, MapInfoForExport, IMapInfoForExport } from '../m-map-common';
 
 import { ColorMapForExport, MapInfoWithColorMap, MapInfoWithColorMapForExport } from '../m-map-common-ui';
 
@@ -56,10 +56,10 @@ export class MMapDesignerParamsComponent implements OnInit {
   constructor() { }
 
   private updateForm(mapInfo: IMapInfo): void {
-    this.mapCoordsForm.controls["startX"].setValue(mapInfo.coords.botLeft.x);
-    this.mapCoordsForm.controls["endX"].setValue(mapInfo.coords.topRight.x);
-    this.mapCoordsForm.controls["startY"].setValue(mapInfo.coords.botLeft.y);
-    this.mapCoordsForm.controls["endY"].setValue(mapInfo.coords.topRight.y);
+    this.mapCoordsForm.controls["startX"].setValue(mapInfo.sCoords.botLeft.x);
+    this.mapCoordsForm.controls["endX"].setValue(mapInfo.sCoords.topRight.x);
+    this.mapCoordsForm.controls["startY"].setValue(mapInfo.sCoords.botLeft.y);
+    this.mapCoordsForm.controls["endY"].setValue(mapInfo.sCoords.topRight.y);
 
     this.mapCoordsForm.controls["maxIterations"].setValue(mapInfo.maxIterations);
     this.mapCoordsForm.controls.threshold.setValue(mapInfo.threshold);
@@ -125,10 +125,10 @@ export class MMapDesignerParamsComponent implements OnInit {
     let mi = this.mapInfoWithColorMap.mapInfo;
 
     if (dir === 'o') {
-      newCoords = this.getZoomOutCoords(mi.coords, percent);
+      newCoords = this.getZoomOutCoords(mi.sCoords, percent);
     }
     else {
-      newCoords = this.getShiftedCoords(mi.coords, dir, percent);
+      newCoords = this.getShiftedCoords(mi.sCoords, dir, percent);
     }
 
     let newMapInfo = new MapInfo(newCoords, mi.maxIterations, mi.threshold, mi.iterationsPerStep);
@@ -157,9 +157,12 @@ export class MMapDesignerParamsComponent implements OnInit {
   onSaveMapInfo() {
     let colorMapForExport = ColorMapForExport.FromColorMap(this.mapInfoWithColorMap.colorMapUi);
     let mapInfo = this.getMapInfo(this.mapCoordsForm);
-    let miwcmfe = new MapInfoWithColorMapForExport(mapInfo, colorMapForExport);
+    let mife: IMapInfoForExport = MapInfoForExport.fromMapInfo(mapInfo);
+    let miwcmfe = new MapInfoWithColorMapForExport(mife, colorMapForExport);
 
+    //let dump: string = JSON.stringify(miwcmfe, this.replacer, 2);
     let dump: string = JSON.stringify(miwcmfe, null, 2);
+
     let dataUri = "data:text/json;charset=utf-8," + encodeURIComponent(dump);
 
     let a = this.downloadRef.nativeElement as HTMLAnchorElement;
@@ -194,6 +197,7 @@ export class MMapDesignerParamsComponent implements OnInit {
       let rawResult: string = fr.result as string;
       let miwcmfe: MapInfoWithColorMapForExport = JSON.parse(rawResult) as MapInfoWithColorMapForExport;
       let miwcm = MapInfoWithColorMap.fromForExport(miwcmfe, -1);
+      console.log('Loading color map, the highcolor is ' + miwcm.colorMapUi.highColorCss + '.');
       this.mapInfoLoaded.emit(miwcm);
     });
 

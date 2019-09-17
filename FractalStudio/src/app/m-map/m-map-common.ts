@@ -202,16 +202,23 @@ export interface IBox {
 }
 
 export interface IMapInfo {
-  coords: SCoords;
-  //bottomLeft: IPoint;
-  //topRight: IPoint;
+  sCoords: SCoords;
   maxIterations: number;
   threshold: number;
   iterationsPerStep: number;
-  //upsideDown: boolean;
+  version: number;
   isEqual(other: IMapInfo): boolean;
 
   toString(): string
+}
+
+export interface IMapInfoForExport {
+  coords: IBox;
+  sCoords: SCoords;
+  maxIterations: number;
+  threshold: number;
+  iterationsPerStep: number;
+  version: number;
 }
 
 export interface IMapWorkingData {
@@ -308,6 +315,14 @@ export class SCoords {
 
   public static clone(s: SCoords): SCoords {
     const result = new SCoords(SPoint.clone(s.botLeft), SPoint.clone(s.topRight));
+    return result;
+  }
+
+  public getUpSideDown(): SCoords {
+    let botLeft = new SPoint(this.botLeft.x, this.topRight.y);
+    let topRight = new SPoint(this.topRight.x, this.botLeft.y);
+
+    const result = new SCoords(botLeft, topRight);
     return result;
   }
 
@@ -599,21 +614,23 @@ export class CanvasSize implements ICanvasSize {
 }
 
 export class MapInfo implements IMapInfo {
-  constructor(public coords: SCoords, public maxIterations: number, public threshold: number, public iterationsPerStep: number) {
-    if (coords === null) {
-      throw new Error('When creating a MapInfo, the coords argument cannot be null.');
+
+  public version: number = 2.0;
+
+  constructor(public sCoords: SCoords, public maxIterations: number, public threshold: number, public iterationsPerStep: number) {
+    if (sCoords === null) {
+      throw new Error('When creating a MapInfo, the sCoords argument cannot be null.');
     }
   }
 
-  //public static fromPoints(bottomLeft: IPoint, topRight: IPoint, maxIterations: number, threshold: number, iterationsPerStep: number): IMapInfo {
-  //  let coords: IBox = new Box(bottomLeft, topRight);
-  //  let result: IMapInfo = new MapInfo(coords, maxIterations, threshold, iterationsPerStep);
-  //  return result;
-  //}
+  public static fromIMapInfo(mi: IMapInfo): MapInfo {
 
-  public static fromIMapInfo(mi: IMapInfo) {
-    let bl = new SPoint(mi.coords.botLeft.x, mi.coords.botLeft.y);
-    let tr = new SPoint(mi.coords.topRight.x, mi.coords.topRight.y);
+    if (typeof mi.version === 'undefined') {
+      mi.version = 1.0;
+    }
+
+    let bl = new SPoint(mi.sCoords.botLeft.x, mi.sCoords.botLeft.y);
+    let tr = new SPoint(mi.sCoords.topRight.x, mi.sCoords.topRight.y);
 
     let coords: SCoords = new SCoords(bl, tr);
 
@@ -630,21 +647,36 @@ export class MapInfo implements IMapInfo {
 
   }
 
-  //public get bottomLeft(): IPoint {
-  //  return this.coords.botLeft;
-  //}
+  public static fromMapInfoForExport(mife: IMapInfoForExport): MapInfo {
 
-  //public get topRight(): IPoint {
-  //  return this.coords.topRight;
-  //}
+    if (typeof mife.version === 'undefined') {
+      mife.version = 1.0;
+    }
+    console.log('MapInfo.fromIMapInfo is receiving an IMapInfoForExport with version = ' + mife.version + '.');
 
-  //public get upsideDown(): boolean {
-  //  return this.coords.isUpsideDown;
-  //}
+    let coords: SCoords;
+
+    if (mife.version === 1.0) {
+      coords = SCoords.fromBox(mife.coords);
+    }
+    else {
+      coords = SCoords.clone(mife.sCoords);
+    }
+
+    let threshold: number;
+    if (mife.threshold === undefined) {
+      threshold = 4;
+    }
+    else {
+      threshold = mife.threshold;
+    }
+    let result = new MapInfo(coords, mife.maxIterations, threshold, mife.iterationsPerStep);
+    return result;
+  }
 
   public isEqual(other: IMapInfo): boolean {
     if (other === null) return false;
-    if (!this.coords.isEqual(other.coords)) return false;
+    if (!this.sCoords.isEqual(other.sCoords)) return false;
     if (this.maxIterations !== other.maxIterations) return false;
     if (this.iterationsPerStep !== other.iterationsPerStep) return false;
     if (this.threshold !== other.threshold) return false;
@@ -653,8 +685,27 @@ export class MapInfo implements IMapInfo {
   }
 
   public toString(): string {
-    return 'sx:' + this.coords.botLeft.x + ' ex:' + this.coords.topRight.x + ' sy:' + this.coords.botLeft.y + ' ey:' + this.coords.topRight.y + ' mi:' + this.maxIterations + ' ips:' + this.iterationsPerStep + '.';
+    return 'sx:' + this.sCoords.botLeft.x + ' ex:' + this.sCoords.topRight.x + ' sy:' + this.sCoords.botLeft.y + ' ey:' + this.sCoords.topRight.y + ' mi:' + this.maxIterations + ' ips:' + this.iterationsPerStep + '.';
   }
+}
+
+export class MapInfoForExport implements IMapInfoForExport {
+  public coords: IBox;
+  public version: number;
+
+  constructor(public sCoords: SCoords, public maxIterations: number, public threshold: number, public iterationsPerStep: number) {
+    if (sCoords === null) {
+      throw new Error('When creating a MapInfo, the sCoords argument cannot be null.');
+    }
+    delete this.coords; // This is only used for reading v1.0 instances.
+    this.version = 2.0;
+  }
+
+  public static fromMapInfo(mi: IMapInfo): IMapInfoForExport {
+    let result = new MapInfoForExport(mi.sCoords, mi.maxIterations, mi.threshold, mi.iterationsPerStep);
+    return result;
+  }
+
 }
 
 class IndexAndRunningSum {
@@ -1142,7 +1193,7 @@ export class RawMapDataProcessor {
     this.EscVelHist = new Histogram();
   }
 
-  public getPixelData(iterCounts: number[]): Uint8ClampedArray {
+  public getPixelData(iterCounts: number[], updateHist: boolean): Uint8ClampedArray {
 
     let elementCount = iterCounts.length;
     let imgData = new Uint8ClampedArray(elementCount * 4);
@@ -1155,12 +1206,13 @@ export class RawMapDataProcessor {
       let wv = iterCounts[ptr];
       wv = wv / 10000;
       let cnt = Math.trunc(wv);
-
-      this.Histogram.addVal(cnt);
-
       let escapeVal = wv - cnt;
-      let escVel = Math.round(escapeVal * 100);
-      this.EscVelHist.addVal(escVel);
+
+      if (updateHist) {
+        this.Histogram.addVal(cnt);
+        let escVel = Math.round(escapeVal * 100);
+        this.EscVelHist.addVal(escVel);
+      }
 
       let cNum: number = 0;
       try {
@@ -1194,7 +1246,7 @@ export class MapWorkingData implements IMapWorkingData {
     this.workingVals = this.buildWorkingVals(this.elementCount);
 
     // TODO: Make sure the mapInfo.coords dosen't have high precision values.
-    let lCoords = Box.fromSCoords(mapInfo.coords);
+    let lCoords = Box.fromSCoords(mapInfo.sCoords);
 
     // X coordinates get larger as one moves from the left of the map to  the right.
     this.xVals = MapWorkingData.buildVals(this.canvasSize.width, lCoords.botLeft.x, lCoords.topRight.x);
@@ -1441,7 +1493,7 @@ export class MapWorkingData implements IMapWorkingData {
     let lastSectionHeight: number = canvasSize.height - sectionHeightWN * (numberOfSections - 1);
 
     // TODO: Make sure the mapInfo.coords dosen't have high precision values.
-    let lCoords = Box.fromSCoords(mapInfo.coords);
+    let lCoords = Box.fromSCoords(mapInfo.sCoords);
 
     let left = lCoords.botLeft.x
     let right = lCoords.topRight.x;

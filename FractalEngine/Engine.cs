@@ -199,7 +199,7 @@ namespace FractalEngine
 								_nextJobPtr = 0;
 
 							result = jobs[_nextJobPtr++];
-							Debug.WriteLine($"The next job has id = {result.JobId}.");
+							//Debug.WriteLine($"The next job has id = {result.JobId}.");
 							break;
 						}
 					}
@@ -207,38 +207,9 @@ namespace FractalEngine
 
 			} while (true);
 
-			Debug.WriteLine("Get Next Job is returning.");
+			//Debug.WriteLine("Get Next Job is returning.");
 			return result;
 		}
-
-		//private IJob GetFirstUncompletedJob(IJob[] jobs, ref int jobPtr)
-		//{
-		//	IJob result = null;
-
-		//	if (jobPtr > jobs.Length - 1)
-		//		jobPtr = 0;
-
-		//	int originalPtr = jobPtr;
-
-		//	do
-		//	{
-		//		if (!jobs[jobPtr].IsCompleted)
-		//		{
-		//			result = jobs[jobPtr++];
-		//			break;
-		//		}
-		//		else
-		//		{
-		//			jobPtr++;
-		//		}
-
-		//		if (jobPtr > jobs.Length - 1)
-		//			jobPtr = 0;
-
-		//	} while (jobPtr != originalPtr);
-
-		//	return result;
-		//}
 
 		#endregion
 
@@ -363,9 +334,9 @@ namespace FractalEngine
 								parentJob.DecrementSubJobsRemainingToBeSent();
 
 							bool isFinalSubJob = subJob.ParentJob.IsLastSubJob;
-							Debug.WriteLine($"Sending subjob with x: {subJob.result.MapSection.SectionAnchor.X} " +
-								$"and y: {subJob.result.MapSection.SectionAnchor.Y}. " +
-								$"It has {subJob.result.ImageData.Length} count values.");
+							//Debug.WriteLine($"Sending subjob with x: {subJob.result.MapSection.SectionAnchor.X} " +
+							//	$"and y: {subJob.result.MapSection.SectionAnchor.Y}. " +
+							//	$"It has {subJob.result.ImageData.Length} count values.");
 
 							if (_clientConnector != null)
 							{
@@ -534,11 +505,6 @@ namespace FractalEngine
 		private MapSectionResult CreateMSR(FJobResult fJobResult, int JobId)
 		{
 			int[] counts = fJobResult.GetValues();
-			for(int ptr = 0; ptr < counts.Length; ptr++)
-			{
-				counts[ptr] = counts[ptr] * 10000;
-			}
-
 			MapSection ms = new MapSection(fJobResult.Area);
 			MapSectionResult result = new MapSectionResult(fJobResult.JobId, ms, counts);
 			return result;

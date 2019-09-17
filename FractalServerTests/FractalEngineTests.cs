@@ -58,5 +58,23 @@ namespace FractalServerTests
 			int[] packedCntsAndEscVels = workingData.GetValues(mswr);
 		}
 
+		[TestMethod]
+		public void TestRequiresQuadPrecision()
+		{
+			string connectionId = "dummy";
+			int maxIterations = 100;
+			CanvasSize canvasSize = new CanvasSize(1000, 1000);
+
+			//DPoint leftBot = new DPoint(-0.7764118407199196, 0.13437492059936854);
+			//DPoint rightTop = new DPoint(-0.7764117329761986, 0.13437499747905846);
+
+			SPoint leftBot =  new SPoint("-0.7764118407199196", "0.13437492059936854");
+			SPoint rightTop = new SPoint("-0.7764118407199300", "0.13437499747905846");
+
+			SCoords coords = new SCoords(leftBot, rightTop);
+			SMapWorkRequest mapWorkRequest = new SMapWorkRequest(coords, maxIterations, canvasSize, connectionId);
+			bool requiresQuadPrecision = mapWorkRequest.RequiresQuadPrecision();
+
+		}
 	}
 }
