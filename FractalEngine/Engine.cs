@@ -309,13 +309,24 @@ namespace FractalEngine
 				return;
 			}
 
-			MapSectionWorkRequest mswr = subJob.MapSectionWorkRequest;
-			MapCalculator workingData = new MapCalculator();
-			int[] imageData = workingData.GetValues(mswr);
+			if (!(subJob.ParentJob is Job parentJob))
+			{
+				throw new InvalidOperationException("When processing a subjob, the parent job must be implemented by the Job class.");
+			}
 
-			MapSection mapSection = mswr.MapSection;
-			MapSectionResult mapSectionResult = new MapSectionResult(subJob.ParentJob.JobId, mapSection, imageData);
-			subJob.result = mapSectionResult;
+			MapSectionWorkRequest mswr = subJob.MapSectionWorkRequest;
+			MapCalculator mapCalculator = new MapCalculator(mswr.MaxIterations);
+			//MapCalculator mapCalculator = parentJob.MapCalculator;
+
+			MapSectionWorkResult workResult = mapCalculator.GetInitialWorkingValues(mswr);
+			workResult = mapCalculator.GetWorkingValues(mswr, workResult);
+
+			//int[] imageData = mapCalculator.GetValues(mswr);
+			//MapSection mapSection = mswr.MapSection;
+			//MapSectionResult mapSectionResult = new MapSectionResult(subJob.ParentJob.JobId, mapSection, imageData);
+			//subJob.result = mapSectionResult;
+
+			subJob.workResult = workResult;
 
 			SendQueue.Add(subJob);
 		}
@@ -340,7 +351,8 @@ namespace FractalEngine
 
 							if (_clientConnector != null)
 							{
-								_clientConnector.ReceiveImageData(subJob.ConnectionId, subJob.result, isFinalSubJob);
+								MapSectionResult msr = subJob.BuildMapSectionResult();
+								_clientConnector.ReceiveImageData(subJob.ConnectionId, msr, isFinalSubJob);
 							}
 						}
 					}
@@ -489,7 +501,7 @@ namespace FractalEngine
 
 			SubJob subJob = new SubJob(parentJob, mswr, parentJob.ConnectionId)
 			{
-				result = CreateMSR(jobResult, parentJob.JobId)
+				workResult = CreateWorkResult(jobResult)
 			};
 
 			return subJob;
@@ -502,11 +514,19 @@ namespace FractalEngine
 			return result;
 		}
 
-		private MapSectionResult CreateMSR(FJobResult fJobResult, int JobId)
+		//private MapSectionResult CreateWorkResult(FJobResult fJobResult, int JobId)
+		//{
+		//	int[] counts = fJobResult.GetValues();
+		//	MapSection ms = new MapSection(fJobResult.Area);
+		//	MapSectionResult result = new MapSectionResult(fJobResult.JobId, ms, counts);
+		//	return result;
+		//}
+
+		private MapSectionWorkResult CreateWorkResult(FJobResult fJobResult)
 		{
 			int[] counts = fJobResult.GetValues();
-			MapSection ms = new MapSection(fJobResult.Area);
-			MapSectionResult result = new MapSectionResult(fJobResult.JobId, ms, counts);
+			DPoint[] zValues = new DPoint[0];
+			MapSectionWorkResult result = new MapSectionWorkResult(counts, zValues);
 			return result;
 		}
 

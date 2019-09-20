@@ -68,7 +68,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BigFloat.cs" />
     <Compile Include="ColorMap.cs" />
     <Compile Include="ColorMapBlendStyle.cs" />
     <Compile Include="ColorMapColor.cs" />
@@ -76,11 +75,12 @@
     <Compile Include="ColorMapEntryForExport.cs" />
     <Compile Include="ColorMapForExport.cs" />
     <Compile Include="MapCalculator.cs" />
-    <Compile Include="MapWorkRequest.cs" />
     <Compile Include="JsonReader.cs" />
     <Compile Include="MapInfo.cs" />
     <Compile Include="MapInfoWithColorMap.cs" />
     <Compile Include="MapInfoWithColorMapForExport.cs" />
+    <Compile Include="MapSectionWorkResult.cs" />
+    <Compile Include="MapSectionWorkRequest.cs" />
     <Compile Include="MapWorkingData.cs" />
     <Compile Include="MPointWork.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -102,9 +102,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="BigFloat_LICENSE.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

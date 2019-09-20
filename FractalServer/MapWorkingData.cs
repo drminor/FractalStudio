@@ -49,7 +49,9 @@ namespace FractalServer
             {
                 c.X = _xVals[xPtr];
 
-                int cnt = _mPointWork.Iterate(c, out double escapeVelocity);
+				DPoint z = new DPoint(0, 0);
+				int cnt = 0;
+				double escapeVelocity = _mPointWork.Iterate(c, ref z, ref cnt);
 
                 int[] cComps;
                 if (cnt == MapInfo.MaxIterations)

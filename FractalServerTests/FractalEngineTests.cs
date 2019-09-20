@@ -54,7 +54,7 @@ namespace FractalServerTests
 			//MapWorkingData2 workingData = new MapWorkingData2(mswr.MapSection.CanvasSize, mswr.MaxIterations, mswr.XValues, mswr.YValues);
 			//int[] packedCntsAndEscVels = workingData.GetValues();
 
-			MapCalculator workingData = new MapCalculator();
+			MapCalculator workingData = new MapCalculator(mswr.MaxIterations);
 			int[] packedCntsAndEscVels = workingData.GetValues(mswr);
 		}
 

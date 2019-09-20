@@ -47,9 +47,9 @@
     <Compile Include="CanvasSize.cs" />
     <Compile Include="Coords.cs" />
     <Compile Include="DPoint.cs" />
+    <Compile Include="ICountsAndPointsBin.cs" />
     <Compile Include="MapSection.cs" />
     <Compile Include="MapSectionResult.cs" />
-    <Compile Include="MapSectionWorkRequest.cs" />
     <Compile Include="Point.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SCoords.cs" />

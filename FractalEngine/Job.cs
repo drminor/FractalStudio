@@ -26,7 +26,11 @@ namespace FractalEngine
 
 			IsCompleted = false;
 			_numberOfSectionRemainingToSend = _samplePoints.NumberOfHSections * _samplePoints.NumberOfVSections;
+
+			MapCalculator = new MapCalculator(sMapWorkRequest.MaxIterations);
 		}
+
+		public MapCalculator MapCalculator { get; }
 
 		private SamplePoints<double> GetSamplePoints(SMapWorkRequest sMapWorkRequest)
 		{

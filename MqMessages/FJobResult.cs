@@ -6,6 +6,10 @@ namespace MqMessages
 	[Serializable]
 	public class FJobResult
 	{
+		public int JobId { get; set; }
+		public RectangleInt Area { get; set; }
+		public string Counts { get; set; }
+
 		public FJobResult() : this(-1, new RectangleInt(), (string) null) {	}
 
 		public FJobResult(int jobId, RectangleInt area, string counts)
@@ -28,10 +32,6 @@ namespace MqMessages
 			Area = area;
 			SetCounts(values);
 		}
-
-		public int JobId { get; set; }
-		public RectangleInt Area { get; set; }
-		public string Counts { get; set; }
 
 		public void SetCountsF(float[] values)
 		{
