@@ -43,7 +43,7 @@
   <ItemGroup>
     <None Include="FileDictionary.cs" />
     <Compile Include="SerializationHelper.cs" />
-    <Compile Include="TextRecordsKeyed.cs" />
+    <Compile Include="ValueRecords.cs" />
     <None Include="TextRecords.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using MqMessages;
+using Newtonsoft.Json;
 
 namespace FSTypes
 {
@@ -20,6 +21,11 @@ namespace FSTypes
 		{
 			X = x;
 			Y = y;
+		}
+
+		public PointInt GetPointInt()
+		{
+			return new PointInt(X, Y);
 		}
 	}
 }

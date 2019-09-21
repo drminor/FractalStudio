@@ -53,10 +53,6 @@ namespace FractalEngine
 
 		public int SubmitJob(IJob job)
 		{
-			//HaveWork.Reset();
-			//CancelAllJobs();
-			//Debug.WriteLine("Cancel All Jobs completed.");
-
 			int jobId;
 
 			lock (_jobLock)
@@ -69,15 +65,6 @@ namespace FractalEngine
 			}
 
 			return jobId;
-		}
-
-		private void CancelAllJobs()
-		{
-			var jobIds = _jobs.Values.Select(v => v.JobId).ToList();
-			foreach(int jobId in jobIds)
-			{
-				CancelJob(jobId);
-			}
 		}
 
 		public void CancelJob(int jobId)
@@ -102,6 +89,15 @@ namespace FractalEngine
 
 					// Remove "in transit" responses.
 					RemoveResponses(jobForMq.MqRequestCorrelationId);
+				}
+				else if(job is Job localJob) 
+				{
+					localJob.DeleteCountsRepo();
+					localJob.Dispose();
+				}
+				else
+				{
+					throw new InvalidOperationException("Job type not recognized.");
 				}
 			}
 		}
@@ -161,6 +157,15 @@ namespace FractalEngine
 			get
 			{
 				return _nextJobId++;
+			}
+		}
+
+		private void CancelAllJobs()
+		{
+			var jobIds = _jobs.Values.Select(v => v.JobId).ToList();
+			foreach (int jobId in jobIds)
+			{
+				CancelJob(jobId);
 			}
 		}
 
@@ -316,16 +321,9 @@ namespace FractalEngine
 
 			MapSectionWorkRequest mswr = subJob.MapSectionWorkRequest;
 			MapCalculator mapCalculator = new MapCalculator(mswr.MaxIterations);
-			//MapCalculator mapCalculator = parentJob.MapCalculator;
 
 			MapSectionWorkResult workResult = mapCalculator.GetInitialWorkingValues(mswr);
 			workResult = mapCalculator.GetWorkingValues(mswr, workResult);
-
-			//int[] imageData = mapCalculator.GetValues(mswr);
-			//MapSection mapSection = mswr.MapSection;
-			//MapSectionResult mapSectionResult = new MapSectionResult(subJob.ParentJob.JobId, mapSection, imageData);
-			//subJob.result = mapSectionResult;
-
 			subJob.workResult = workResult;
 
 			SendQueue.Add(subJob);
@@ -353,6 +351,11 @@ namespace FractalEngine
 							{
 								MapSectionResult msr = subJob.BuildMapSectionResult();
 								_clientConnector.ReceiveImageData(subJob.ConnectionId, msr, isFinalSubJob);
+							}
+
+							if (subJob.ParentJob is Job pJob)
+							{
+								pJob.WriteWorkResult(subJob.MapSectionWorkRequest.MapSection, subJob.workResult);
 							}
 						}
 					}
@@ -513,14 +516,6 @@ namespace FractalEngine
 			MapSectionWorkRequest result = new MapSectionWorkRequest(mapSection, maxIterations, null, null);
 			return result;
 		}
-
-		//private MapSectionResult CreateWorkResult(FJobResult fJobResult, int JobId)
-		//{
-		//	int[] counts = fJobResult.GetValues();
-		//	MapSection ms = new MapSection(fJobResult.Area);
-		//	MapSectionResult result = new MapSectionResult(fJobResult.JobId, ms, counts);
-		//	return result;
-		//}
 
 		private MapSectionWorkResult CreateWorkResult(FJobResult fJobResult)
 		{

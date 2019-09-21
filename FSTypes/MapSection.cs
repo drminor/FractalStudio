@@ -29,6 +29,9 @@ namespace FSTypes
 			CanvasSize = new CanvasSize(rectangleInt.Size.W, rectangleInt.Size.H);
 		}
 
-
+		public RectangleInt GetRectangleInt()
+		{
+			return new RectangleInt(SectionAnchor.GetPointInt(), CanvasSize.GetSizeInt());
+		}
 	}
 }

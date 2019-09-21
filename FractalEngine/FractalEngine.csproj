@@ -80,6 +80,10 @@
     <Compile Include="SubJob.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\CountsRepo\CountsRepo.csproj">
+      <Project>{ea81508d-ffa1-4b28-8f05-15bbaa2bf8b0}</Project>
+      <Name>CountsRepo</Name>
+    </ProjectReference>
     <ProjectReference Include="..\FractalServer\FractalServer.csproj">
       <Project>{8efe2d37-974c-4979-af9a-e2c080bdd7e4}</Project>
       <Name>FractalServer</Name>

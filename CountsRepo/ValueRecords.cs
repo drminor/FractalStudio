@@ -157,7 +157,7 @@ namespace CountsRepo
 		public string IndexFilename => _indices.IndexFilePath;
 
 		// Adds a value by key, optionally saves index
-		public void Add(K key, V value, bool saveIndex = false)
+		public void Add(K key, V value, bool saveOnWrite = false)
         {
 			if(_indices.ContainsKey(key))
 			{
@@ -173,7 +173,7 @@ namespace CountsRepo
 				_indices.AddIndex(offset, valueLength, key);
 			}
 
-			if (saveIndex)
+			if (saveOnWrite)
             {
                 _indices.Save();
             }

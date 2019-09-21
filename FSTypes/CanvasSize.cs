@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using MqMessages;
+using Newtonsoft.Json;
 
 namespace FSTypes
 {
@@ -22,6 +23,11 @@ namespace FSTypes
             Width = width;
             Height = height;
         }
+
+		public SizeInt GetSizeInt()
+		{
+			return new SizeInt(Width, Height);
+		}
 
     }
 }
