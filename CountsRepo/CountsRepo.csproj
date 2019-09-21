@@ -47,5 +47,11 @@
     <None Include="TextRecords.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\FSTypes\FSTypes.csproj">
+      <Project>{6E598E37-990B-4456-A5E0-DF0092B78418}</Project>
+      <Name>FSTypes</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

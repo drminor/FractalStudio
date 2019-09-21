@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Diagnostics;
+using System.IO;
 using System.Text;
 using System.Xml;
 using System.Xml.Serialization;
@@ -24,15 +26,14 @@ namespace CountsRepo
 			}
 			catch (Exception ex)
 			{
-				Console.WriteLine(ex);
+				Debug.WriteLine(ex);
 				return false;
 			}
 		}
 
-		public static bool Deserialize<T>(string value, out T obj)
+		public static bool Deserialize<T>(string xml, out T obj)
 		{
-
-			if (value == null)
+			if (xml == null)
 			{
 				obj = default(T);
 				return false;
@@ -41,16 +42,16 @@ namespace CountsRepo
 			try
 			{
 				XmlSerializer xmlserializer = new XmlSerializer(typeof(T));
-				using (XmlReader reader = XmlReader.Create(value))
+				using (TextReader reader = new StringReader(xml))
 				{
 					obj = (T)xmlserializer.Deserialize(reader);
-					reader.Close();
 				}
+
 				return true;
 			}
 			catch (Exception ex)
 			{
-				Console.WriteLine(ex);
+				Debug.WriteLine(ex);
 				obj = default(T);
 				return false;
 			}

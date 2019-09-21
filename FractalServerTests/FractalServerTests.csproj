@@ -76,11 +76,16 @@
     <Compile Include="FractalEngineTests.cs" />
     <Compile Include="BuildMapTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="CountsRepoTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\CountsRepo\CountsRepo.csproj">
+      <Project>{ea81508d-ffa1-4b28-8f05-15bbaa2bf8b0}</Project>
+      <Name>CountsRepo</Name>
+    </ProjectReference>
     <ProjectReference Include="..\FractalEngine\FractalEngine.csproj">
       <Project>{b09271e9-bd16-44b9-a738-1d2d22a04655}</Project>
       <Name>FractalEngine</Name>
@@ -96,6 +101,10 @@
     <ProjectReference Include="..\Hjg.Pngcs\Hjg.Pngcs.csproj">
       <Project>{fd3b0d50-46b3-4a83-9a6d-c641569142cf}</Project>
       <Name>Hjg.Pngcs</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\MqMessages\MqMessages.csproj">
+      <Project>{7E22EEE8-9D53-4561-8909-BDBC4741D8A8}</Project>
+      <Name>MqMessages</Name>
     </ProjectReference>
     <ProjectReference Include="..\PngImageBuilder\PngImageBuilder.csproj">
       <Project>{c9f8e097-bf85-442e-b942-2fa9d6c28ddb}</Project>

@@ -1,20 +1,21 @@
-﻿using System;
+﻿using FSTypes;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
-using System.Runtime.Serialization;
 using System.Text;
 
 namespace CountsRepo
 {
     // Record
-    class IndexEntry<K> where K: ISerializable, IEqualityComparer<K>
+    class IndexEntry<K> where K: IEqualityComparer<K>
 	{
 		public IndexEntry(uint offset, uint valueLength, string serializedKey)
 		{
 			Offset = offset;
 			ValueLength = valueLength;
 			SerializedKey = serializedKey;
-			KeyLength = serializedKey.Length;
+			//KeyLength = serializedKey.Length;
 
 			SerializationHelper.Deserialize(serializedKey, out K temp);
 			Key = temp;
@@ -27,13 +28,13 @@ namespace CountsRepo
 			Key = key;
 
 			SerializedKey = GetKeyAsString(key);
-			KeyLength = SerializedKey.Length;
+			//KeyLength = SerializedKey.Length;
 		}
 
 		public uint Offset { get; set; }
         public uint ValueLength { get; set; }
 
-		public int KeyLength { get; }
+		//public int KeyLength { get; }
 		public string SerializedKey { get; }
 		public K Key { get; }
 
@@ -46,30 +47,31 @@ namespace CountsRepo
 		}
 	}
 
-    class IndexKeys<K> where K: ISerializable, IEqualityComparer<K>
+    class IndexKeys<K> where K: IEqualityComparer<K>
     {
 		private Dictionary<K, IndexEntry<K>> _indexes;
 
-        public readonly string IndexFilename;
+        public readonly string IndexFilePath;
         public bool IsDirty { get; set; }
         
-        public IndexKeys(string indexfilename)
+        public IndexKeys(string indexFilePath, bool createIfNotFound = true)
         {
-			IndexFilename = indexfilename;
+			IndexFilePath = indexFilePath;
 			_indexes = new Dictionary<K, IndexEntry<K>>();
-			Load();
+			Load(createIfNotFound);
             IsDirty = false;
         }
 
         // Loads index from index file
-        private void Load()
+        private void Load(bool createIfNotFound)
         {
-            if (!File.Exists(IndexFilename))
+            if (!File.Exists(IndexFilePath))
             {
-				throw new FileNotFoundException($"The file {IndexFilename} does not exist.");
+				if(!createIfNotFound)
+					throw new FileNotFoundException($"The file {IndexFilePath} does not exist.");
             }
 
-            using (var fs=File.OpenRead(IndexFilename))
+            using (var fs = File.Open(IndexFilePath, FileMode.OpenOrCreate, FileAccess.Read))
             {
                 using (var br = new BinaryReader(fs))
                 {
@@ -77,12 +79,9 @@ namespace CountsRepo
                     {
 						uint offset = br.ReadUInt32();
 						uint valLength = br.ReadUInt32();
-						int keyLength = br.ReadInt32();
+						string serializedKey = br.ReadString();
 
-						char[] keyCharArray = br.ReadChars(keyLength);
-						string serializedKey = new string(keyCharArray);
 						var indexRec = new IndexEntry<K>(offset, valLength, serializedKey);
-
                         _indexes.Add(indexRec.Key, indexRec);
                     }
                 }
@@ -94,7 +93,7 @@ namespace CountsRepo
         public void Save()
         {
             if (!IsDirty) return;
-            using (var fs = File.OpenWrite(IndexFilename))
+            using (var fs = File.OpenWrite(IndexFilePath))
             {
                 using (var bw = new BinaryWriter(fs))
                 {
@@ -102,14 +101,17 @@ namespace CountsRepo
                     {
                         bw.Write(indexRec.Offset);
                         bw.Write(indexRec.ValueLength);
-						bw.Write(indexRec.KeyLength);
-
-						char[] keyCharArray = indexRec.SerializedKey.ToCharArray();
-						bw.Write(keyCharArray);
+						bw.Write(indexRec.SerializedKey);
                     }
                 }
             }
         }
+
+		public bool ContainsKey(K key)
+		{
+			bool result = _indexes.ContainsKey(key);
+			return result;
+		}
 
         // returns specified IndexRecord
         public IndexEntry<K> GetIndex(K key)
@@ -132,47 +134,46 @@ namespace CountsRepo
         }
     }
 
-    public class ValueRecords<K,V> : IDisposable where K: ISerializable, IEqualityComparer<K> where V: ISerializable
-    {
-		public const string WORKING_DIR = @"c:\dice";
-		private static readonly string TEMP_FILE_NAME = Path.Combine(WORKING_DIR, @"tempdata.dat");
+    public class ValueRecords<K,V> : IDisposable where K: IEqualityComparer<K> where V: IPartsBin
+	{
+		public const string WORKING_DIR = @"C:\_FractalFiles";
+		public const string DATA_FILE_EXT = "frd";
+		public const string INDEX_FILE_EXT = "frx";
+
+		private static readonly string TEMP_FILE_NAME = Path.Combine(WORKING_DIR, @"tempdata.frd");
 		private static readonly string BAK_FILE_NAME = Path.Combine(WORKING_DIR, @"tempdata.bak");
 
 		private IndexKeys<K> _indices;
         private FileStream _fs;
 
-		private StringBuilder _sbBuffer;
-
-        public ValueRecords(string indexFilename, string textFilename)
+        public ValueRecords(string filename)
         {
-			_indices = new IndexKeys<K>(indexFilename);
-			_fs = new FileStream(textFilename, FileMode.OpenOrCreate);
-			TextFilename = textFilename;
-
-			_sbBuffer = new StringBuilder();
+			TextFilename = GetFilePaths(filename, out string indexFilePath);
+			_indices = new IndexKeys<K>(indexFilePath);
+			_fs = new FileStream(TextFilename, FileMode.OpenOrCreate);
 		}
 
 		public readonly string TextFilename;
-		public string IndexFilename => _indices.IndexFilename;
+		public string IndexFilename => _indices.IndexFilePath;
 
 		// Adds a value by key, optionally saves index
 		public void Add(K key, V value, bool saveIndex = false)
         {
+			if(_indices.ContainsKey(key))
+			{
+				throw new ArgumentException($"The key: {key} already has been added.");
+			}
+
             _fs.Seek(0, SeekOrigin.End);
             var offset = (uint) _fs.Position;
 
-			SerializationHelper.Serialize(value, ref _sbBuffer);
-			string serializedValue = _sbBuffer.ToString();
-
 			using (var bw = new BinaryWriter(_fs, Encoding.UTF8, true))
             {
+				uint valueLength = WriteParts(bw, value);
+				_indices.AddIndex(offset, valueLength, key);
+			}
 
-                bw.Write(serializedValue);
-            }
-
-            _indices.AddIndex(offset, (uint)serializedValue.Length, key);
-
-            if (saveIndex)
+			if (saveIndex)
             {
                 _indices.Save();
             }
@@ -187,11 +188,7 @@ namespace CountsRepo
                 return;
             }
 
-			SerializationHelper.Serialize(value, ref _sbBuffer);
-			string serializedValue = _sbBuffer.ToString();
-
-
-			if (serializedValue.Length > record.ValueLength)
+			if (value.TotalBytesToWrite > record.ValueLength)
             {
                 _fs.Seek(0, SeekOrigin.End);            
                 record.Offset = (uint)_fs.Position;
@@ -202,11 +199,11 @@ namespace CountsRepo
 				_fs.Seek(record.Offset, SeekOrigin.Begin);
             }
 
-            record.ValueLength = (uint)serializedValue.Length;
+			record.ValueLength = value.TotalBytesToWrite;
 
             using (var bw = new BinaryWriter(_fs, Encoding.UTF8, true))
             {
-                bw.Write(serializedValue);
+				WriteParts(bw, value);
             }
 
             _indices.IsDirty = true; // Makes sure Indices are rewritten
@@ -217,60 +214,123 @@ namespace CountsRepo
             _indices.Save();
         }
 
-        public V GetValue(K key)
-        {
-            var record = _indices.GetIndex(key);
+		//     // creates a temp file then renames the old one
+		//     public ValueRecords<K, V> Compress()
+		//     {
+		//         File.Delete(BAK_FILE_NAME);
+		//         File.Delete(TEMP_FILE_NAME);
 
-            if (record == null)
-            {
-				return default(V);
-            }
+		//         using (var newfs = File.OpenWrite(TEMP_FILE_NAME))
+		//         {
+		//             using (var br = new BinaryReader(_fs))
+		//             {
+		//                 using (var bw = new BinaryWriter(newfs))
+		//                 {
+		//			foreach (IndexEntry<K> indexRec in _indices.IndexEntries)
+		//			{
+		//                         _fs.Seek(indexRec.Offset, SeekOrigin.Begin);
 
-            using (var br = new BinaryReader(_fs, Encoding.UTF8,true))
-            {
-                _fs.Seek(record.Offset, SeekOrigin.Begin);
-				string serializedValue = br.ReadString();
+		//                         var str = br.ReadString();
+		//                         indexRec.Offset = (uint)newfs.Position;
+		//                         indexRec.ValueLength = (uint)str.Length;
+		//                         bw.Write(str);
+		//                     }
+		//                 }
+		//             }
+		//         }
 
-				SerializationHelper.Deserialize(serializedValue, out V obj);
+		//         _indices.IsDirty = true;
 
-				return obj;
-            }
-        }
+		//Dispose();
 
-        // creates a temp file then renames the old one
-        public ValueRecords<K, V> Compress()
-        {
-            File.Delete(BAK_FILE_NAME);
-            File.Delete(TEMP_FILE_NAME);
-   
-            using (var newfs = File.OpenWrite(TEMP_FILE_NAME))
-            {
-                using (var br = new BinaryReader(_fs))
-                {
-                    using (var bw = new BinaryWriter(newfs))
-                    {
-						foreach (IndexEntry<K> indexRec in _indices.IndexEntries)
-						{
-                            _fs.Seek(indexRec.Offset, SeekOrigin.Begin);
+		//         File.Move(TextFilename, BAK_FILE_NAME);
+		//         File.Move(TEMP_FILE_NAME, TextFilename);
 
-                            var str = br.ReadString();
-                            indexRec.Offset = (uint)newfs.Position;
-                            indexRec.ValueLength = (uint)str.Length;
-                            bw.Write(str);
-                        }
-                    }
-                }
-            }
+		//return new ValueRecords<K,V>(IndexFilename, TextFilename);
+		//     }
 
-            _indices.IsDirty = true;
+		public bool ReadParts(K key, V value)
+		{
+			var record = _indices.GetIndex(key);
 
-			Dispose();
+			if (record == null)
+			{
+				return false;
+			}
 
-            File.Move(TextFilename, BAK_FILE_NAME);
-            File.Move(TEMP_FILE_NAME, TextFilename);
+			using (var br = new BinaryReader(_fs, Encoding.UTF8, true))
+			{
+				_fs.Seek(record.Offset, SeekOrigin.Begin);
+				bool success = LoadParts(br, _fs, value);
 
-			return new ValueRecords<K,V>(IndexFilename, TextFilename);
-        }
+				return success;
+			}
+		}
+
+		private uint WriteParts(BinaryWriter bw, V value)
+		{
+			uint totalBytes = 0;
+
+			for(int partCntr = 0; partCntr < value.PartCount; partCntr++)
+			{
+				PartDetail pDetail = value.PartDetails[partCntr];
+
+				if(pDetail.IncludeOnWrite)
+				{
+					int partLen = pDetail.PartLength;
+					byte[] buf = value.GetPart(partCntr);
+					bw.Write(buf);
+					totalBytes += (uint) partLen;
+				}
+			}
+
+			return totalBytes;
+		}
+
+		private bool LoadParts(BinaryReader br, FileStream fs, V value)
+		{
+			for (int partCntr = 0; partCntr < value.PartCount; partCntr++)
+			{
+				PartDetail pDetail = value.PartDetails[partCntr];
+
+				if (pDetail.IncludeOnRead)
+				{
+					byte[] buf = br.ReadBytes(pDetail.PartLength);
+					value.SetPart(partCntr, buf);
+				}
+				else
+				{
+					fs.Seek(pDetail.PartLength, SeekOrigin.Current);
+				}
+			}
+
+			return true;
+		}
+
+		public static string GetFilePaths(string fn, out string indexPath)
+		{
+			string dataPath = Path.ChangeExtension(Path.Combine(WORKING_DIR, fn), DATA_FILE_EXT);
+			indexPath = Path.ChangeExtension(Path.Combine(WORKING_DIR, fn), INDEX_FILE_EXT);
+
+			return dataPath;
+		}
+
+		public static bool DeleteRepo(string filename)
+		{
+			try
+			{
+				string dataPath = GetFilePaths(filename, out string indexPath);
+				File.Delete(dataPath);
+				File.Delete(indexPath);
+				return true;
+			}
+			catch (Exception e)
+			{
+				Debug.WriteLine($"Received error while deleting the Repo: {filename}. The error is {e.Message}.");
+				return false;
+			}
+		}
+
 
 		#region IDisposable Support
 
