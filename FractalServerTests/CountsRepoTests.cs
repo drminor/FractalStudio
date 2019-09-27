@@ -22,20 +22,20 @@ namespace FractalServerTests
 
 				repo.Add(key, val);
 
-				MapSectionWorkResult val2 = new MapSectionWorkResult(100 * 100);
+				MapSectionWorkResult val2 = new MapSectionWorkResult(100 * 100, haveZValues:true, includeZValuesOnRead: true);
 				repo.ReadParts(key, val2);
 			}
 
 			using (ValueRecords<RectangleInt, MapSectionWorkResult> repo = new ValueRecords<RectangleInt, MapSectionWorkResult>(filename))
 			{
 				RectangleInt key = new RectangleInt(new PointInt(0, 0), new SizeInt(100, 100));
-				MapSectionWorkResult val2 = new MapSectionWorkResult(100 * 100);
+				MapSectionWorkResult val2 = new MapSectionWorkResult(100 * 100, haveZValues: true, includeZValuesOnRead: true);
 
 				repo.ReadParts(key, val2);
 			}
 		}
 
-			private MapSectionWorkResult BuildMSWR(int size)
+		private MapSectionWorkResult BuildMSWR(int size)
 		{
 			int[] counts = new int[size];
 			DPoint[] zValues = new DPoint[size];

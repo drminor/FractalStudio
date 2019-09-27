@@ -156,6 +156,23 @@ namespace CountsRepo
 		public readonly string TextFilename;
 		public string IndexFilename => _indices.IndexFilePath;
 
+		public IEnumerable<V> GetValues(Func<K, V> emptyValueProvider) 
+		{
+			IReadOnlyCollection<IndexEntry<K>> keys = _indices.IndexEntries;
+
+			using (var br = new BinaryReader(_fs, Encoding.UTF8, true))
+			{
+				foreach (IndexEntry<K> key in keys)
+				{
+					V newV = emptyValueProvider(key.Key);
+					_fs.Seek(key.Offset, SeekOrigin.Begin);
+					bool success = LoadParts(br, _fs, newV);
+
+					yield return newV;
+				}
+			}
+		}
+
 		// Adds a value by key, optionally saves index
 		public void Add(K key, V value, bool saveOnWrite = false)
         {
@@ -275,13 +292,10 @@ namespace CountsRepo
 			{
 				PartDetail pDetail = value.PartDetails[partCntr];
 
-				if(pDetail.IncludeOnWrite)
-				{
-					int partLen = pDetail.PartLength;
-					byte[] buf = value.GetPart(partCntr);
-					bw.Write(buf);
-					totalBytes += (uint) partLen;
-				}
+				int partLen = pDetail.PartLength;
+				byte[] buf = value.GetPart(partCntr);
+				bw.Write(buf);
+				totalBytes += (uint) partLen;
 			}
 
 			return totalBytes;
@@ -315,8 +329,18 @@ namespace CountsRepo
 			return dataPath;
 		}
 
+		public static bool RepoExists(string filename)
+		{
+			string dataPath = GetFilePaths(filename, out string indexPath);
+
+			bool result = File.Exists(dataPath);
+			return result;
+		}
+
 		public static bool DeleteRepo(string filename)
 		{
+			Debug.WriteLine($"Deleting the Repo: {filename}.");
+
 			try
 			{
 				string dataPath = GetFilePaths(filename, out string indexPath);
@@ -330,7 +354,6 @@ namespace CountsRepo
 				return false;
 			}
 		}
-
 
 		#region IDisposable Support
 

@@ -324,7 +324,7 @@ export class ColorMapForExport {
 export class MapInfoWithColorMap {
   constructor(public mapInfo: IMapInfo, public colorMapUi: ColorMapUI) { }
 
-  public static fromForExport(miwcmfe: MapInfoWithColorMapForExport, serialNumber: number): MapInfoWithColorMap {
+  public static fromForExport(miwcmfe: MapInfoWithColorMapForExport, serialNumber: number, filename: string): MapInfoWithColorMap {
 
     if (typeof miwcmfe.version === 'undefined') {
       miwcmfe.version = 1.0;
@@ -332,7 +332,7 @@ export class MapInfoWithColorMap {
     //console.log('Loaded the MapInfoWithColorMapForExport and it has version = ' + miwcmfe.version + '.');
 
     // Create a new MapInfo from the loaded data.
-    let mapInfo = MapInfo.fromMapInfoForExport(miwcmfe.mapInfo);
+    let mapInfo = MapInfo.fromMapInfoForExport(miwcmfe.mapInfo, filename);
 
     // Create a new ColorMapUI from the loaded data.
     let colorMap = ColorMapUI.fromColorMapForExport(miwcmfe.colorMap, serialNumber);

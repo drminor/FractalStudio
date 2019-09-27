@@ -34,7 +34,7 @@ namespace FractalServerTests
 
 			string connectionId = "dummy";
 
-			SMapWorkRequest mapWorkRequest = new SMapWorkRequest(coords, maxIterations, canvasSize, connectionId);
+			SMapWorkRequest mapWorkRequest = new SMapWorkRequest("FET", coords, maxIterations, canvasSize, connectionId);
 
 			Job job = new Job(mapWorkRequest);
 			mapWorkRequest.JobId = job.JobId;
@@ -72,7 +72,7 @@ namespace FractalServerTests
 			SPoint rightTop = new SPoint("-0.7764118407199300", "0.13437499747905846");
 
 			SCoords coords = new SCoords(leftBot, rightTop);
-			SMapWorkRequest mapWorkRequest = new SMapWorkRequest(coords, maxIterations, canvasSize, connectionId);
+			SMapWorkRequest mapWorkRequest = new SMapWorkRequest("FET2", coords, maxIterations, canvasSize, connectionId);
 			bool requiresQuadPrecision = mapWorkRequest.RequiresQuadPrecision();
 
 		}

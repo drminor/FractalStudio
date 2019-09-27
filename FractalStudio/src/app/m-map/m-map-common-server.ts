@@ -44,7 +44,7 @@ export class SMapWorkRequest {
   public connectionId: string;
   public jobId: number;
 
-  constructor(public coords: SCoords, public maxIterations: number, public canvasSize: ICanvasSize) {
+  constructor(public name: string, public coords: SCoords, public maxIterations: number, public canvasSize: ICanvasSize) {
     this.connectionId = null;
     this.jobId = -1;
   }

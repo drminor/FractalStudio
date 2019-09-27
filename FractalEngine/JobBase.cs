@@ -12,6 +12,7 @@ namespace FractalEngine
 		public JobBase(SMapWorkRequest sMapWorkRequest)
 		{
 			SMapWorkRequest = sMapWorkRequest ?? throw new ArgumentNullException(nameof(sMapWorkRequest));
+			RepoFilename = $"{sMapWorkRequest.Name}_repo";
 			_jobId = -1;
 
 			CancelRequested = false;
@@ -23,6 +24,8 @@ namespace FractalEngine
 		#region Public Properties
 
 		public SMapWorkRequest SMapWorkRequest { get; private set; }
+
+		public string RepoFilename { get; }
 
 		public string ConnectionId => SMapWorkRequest.ConnectionId;
 

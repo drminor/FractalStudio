@@ -3,6 +3,8 @@ using FractalServer;
 using FSTypes;
 using MqMessages;
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using Coords = FSTypes.Coords;
 
@@ -10,15 +12,14 @@ namespace FractalEngine
 {
 	public class Job : JobBase, IDisposable
 	{
-		private readonly SamplePoints<double> _samplePoints;
+		public const int SECTION_WIDTH = 100;
+		public const int SECTION_HEIGHT = 100;
 
-		private int _numberOfSectionRemainingToSend;
+		private readonly SamplePoints<double> _samplePoints;
 
 		private int _hSectionPtr;
 		private int _vSectionPtr;
-
-		public const int SECTION_WIDTH = 100;
-		public const int SECTION_HEIGHT = 100;
+		private int _numberOfSectionRemainingToSend;
 
 		private ValueRecords<RectangleInt, MapSectionWorkResult> _countsRepo;
 
@@ -39,29 +40,75 @@ namespace FractalEngine
 			{
 				if(_countsRepo == null)
 				{
-					string filename = $"TestFile_{JobId}";
+					string filename = RepoFilename;
 					_countsRepo = new ValueRecords<RectangleInt, MapSectionWorkResult>(filename);
 				}
 				return _countsRepo;
 			}
 		}
 
+		private const string DiagTimeFormat = "HH:mm:ss ffff";
+
 		public void DeleteCountsRepo()
 		{
+			Debug.WriteLine($"Starting to delete the old repo: {RepoFilename} at {DateTime.Now.ToString(DiagTimeFormat)}.");
 			if(_countsRepo != null)
 			{
 				_countsRepo.Dispose();
-				Thread.Sleep(1000);
+				_countsRepo = null;
 			}
 
-			string filename = $"TestFile_{JobId}";
-			ValueRecords<RectangleInt, MapSectionWorkResult>.DeleteRepo(filename);
+			ValueRecords<RectangleInt, MapSectionWorkResult>.DeleteRepo(RepoFilename);
+			Debug.WriteLine($"Completed deleting the old repo: {RepoFilename} at {DateTime.Now.ToString(DiagTimeFormat)}.");
 		}
 
 		public void WriteWorkResult(MapSection key, MapSectionWorkResult val)
 		{
 			RectangleInt riKey = key.GetRectangleInt();
 			CountsRepo.Add(riKey, val, saveOnWrite: true);
+		}
+
+		public bool CanReplayResults()
+		{
+			bool result = ValueRecords<RectangleInt, MapSectionWorkResult>.RepoExists(RepoFilename);
+			return result;
+		}
+
+		public IEnumerable<Tuple<MapSectionResult, bool>> ReplayResults()
+		{
+			SubJob subJob = GetNextSubJob();
+
+			while(subJob != null)
+			{
+				Tuple<MapSectionResult, bool> item = RetrieveWorkResultFromRepo(subJob);
+				DecrementSubJobsRemainingToBeSent();
+
+				subJob = GetNextSubJob();
+				yield return item;
+			}
+		}
+
+		public Tuple<MapSectionResult, bool> RetrieveWorkResultFromRepo(SubJob subJob)
+		{
+			MapSection ms = subJob.MapSectionWorkRequest.MapSection;
+			MapSectionWorkResult val = new MapSectionWorkResult(ms.CanvasSize.Width * ms.CanvasSize.Height, false, false);
+			if(CountsRepo.ReadParts(ms.GetRectangleInt(), val))
+			{
+				subJob.workResult = val;
+				MapSectionResult msr = subJob.BuildMapSectionResult();
+				Tuple<MapSectionResult, bool> item = new Tuple<MapSectionResult, bool>(msr, IsLastSubJob);
+				return item;
+			}
+			else
+			{
+				return null;
+			}
+		}
+
+		private MapSectionWorkResult CreateEmptyResult(RectangleInt area)
+		{
+			MapSectionWorkResult result = new MapSectionWorkResult(area.Size.W * area.Size.H, false, false);
+			return result;
 		}
 
 		public SubJob GetNextSubJob()
@@ -86,7 +133,8 @@ namespace FractalEngine
 
 			if (_hSectionPtr == _samplePoints.NumberOfHSections - 1)
 			{
-				w = _samplePoints.LastSectionWidth;
+				//w = _samplePoints.LastSectionWidth;
+				w = SECTION_WIDTH;
 			}
 			else
 			{
@@ -95,7 +143,8 @@ namespace FractalEngine
 
 			if (_vSectionPtr == _samplePoints.NumberOfVSections - 1)
 			{
-				h = _samplePoints.LastSectionHeight;
+				//h = _samplePoints.LastSectionHeight;
+				h = SECTION_HEIGHT;
 			}
 			else
 			{
@@ -111,7 +160,7 @@ namespace FractalEngine
 			double[] yValues = _samplePoints.YValueSections[_vSectionPtr];
 
 			MapSectionWorkRequest mswr = new MapSectionWorkRequest(mapSection, MaxIterations, xValues, yValues);
-			System.Diagnostics.Debug.WriteLine($"w: {w} h: {h} xLen: {xValues.Length} yLen: {yValues.Length}.");
+			//Debug.WriteLine($"w: {w} h: {h} xLen: {xValues.Length} yLen: {yValues.Length}.");
 
 			SubJob result = new SubJob(this, mswr, ConnectionId);
 
@@ -181,14 +230,16 @@ namespace FractalEngine
 			int inSectPtr = 0;
 			double[][] result = new double[sectionCount][];
 
-			if (sectionCount == 1)
-			{
-				result[0] = new double[lastExtent];
-			}
-			else
-			{
-				result[0] = new double[sectionExtent];
-			}
+			//if (sectionCount == 1)
+			//{
+			//	result[0] = new double[lastExtent];
+			//}
+			//else
+			//{
+			//	result[0] = new double[sectionExtent];
+			//}
+			result[0] = new double[sectionExtent];
+
 
 			for (int ptr = 0; ptr < extent; ptr++)
 			{
@@ -198,14 +249,15 @@ namespace FractalEngine
 					inSectPtr = 0;
 					sectionPtr++;
 
-					if (sectionPtr == sectionCount - 1)
-					{
-						result[sectionPtr] = new double[lastExtent];
-					}
-					else
-					{
-						result[sectionPtr] = new double[sectionExtent];
-					}
+					//if (sectionPtr == sectionCount - 1)
+					//{
+					//	result[sectionPtr] = new double[lastExtent];
+					//}
+					//else
+					//{
+					//	result[sectionPtr] = new double[sectionExtent];
+					//}
+					result[sectionPtr] = new double[sectionExtent];
 				}
 			}
 
@@ -228,6 +280,7 @@ namespace FractalEngine
 		}
 
 		#region IDisposable Support
+
 		private bool disposedValue = false; // To detect redundant calls
 
 		protected virtual void Dispose(bool disposing)
@@ -264,8 +317,7 @@ namespace FractalEngine
 			// TODO: uncomment the following line if the finalizer is overridden above.
 			// GC.SuppressFinalize(this);
 		}
+
 		#endregion
-
-
 	}
 }

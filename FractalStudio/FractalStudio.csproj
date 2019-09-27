@@ -22,7 +22,6 @@
     <None Remove="src\app\apMath\big.js" />
     <None Remove="src\app\apMath\index.d.ts" />
     <None Remove="src\app\m-map-common-server.ts" />
-    <None Remove="src\app\m-map\BigRatTest.ts" />
     <None Remove="src\app\m-map\ColorNumbers.ts" />
     <None Remove="src\app\m-map\m-map-common-ui.ts" />
     <None Remove="src\app\m-map\m-map-common.ts" />
@@ -66,7 +65,6 @@
     <TypeScriptCompile Include="src\app\apMath\apsrRational.ts" />
     <TypeScriptCompile Include="src\app\logger.service.ts" />
     <TypeScriptCompile Include="src\app\m-map\m-map-common-server.ts" />
-    <TypeScriptCompile Include="src\app\m-map\BigRatTest.ts" />
     <TypeScriptCompile Include="src\app\m-map\ColorNumbers.ts" />
     <TypeScriptCompile Include="src\app\m-map\m-map-common-ui.ts" />
     <TypeScriptCompile Include="src\app\m-map\m-map-common.ts">

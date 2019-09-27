@@ -34,7 +34,7 @@ export class FracTestClientComponent  {
     let canvasSize: ICanvasSize = new CanvasSize(1800, 1200);
 
     let sCoords = SCoords.fromBox(coords);
-    let jobRequest = new SMapWorkRequest(sCoords, maxIterations, canvasSize);
+    let jobRequest = new SMapWorkRequest('test-client', sCoords, maxIterations, canvasSize);
 
     let cc = this.fService.submitJob(jobRequest);
     cc.subscribe(

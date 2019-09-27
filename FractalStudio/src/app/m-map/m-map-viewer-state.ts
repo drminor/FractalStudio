@@ -1,10 +1,7 @@
-import {
-  IPoint, Point, IBox, Box, ICanvasSize, CanvasSize,
-  IMapInfo, MapInfo, IMapWorkingData, MapWorkingData
-} from './m-map-common';
-
+import {  Point, IBox, Box, ICanvasSize, CanvasSize} from './m-map-common';
 
 export interface IVirtualMapParams {
+  name: string;
   imageSize: ICanvasSize;
   printDensity: number;
   scrToPrnPixRat: number;
@@ -18,6 +15,7 @@ export interface IVirtualMapParams {
 }
 
 export interface IVirtualMap {
+  name: string;
   imageSize: ICanvasSize;
   scrToPrnPixRat: number;
 
@@ -64,7 +62,7 @@ export class VirtualMapParams implements IVirtualMapParams {
     return this._zoomFactor;
   }
 
-  constructor(public imageSize: ICanvasSize, public printDensity: number,
+  constructor(public name: string, public imageSize: ICanvasSize, public printDensity: number,
     public scrToPrnPixRat: number, public left: number, public top: number) {
     this._imageSizeInInches = this.getSizeInInches(imageSize, printDensity);
 
@@ -107,7 +105,7 @@ export class VirtualMap implements IVirtualMap {
     return this._maxTop;
   }
 
-  constructor(public coords: IBox, public imageSize: ICanvasSize, public scrToPrnPixRat: number, public displaySize: ICanvasSize) {
+  constructor(public name: string, public coords: IBox, public imageSize: ICanvasSize, public scrToPrnPixRat: number, public displaySize: ICanvasSize) {
 
     // If the given scrToPrnPixRat is too high, set it to the maximum
     // value that keeps the entire viewWidth > the display width.

@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Output, Input, ViewChild, ElementRef, OnInit } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 
-import { IBox, Box, IMapInfo, MapInfo, SPoint, SCoords, MapInfoForExport, IMapInfoForExport } from '../m-map-common';
+import { IMapInfo, MapInfo, SPoint, SCoords, MapInfoForExport, IMapInfoForExport } from '../m-map-common';
 
 import { ColorMapForExport, MapInfoWithColorMap, MapInfoWithColorMapForExport } from '../m-map-common-ui';
 
@@ -44,18 +44,21 @@ export class MMapDesignerParamsComponent implements OnInit {
   @ViewChild('fileSelector') fileSelectorRef: ElementRef;
 
   mapCoordsForm = new FormGroup({
+    jobName: new FormControl(),
     startX: new FormControl(),
     endX: new FormControl(),
     startY: new FormControl(),
     endY: new FormControl(),
     maxIterations: new FormControl(),
     threshold: new FormControl(),
-    iterationsPerStep: new FormControl()
+    //iterationsPerStep: new FormControl()
   });
 
   constructor() { }
 
   private updateForm(mapInfo: IMapInfo): void {
+    this.mapCoordsForm.controls["jobName"].setValue(mapInfo.name);
+
     this.mapCoordsForm.controls["startX"].setValue(mapInfo.sCoords.botLeft.x);
     this.mapCoordsForm.controls["endX"].setValue(mapInfo.sCoords.topRight.x);
     this.mapCoordsForm.controls["startY"].setValue(mapInfo.sCoords.botLeft.y);
@@ -64,11 +67,13 @@ export class MMapDesignerParamsComponent implements OnInit {
     this.mapCoordsForm.controls["maxIterations"].setValue(mapInfo.maxIterations);
     this.mapCoordsForm.controls.threshold.setValue(mapInfo.threshold);
 
-    this.mapCoordsForm.controls["iterationsPerStep"].setValue(mapInfo.iterationsPerStep);
+    //this.mapCoordsForm.controls["iterationsPerStep"].setValue(mapInfo.iterationsPerStep);
   }
 
   private getMapInfo(frm: FormGroup): IMapInfo {
     let result: IMapInfo;
+
+    let name = frm.controls["jobName"].value;
 
     let botLeft = new SPoint(frm.controls["startX"].value, frm.controls["startY"].value);
     let topRight = new SPoint(frm.controls["endX"].value, frm.controls["endY"].value);
@@ -76,9 +81,11 @@ export class MMapDesignerParamsComponent implements OnInit {
 
     let maxIterations = parseInt(frm.controls["maxIterations"].value);
     let threshold = parseInt(frm.controls.threshold.value);
-    let iterationsPerStep = parseInt(frm.controls["iterationsPerStep"].value);
 
-    result = new MapInfo(coords, maxIterations, threshold, iterationsPerStep);
+    //let iterationsPerStep = parseInt(frm.controls["iterationsPerStep"].value);
+    let iterationsPerStep = 100;
+
+    result = new MapInfo(name, coords, maxIterations, threshold, iterationsPerStep);
 
     return result;
   }
@@ -131,7 +138,7 @@ export class MMapDesignerParamsComponent implements OnInit {
       newCoords = this.getShiftedCoords(mi.sCoords, dir, percent);
     }
 
-    let newMapInfo = new MapInfo(newCoords, mi.maxIterations, mi.threshold, mi.iterationsPerStep);
+    let newMapInfo = new MapInfo(mi.name, newCoords, mi.maxIterations, mi.threshold, mi.iterationsPerStep);
 
     this.mapInfoUpdated.emit(newMapInfo);
   }
@@ -182,27 +189,54 @@ export class MMapDesignerParamsComponent implements OnInit {
   }
 
   onLoadMapInfo() {
-    //alert('m-map-params onLoadMapInfo called.');
+    let selectedFile = this.getSelectedFile();
+
+    if (selectedFile === null) return;
+
+    let fr = new FileReader();
+    fr.onload = (ev => {
+      let fn: string = this.removeFileExt(this.getSelectedFile().name);
+      console.log('Loading file with name = ' + fn + '.');
+      let rawResult: string = fr.result as string;
+      let miwcmfe: MapInfoWithColorMapForExport = JSON.parse(rawResult) as MapInfoWithColorMapForExport;
+      let miwcm = MapInfoWithColorMap.fromForExport(miwcmfe, -1, fn);
+      //console.log('Loading color map, the highcolor is ' + miwcm.colorMapUi.highColorCss + '.');
+      this.clearSelectedFile();
+      this.mapInfoLoaded.emit(miwcm);
+    });
+
+    fr.readAsText(selectedFile);
+  }
+
+  private getSelectedFile(): File {
     let fSelector = this.fileSelectorRef.nativeElement as HTMLInputElement;
 
     let files: FileList = fSelector.files;
 
     console.log('The user selected these files: ' + files + '.');
     if (files.length <= 0) {
-      return;
+      return null;
     }
 
-    let fr = new FileReader();
-    fr.onload = (ev => {
-      let rawResult: string = fr.result as string;
-      let miwcmfe: MapInfoWithColorMapForExport = JSON.parse(rawResult) as MapInfoWithColorMapForExport;
-      let miwcm = MapInfoWithColorMap.fromForExport(miwcmfe, -1);
-      console.log('Loading color map, the highcolor is ' + miwcm.colorMapUi.highColorCss + '.');
-      this.mapInfoLoaded.emit(miwcm);
-    });
+    let x: File = files.item(0);
+    return x;
+  }
 
-    fr.readAsText(files.item(0));
+  private clearSelectedFile() {
+    let fSelector = this.fileSelectorRef.nativeElement as HTMLInputElement;
     fSelector.value = '';
   }
+
+  private removeFileExt(fn: string): string {
+    let pos = fn.lastIndexOf('.');
+
+    if (pos > 0) {
+      return fn.slice(0, pos);
+    }
+    else {
+      return fn;
+    }
+  }
+
 
 }

@@ -6,14 +6,17 @@ namespace FSTypes
 {
 	public class SMapWorkRequest
 	{
+		[JsonProperty("name")]
+		public string Name;
+
 		[JsonProperty("coords")]
 		public SCoords SCoords;
 
-		[JsonProperty("maxIterations")]
-		public int MaxIterations;
-
 		[JsonProperty("canvasSize")]
 		public CanvasSize CanvasSize;
+
+		[JsonProperty("maxIterations")]
+		public int MaxIterations;
 
 		[JsonProperty("connectionId")]
 		public string ConnectionId;
@@ -23,14 +26,16 @@ namespace FSTypes
 
 		private SMapWorkRequest()
 		{
+			Name = null;
 			SCoords = null;
 			CanvasSize = new CanvasSize(0, 0);
 			ConnectionId = null;
 			JobId = -1;
 		}
 
-		public SMapWorkRequest(SCoords sCoords, int maxIterations, CanvasSize canvasSize, string connectionId)
+		public SMapWorkRequest(string name, SCoords sCoords, int maxIterations, CanvasSize canvasSize, string connectionId)
 		{
+			Name = name ?? throw new ArgumentNullException(nameof(name));
 			SCoords = sCoords ?? throw new ArgumentNullException(nameof(sCoords));
 			MaxIterations = maxIterations;
 			CanvasSize = canvasSize ?? throw new ArgumentNullException(nameof(canvasSize));

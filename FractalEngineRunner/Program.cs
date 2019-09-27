@@ -243,7 +243,7 @@ namespace FractalEngineRunner
 			int maxIterations = 100;
 			string connectionId = "dummy";
 
-			SMapWorkRequest mapWorkRequest = new SMapWorkRequest(coords, maxIterations, canvasSize, connectionId)
+			SMapWorkRequest mapWorkRequest = new SMapWorkRequest("FEngRunner", coords, maxIterations, canvasSize, connectionId)
 			{
 				JobId = jobId
 			};

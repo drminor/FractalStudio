@@ -202,6 +202,7 @@ export interface IBox {
 }
 
 export interface IMapInfo {
+  name: string;
   sCoords: SCoords;
   maxIterations: number;
   threshold: number;
@@ -213,6 +214,7 @@ export interface IMapInfo {
 }
 
 export interface IMapInfoForExport {
+  name: string;
   coords: IBox;
   sCoords: SCoords;
   maxIterations: number;
@@ -615,11 +617,14 @@ export class CanvasSize implements ICanvasSize {
 
 export class MapInfo implements IMapInfo {
 
-  public version: number = 2.0;
+  public version: number = 3.0;
 
-  constructor(public sCoords: SCoords, public maxIterations: number, public threshold: number, public iterationsPerStep: number) {
+  constructor(public name: string, public sCoords: SCoords, public maxIterations: number, public threshold: number, public iterationsPerStep: number) {
     if (sCoords === null) {
       throw new Error('When creating a MapInfo, the sCoords argument cannot be null.');
+    }
+    if (name === null) {
+      name = 'DMapInfo';
     }
   }
 
@@ -642,17 +647,24 @@ export class MapInfo implements IMapInfo {
       threshold = mi.threshold;
     }
 
-    let result: IMapInfo = new MapInfo(coords, mi.maxIterations, threshold, mi.iterationsPerStep);
+    let result: IMapInfo = new MapInfo(mi.name, coords, mi.maxIterations, threshold, mi.iterationsPerStep);
     return result;
-
   }
 
-  public static fromMapInfoForExport(mife: IMapInfoForExport): MapInfo {
+  public static fromMapInfoForExport(mife: IMapInfoForExport, filename: string): MapInfo {
 
     if (typeof mife.version === 'undefined') {
       mife.version = 1.0;
     }
     console.log('MapInfo.fromIMapInfo is receiving an IMapInfoForExport with version = ' + mife.version + '.');
+
+    let name: string;
+    if (mife.version === 1.0 || mife.version === 2.0) {
+      name = filename;
+    }
+    else {
+      name = mife.name;
+    }
 
     let coords: SCoords;
 
@@ -670,7 +682,7 @@ export class MapInfo implements IMapInfo {
     else {
       threshold = mife.threshold;
     }
-    let result = new MapInfo(coords, mife.maxIterations, threshold, mife.iterationsPerStep);
+    let result = new MapInfo(name, coords, mife.maxIterations, threshold, mife.iterationsPerStep);
     return result;
   }
 
@@ -685,7 +697,7 @@ export class MapInfo implements IMapInfo {
   }
 
   public toString(): string {
-    return 'sx:' + this.sCoords.botLeft.x + ' ex:' + this.sCoords.topRight.x + ' sy:' + this.sCoords.botLeft.y + ' ey:' + this.sCoords.topRight.y + ' mi:' + this.maxIterations + ' ips:' + this.iterationsPerStep + '.';
+    return 'name:' + this.name + ' sx:' + this.sCoords.botLeft.x + ' ex:' + this.sCoords.topRight.x + ' sy:' + this.sCoords.botLeft.y + ' ey:' + this.sCoords.topRight.y + ' mi:' + this.maxIterations + ' ips:' + this.iterationsPerStep + '.';
   }
 }
 
@@ -693,16 +705,16 @@ export class MapInfoForExport implements IMapInfoForExport {
   public coords: IBox;
   public version: number;
 
-  constructor(public sCoords: SCoords, public maxIterations: number, public threshold: number, public iterationsPerStep: number) {
+  constructor(public name: string, public sCoords: SCoords, public maxIterations: number, public threshold: number, public iterationsPerStep: number) {
     if (sCoords === null) {
       throw new Error('When creating a MapInfo, the sCoords argument cannot be null.');
     }
     delete this.coords; // This is only used for reading v1.0 instances.
-    this.version = 2.0;
+    this.version = 3.0;
   }
 
   public static fromMapInfo(mi: IMapInfo): IMapInfoForExport {
-    let result = new MapInfoForExport(mi.sCoords, mi.maxIterations, mi.threshold, mi.iterationsPerStep);
+    let result = new MapInfoForExport(mi.name, mi.sCoords, mi.maxIterations, mi.threshold, mi.iterationsPerStep);
     return result;
   }
 
@@ -1527,7 +1539,7 @@ export class MapWorkingData implements IMapWorkingData {
 
       let tCoords: IBox = new Box(secBotLeft, secTopRight);
       let coords: SCoords = SCoords.fromBox(tCoords);
-      let secMapInfo = new MapInfo(coords, mapInfo.maxIterations, mapInfo.threshold, mapInfo.iterationsPerStep);
+      let secMapInfo = new MapInfo(mapInfo.name, coords, mapInfo.maxIterations, mapInfo.threshold, mapInfo.iterationsPerStep);
 
       let yOffset = ptr * sectionHeightWN;
       let secAnchor: IPoint = new Point(0, yOffset);
@@ -1550,7 +1562,7 @@ export class MapWorkingData implements IMapWorkingData {
 
     let tCoords: IBox = new Box(secBotLeft, secTopRight);
     let coords: SCoords = SCoords.fromBox(tCoords);
-    let secMapInfo = new MapInfo(coords, mapInfo.maxIterations, mapInfo.threshold, mapInfo.iterationsPerStep);
+    let secMapInfo = new MapInfo(mapInfo.name, coords, mapInfo.maxIterations, mapInfo.threshold, mapInfo.iterationsPerStep);
 
     let yOffset = ptr * sectionHeightWN;
     let secAnchor: IPoint = new Point(0, yOffset);

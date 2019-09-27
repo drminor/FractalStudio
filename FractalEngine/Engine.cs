@@ -59,12 +59,73 @@ namespace FractalEngine
 			{
 				jobId = NextJobId;
 				job.JobId = jobId;
+
+				//if (job is Job localJob && localJob.CanReplayResults())
+				//{
+				//	// This is just temporary for testing.
+				//	ReplayResults(localJob);
+				//}
+				//else
+				//{
+				//	Debug.WriteLine("Adding job to queue.");
+				//	_jobs.Add(jobId, job);
+				//	HaveWork.Set();
+				//}
+
 				Debug.WriteLine("Adding job to queue.");
 				_jobs.Add(jobId, job);
 				HaveWork.Set();
 			}
 
 			return jobId;
+		}
+
+		public bool SubmitSubJob(SubJob subJob)
+		{
+			IJob parentJob = subJob.ParentJob;
+
+			if(parentJob is Job localJob)
+			{
+				if(localJob.CanReplayResults())
+				{
+					Tuple<MapSectionResult, bool> mapSectionResultAndFF = localJob.RetrieveWorkResultFromRepo(subJob);
+					if(mapSectionResultAndFF != null)
+					{
+						SendReplayResultToClient(mapSectionResultAndFF, localJob.ConnectionId);
+					}
+					else
+					{
+						ProcessSubJob(subJob);
+					}
+				}
+				return true;
+			}
+			else
+			{
+				throw new InvalidOperationException("Only subjobs of local jobs can be submitted.");
+			}
+		}
+
+		private void ReplayResults(Job localJob)
+		{
+			Task.Run(() => {
+				Thread.Sleep(1000);
+
+				IEnumerable<Tuple<MapSectionResult, bool>> results = localJob.ReplayResults();
+				foreach (Tuple<MapSectionResult, bool> resultAndFinalFlag in results)
+				{
+					SendReplayResultToClient(resultAndFinalFlag, localJob.ConnectionId);
+				}
+			});
+		}
+
+		private void SendReplayResultToClient(Tuple<MapSectionResult, bool> resultAndFinalFlag, string connectionId)
+		{
+			MapSectionResult msr = resultAndFinalFlag.Item1;
+			bool isFinalResult = resultAndFinalFlag.Item2;
+
+			Debug.WriteLine($"The msr size = {msr.MapSection.CanvasSize.Width * msr.MapSection.CanvasSize.Height}, The counts length is {msr.ImageData.Length}.");
+			_clientConnector.ReceiveImageData(connectionId, msr, resultAndFinalFlag.Item2);
 		}
 
 		public void CancelJob(int jobId)
@@ -314,7 +375,7 @@ namespace FractalEngine
 				return;
 			}
 
-			if (!(subJob.ParentJob is Job parentJob))
+			if (!(subJob.ParentJob is Job))
 			{
 				throw new InvalidOperationException("When processing a subjob, the parent job must be implemented by the Job class.");
 			}
@@ -520,8 +581,7 @@ namespace FractalEngine
 		private MapSectionWorkResult CreateWorkResult(FJobResult fJobResult)
 		{
 			int[] counts = fJobResult.GetValues();
-			DPoint[] zValues = new DPoint[0];
-			MapSectionWorkResult result = new MapSectionWorkResult(counts, zValues);
+			MapSectionWorkResult result = new MapSectionWorkResult(counts);
 			return result;
 		}
 

@@ -16,13 +16,11 @@ namespace FSTypes
 	public class PartDetail
 	{
 		public readonly int PartLength;
-		public readonly bool IncludeOnWrite;
 		public readonly bool IncludeOnRead;
 
-		public PartDetail(int partLength, bool includeOnWrite, bool includeOnRead)
+		public PartDetail(int partLength, bool includeOnRead)
 		{
 			PartLength = partLength;
-			IncludeOnWrite = includeOnWrite;
 			IncludeOnRead = includeOnRead;
 		}
 	}

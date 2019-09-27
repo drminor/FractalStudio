@@ -1,10 +1,10 @@
 import { Component, EventEmitter, Output, Input, ViewChild, ElementRef, OnInit } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 
-import { IBox, IMapInfo, MapInfo, ICanvasSize, CanvasSize } from '../m-map-common';
+import { CanvasSize } from '../m-map-common';
 import { IVirtualMapParams, VirtualMapParams } from '../m-map-viewer-state';
 
-import { ColorMapUI, ColorMapUIEntry, ColorMapForExport, MapInfoWithColorMap, MapInfoWithColorMapForExport } from '../m-map-common-ui';
+import { MapInfoWithColorMap, MapInfoWithColorMapForExport } from '../m-map-common-ui';
 
 
 @Component({
@@ -55,6 +55,7 @@ export class MMapViewerParamsComponent implements OnInit {
   private buildMainForm(): FormGroup {
 
     let result = new FormGroup({
+      jobName: new FormControl(),
       imageWidthPx: new FormControl(21600),
       imageHeightPx: new FormControl(14400),
 
@@ -80,6 +81,7 @@ export class MMapViewerParamsComponent implements OnInit {
 
   private updateForm(params: IVirtualMapParams): void {
 
+    this.mapViewForm.controls.jobName.setValue(params.name);
     this.mapViewForm.controls.imageWidthPx.setValue(params.imageSize.width);
     this.mapViewForm.controls.imageHeightPx.setValue(params.imageSize.height);
 
@@ -113,6 +115,8 @@ export class MMapViewerParamsComponent implements OnInit {
 
   onSubmit() {
 
+    let name = this.mapViewForm.controls.jobName.value;
+
     let imageSize = new CanvasSize(
       this.mapViewForm.controls.imageWidthPx.value,
       this.mapViewForm.controls.imageWidthPx.value / 1.5);
@@ -124,7 +128,7 @@ export class MMapViewerParamsComponent implements OnInit {
     let left = parseFloat(this.mapViewForm.controls.left.value);
     let top = parseFloat(this.mapViewForm.controls.top.value);
 
-    let params = new VirtualMapParams(imageSize, printDensity, screenToPrintPixRat, left, top);
+    let params = new VirtualMapParams(name, imageSize, printDensity, screenToPrintPixRat, left, top);
     console.log('Viewer Params is emitting a Params Update.');
     this.virtualMapParamsUpdated.emit(params);
   }
@@ -165,24 +169,53 @@ export class MMapViewerParamsComponent implements OnInit {
   }
   
   onLoadMapInfo() {
+    let selectedFile = this.getSelectedFile();
+
+    if (selectedFile === null) return;
+
+    let fr = new FileReader();
+    fr.onload = (ev => {
+      let fn: string = this.removeFileExt(this.getSelectedFile().name);
+      console.log('Loading file with name = ' + fn + '.');
+      let rawResult: string = fr.result as string;
+      let miwcmfe: MapInfoWithColorMapForExport = JSON.parse(rawResult) as MapInfoWithColorMapForExport;
+      let miwcm = MapInfoWithColorMap.fromForExport(miwcmfe, -1, fn);
+
+      this.clearSelectedFile();
+      this.mapInfoLoaded.emit(miwcm);
+    });
+
+    fr.readAsText(selectedFile);
+  }
+
+  private getSelectedFile(): File {
     let fSelector = this.fileSelectorRef.nativeElement as HTMLInputElement;
 
     let files: FileList = fSelector.files;
 
-    //console.log('The user selected these files: ' + files + '.');
+    console.log('The user selected these files: ' + files + '.');
     if (files.length <= 0) {
-      return;
+      return null;
     }
 
-    let fr = new FileReader();
-    fr.onload = (ev => {
-      let rawResult: string = fr.result as string;
-      let miwcmfe: MapInfoWithColorMapForExport = JSON.parse(rawResult) as MapInfoWithColorMapForExport;
-      let miwcm = MapInfoWithColorMap.fromForExport(miwcmfe, -1);
-      this.mapInfoLoaded.emit(miwcm);
-    });
+    let x: File = files.item(0);
+    return x;
+  }
 
-    fr.readAsText(files.item(0));
+  private clearSelectedFile() {
+    let fSelector = this.fileSelectorRef.nativeElement as HTMLInputElement;
+    fSelector.value = '';
+  }
+
+  private removeFileExt(fn: string): string {
+    let pos = fn.lastIndexOf('.');
+
+    if (pos > 0) {
+      return fn.slice(0, pos);
+    }
+    else {
+      return fn;
+    }
   }
 
 }

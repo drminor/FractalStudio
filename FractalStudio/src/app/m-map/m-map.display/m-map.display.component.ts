@@ -74,7 +74,10 @@ export class MMapDisplayComponent implements AfterViewInit {
   @Input('mapInfoWithColorMap')
   set mapInfoWithColorMap(value: MapInfoWithColorMap) {
 
-    console.log('Map Display is getting a new MapInfoWithColorMap.');
+    let mapName: string = 'NoNameYet';
+
+    if (value !== null && value.mapInfo !== null) mapName = value.mapInfo.name;
+    console.log('Map Display is getting a new MapInfoWithColorMap. The name is ' + mapName + '.');
 
     let mi: IMapInfo;
     let cm: ColorMapUI;
@@ -497,6 +500,8 @@ export class MMapDisplayComponent implements AfterViewInit {
   }
 
   private buildWorkingData(): void {
+    console.log('Building Working Data at ' + this.getDiagTime());
+
     this._buildingNewMap = true;
     this._histogram = null;
     this.resetSectionCompleteFlags();
@@ -537,9 +542,9 @@ export class MMapDisplayComponent implements AfterViewInit {
 
       if (dc1 != null) {
         dc1.subscribe(
-          () => this.afterDelRequestComplete(),
+          () => console.log('Cancel MapWorkRequestJob has been sent.'),
           () => console.log('Received an error while cancelling a MapWorkRequest job.'),
-          () => console.log('Cancel MapWorkRequestJob is complete.'));
+          () => this.afterDelRequestComplete());
       }
       else {
         console.log('Not clearing the canvas -- no current job.');
@@ -558,12 +563,14 @@ export class MMapDisplayComponent implements AfterViewInit {
   }
 
   private submitMapWorkRequest() {
+    console.log('Submitting work request at ' + this.getDiagTime());
+
     let regularColorMap = this._colorMap.getRegularColorMap();
 
     this.mapSectionResults = [];
     this.mapDataProcessor = new RawMapDataProcessor(regularColorMap);
 
-    let jobRequest: SMapWorkRequest = new SMapWorkRequest(this._mapInfo.sCoords, this._mapInfo.maxIterations, this.canvasSize);
+    let jobRequest: SMapWorkRequest = new SMapWorkRequest(this._mapInfo.name, this._mapInfo.sCoords, this._mapInfo.maxIterations, this.canvasSize);
 
     let cc = this.fService.submitJob(jobRequest);
     cc.subscribe(
@@ -572,6 +579,13 @@ export class MMapDisplayComponent implements AfterViewInit {
       () => this.webServiceMapWorkDone()
     );
 
+  }
+
+  private getDiagTime(): string {
+    let dt = new Date();
+    let result: string = dt.toLocaleTimeString() + ' ' + dt.getMilliseconds();
+
+    return result;
   }
 
   private useMapSectionResult(ms: MapSectionResult): void {
@@ -598,9 +612,9 @@ export class MMapDisplayComponent implements AfterViewInit {
     this.drawEndNote();
     this._histogram = this.mapDataProcessor.Histogram;
 
-    console.log('The histogram has been assembled.');
-    console.log('The historgram is ' + this._histogram + '.');
-    console.log('The Escape Velocity historgram is ' + this.mapDataProcessor.EscVelHist + '.');
+    //console.log('The histogram has been assembled.');
+    //console.log('The historgram is ' + this._histogram + '.');
+    //console.log('The Escape Velocity historgram is ' + this.mapDataProcessor.EscVelHist + '.');
 
     this.haveHistogram.emit(this._histogram);
   }

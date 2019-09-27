@@ -12,29 +12,60 @@ namespace FractalServer
 
 		private readonly int _size;
 
-		public MapSectionWorkResult(int[] counts, DPoint[] zValues) : this(counts, zValues, counts.Length)
+		public MapSectionWorkResult(int[] counts) : this(counts, null, counts.Length, false, false)
 		{
 		}
 
-		public MapSectionWorkResult(int size) : this(null, null, size)
+		public MapSectionWorkResult(int[] counts, DPoint[] zValues) : this(counts, zValues, counts.Length, true, true)
 		{
 		}
 
-		private MapSectionWorkResult(int[] counts, DPoint[] zValues, int size)
+		public MapSectionWorkResult(int size, bool haveZValues, bool includeZValuesOnRead) : this(null, null, size, haveZValues, includeZValuesOnRead)
+		{
+		}
+
+		private MapSectionWorkResult(int[] counts, DPoint[] zValues, int size, bool haveZValues, bool includeZValuesOnRead)
 		{
 			_size = size;
 
 			Counts = counts;
 			ZValues = zValues;
 
-			PartDetails = new List<PartDetail>
+			PartDetails = BuildPartDetails(_size, haveZValues, includeZValuesOnRead, out uint totalBytes);
+			TotalBytesToWrite = totalBytes;
+		}
+
+		private List<PartDetail> BuildPartDetails(int size, bool haveZValues, bool includeZValuesOnRead, out uint totalBytesToWrite)
+		{
+			totalBytesToWrite = (uint)size * 4;
+			List<PartDetail> partDetails = new List<PartDetail>
 			{
-				new PartDetail(_size * 4, true, true),
-				new PartDetail(_size * 16, true, false)
+				new PartDetail(size * 4, true),
 			};
 
-			TotalBytesToWrite = (uint)(_size * 20);
+			if(haveZValues)
+			{
+				partDetails.Add(new PartDetail(size * 16, includeZValuesOnRead));
+				totalBytesToWrite += (uint) size * 16;
+			}
+			return partDetails;
 		}
+
+		//public bool IncludeZValuesOnRead
+		//{
+		//	get
+		//	{
+		//		return PartDetails[1].IncludeOnRead;
+		//	}
+		//	set
+		//	{
+		//		PartDetail curValue = PartDetails[1];
+		//		if(value != curValue.IncludeOnRead)
+		//		{
+		//			PartDetails[1] = new PartDetail(curValue.PartLength, value);
+		//		}
+		//	}
+		//}
 
 		public int PartCount => PartDetails.Count;
 
@@ -76,7 +107,7 @@ namespace FractalServer
 
 		private int[] GetCounts(byte[] buf, int size)
 		{
-			int[] result = new int[size * 4];
+			int[] result = new int[size];
 			for (int i = 0; i < size; i++)
 			{
 				result[i] = BitConverter.ToInt32(buf, i * 4);
