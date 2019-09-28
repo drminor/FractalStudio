@@ -8,27 +8,31 @@ namespace FractalServer
 	public class MapSectionWorkResult : IPartsBin
 	{
 		public int[] Counts { get; private set; }
+		public bool[] DoneFlags { get; private set; }
 		public DPoint[] ZValues { get; private set; }
+		public int IterationCount { get; private set; }
 
 		private readonly int _size;
 
-		public MapSectionWorkResult(int[] counts) : this(counts, null, counts.Length, false, false)
+		public MapSectionWorkResult(int[] counts) : this(counts, 0, null, null, counts.Length, false, false)
 		{
 		}
 
-		public MapSectionWorkResult(int[] counts, DPoint[] zValues) : this(counts, zValues, counts.Length, true, true)
+		public MapSectionWorkResult(int[] counts, int iterationCount, DPoint[] zValues, bool[] doneFlags) : this(counts, iterationCount, zValues, doneFlags, counts.Length, true, true)
 		{
 		}
 
-		public MapSectionWorkResult(int size, bool haveZValues, bool includeZValuesOnRead) : this(null, null, size, haveZValues, includeZValuesOnRead)
+		public MapSectionWorkResult(int size, bool haveZValues, bool includeZValuesOnRead) : this(null, 0, null, null, size, haveZValues, includeZValuesOnRead)
 		{
 		}
 
-		private MapSectionWorkResult(int[] counts, DPoint[] zValues, int size, bool haveZValues, bool includeZValuesOnRead)
+		private MapSectionWorkResult(int[] counts, int iterationCount, DPoint[] zValues, bool[] doneFlags, int size, bool haveZValues, bool includeZValuesOnRead)
 		{
 			_size = size;
 
 			Counts = counts;
+			DoneFlags = doneFlags;
+			IterationCount = iterationCount;
 			ZValues = zValues;
 
 			PartDetails = BuildPartDetails(_size, haveZValues, includeZValuesOnRead, out uint totalBytes);
@@ -37,17 +41,30 @@ namespace FractalServer
 
 		private List<PartDetail> BuildPartDetails(int size, bool haveZValues, bool includeZValuesOnRead, out uint totalBytesToWrite)
 		{
-			totalBytesToWrite = (uint)size * 4;
-			List<PartDetail> partDetails = new List<PartDetail>
-			{
-				new PartDetail(size * 4, true),
-			};
+			List<PartDetail> partDetails;
 
 			if(haveZValues)
 			{
-				partDetails.Add(new PartDetail(size * 16, includeZValuesOnRead));
-				totalBytesToWrite += (uint) size * 16;
+				partDetails = new List<PartDetail>
+				{
+					new PartDetail(size * 4, true), // Counts
+					new PartDetail(4, includeZValuesOnRead), // InterationCount
+					new PartDetail(size * 16, includeZValuesOnRead), // ZValues
+					new PartDetail(size, includeZValuesOnRead) // DoneFlags
+				};
+
+				totalBytesToWrite = 4 + (uint) size * 21;
 			}
+			else
+			{
+				partDetails = new List<PartDetail>
+				{
+					new PartDetail(size * 4, true),
+				};
+
+				totalBytesToWrite = (uint)size * 4;
+			}
+
 			return partDetails;
 		}
 
@@ -75,33 +92,45 @@ namespace FractalServer
 
 		public byte[] GetPart(int partNumber)
 		{
-			if(partNumber == 0)
+			if(partNumber > PartCount - 1)
 			{
-				return GetBytesFromCounts(Counts);
+				throw new ArgumentException($"This Parts Bin only has {PartCount} parts. Cannot get Part for PartNumber: {partNumber}.");
 			}
-			else if(partNumber == 1)
+			switch (partNumber)
 			{
-				return GetBytesFromZValues(ZValues);
-			}
-			else
-			{
-				throw new ArgumentException($"This Parts Bin only has two parts. Cannot get Part for PartNumber: {partNumber}.");
+				case 0:
+					return GetBytesFromCounts(Counts);
+				case 1:
+					return BitConverter.GetBytes(IterationCount);
+				case 2:
+					return GetBytesFromZValues(ZValues);
+				case 3:
+					return GetBytesFromDoneFlags(DoneFlags);
+				default:
+					throw new ArgumentException("The partnumber is out of bounds.");
 			}
 		}
 
 		public void SetPart(int partNumber, byte[] value)
 		{
-			if (partNumber == 0)
+			if (partNumber > PartCount - 1)
 			{
-				Counts = GetCounts(value, _size);
+				throw new ArgumentException($"This Parts Bin only has {PartCount} parts. Cannot get Part for PartNumber: {partNumber}.");
 			}
-			else if (partNumber == 1)
+			switch (partNumber)
 			{
-				ZValues = GetZValues(value, _size);
-			}
-			else
-			{
-				throw new ArgumentException($"This Parts Bin only has two parts. Cannot set Part for PartNumber: {partNumber}.");
+				case 0:
+					Counts = GetCounts(value, _size);
+					break;
+				case 1:
+					IterationCount = BitConverter.ToInt32(value, 0);
+					break;
+				case 2:
+					ZValues = GetZValues(value, _size);
+					break;
+				case 3:
+					DoneFlags = GetDoneFlags(value, _size);
+					break;
 			}
 		}
 
@@ -117,6 +146,24 @@ namespace FractalServer
 		}
 
 		private byte[] GetBytesFromCounts(int[] values)
+		{
+			byte[] tempBuf = values.SelectMany(value => BitConverter.GetBytes(value)).ToArray();
+			return tempBuf;
+		}
+
+
+		private bool[] GetDoneFlags(byte[] buf, int size)
+		{
+			bool[] result = new bool[size];
+			for (int i = 0; i < size; i++)
+			{
+				result[i] = BitConverter.ToBoolean(buf, i);
+			}
+
+			return result;
+		}
+
+		private byte[] GetBytesFromDoneFlags(bool[] values)
 		{
 			byte[] tempBuf = values.SelectMany(value => BitConverter.GetBytes(value)).ToArray();
 			return tempBuf;

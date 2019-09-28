@@ -38,6 +38,8 @@ namespace FractalServerTests
 		private MapSectionWorkResult BuildMSWR(int size)
 		{
 			int[] counts = new int[size];
+			int iterationCount = 100;
+			bool[] doneFlags = new bool[size];
 			DPoint[] zValues = new DPoint[size];
 
 			for(int i = 0; i < size; i++)
@@ -45,7 +47,7 @@ namespace FractalServerTests
 				zValues[i] = new DPoint(i, i);
 			}
 
-			MapSectionWorkResult result = new MapSectionWorkResult(counts, zValues);
+			MapSectionWorkResult result = new MapSectionWorkResult(counts, iterationCount, zValues, doneFlags);
 
 			return result;
 		}

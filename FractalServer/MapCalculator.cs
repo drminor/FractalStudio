@@ -31,20 +31,23 @@ namespace FractalServer
 
 				for (int xPtr = 0; xPtr < width; xPtr++)
 				{
+					if (currentValues.DoneFlags[ptr]) continue;
+
 					DPoint z = currentValues.ZValues[ptr];
 					int cnt = currentValues.Counts[ptr];
 					if (cnt != 0) cnt /= 10000;
 
 					c.X = mswr.XValues[xPtr];
 
-					double escapeVelocity = _mPointWork.Iterate(c, ref z, ref cnt);
+					double escapeVelocity = _mPointWork.Iterate(c, ref z, ref cnt, out bool done);
 
 					double cAndE = cnt + escapeVelocity;
 					cAndE *= 10000;
 					cAndE = Math.Truncate(cAndE);
 
-					currentValues.ZValues[ptr] = z;
 					currentValues.Counts[ptr] = (int)(cAndE);
+					currentValues.ZValues[ptr] = z;
+					currentValues.DoneFlags[ptr] = done;
 					ptr++;
 				}
 			}
@@ -75,7 +78,7 @@ namespace FractalServer
 					c.X = mswr.XValues[xPtr];
 					// Reset the input values for each map point.
 					z.X = 0; z.Y = 0; cntr = 0;
-					double escapeVelocity = _mPointWork.Iterate(c, ref z, ref cntr);
+					double escapeVelocity = _mPointWork.Iterate(c, ref z, ref cntr, done: out bool notUsed);
 
 					double cAndE = cntr + escapeVelocity;
 					cAndE *= 10000;
@@ -95,6 +98,7 @@ namespace FractalServer
 			int len = width * height;
 
 			int[] counts = new int[len];
+			bool[] doneFlags = new bool[len];
 			DPoint[] zValues = new DPoint[len];
 
 			for(int ptr = 0; ptr < len; ptr++)
@@ -102,7 +106,7 @@ namespace FractalServer
 				zValues[ptr] = new DPoint(0, 0);
 			}
 
-			MapSectionWorkResult result = new MapSectionWorkResult(counts, zValues);
+			MapSectionWorkResult result = new MapSectionWorkResult(counts, mswr.MaxIterations, zValues, doneFlags);
 			return result;
 		}
 

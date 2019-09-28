@@ -14,6 +14,8 @@ namespace FractalEngine
 {
 	public class Engine
 	{
+		public const int BLOCK_SIZE = 100; 
+
 		public const string OUTPUT_Q_PATH = @".\private$\FGenJobs";
 		public const string INPUT_Q_PATH = @".\private$\FGenResults";
 		public static TimeSpan DefaultWaitDuration = TimeSpan.FromSeconds(10);
@@ -88,10 +90,11 @@ namespace FractalEngine
 			{
 				if(localJob.CanReplayResults())
 				{
-					Tuple<MapSectionResult, bool> mapSectionResultAndFF = localJob.RetrieveWorkResultFromRepo(subJob);
-					if(mapSectionResultAndFF != null)
+					MapSectionResult msr = localJob.RetrieveWorkResultFromRepo(subJob);
+					if(msr != null)
 					{
-						SendReplayResultToClient(mapSectionResultAndFF, localJob.ConnectionId);
+						// TODO: Nothing is managing the IsLastSubJob here.
+						SendReplayResultToClient(msr, parentJob.IsLastSubJob, localJob.ConnectionId);
 					}
 					else
 					{
@@ -114,18 +117,15 @@ namespace FractalEngine
 				IEnumerable<Tuple<MapSectionResult, bool>> results = localJob.ReplayResults();
 				foreach (Tuple<MapSectionResult, bool> resultAndFinalFlag in results)
 				{
-					SendReplayResultToClient(resultAndFinalFlag, localJob.ConnectionId);
+					SendReplayResultToClient(resultAndFinalFlag.Item1, resultAndFinalFlag.Item2, localJob.ConnectionId);
 				}
 			});
 		}
 
-		private void SendReplayResultToClient(Tuple<MapSectionResult, bool> resultAndFinalFlag, string connectionId)
+		private void SendReplayResultToClient(MapSectionResult msr, bool isFinalSection, string connectionId)
 		{
-			MapSectionResult msr = resultAndFinalFlag.Item1;
-			bool isFinalResult = resultAndFinalFlag.Item2;
-
 			Debug.WriteLine($"The msr size = {msr.MapSection.CanvasSize.Width * msr.MapSection.CanvasSize.Height}, The counts length is {msr.ImageData.Length}.");
-			_clientConnector.ReceiveImageData(connectionId, msr, resultAndFinalFlag.Item2);
+			_clientConnector.ReceiveImageData(connectionId, msr, isFinalSection);
 		}
 
 		public void CancelJob(int jobId)
@@ -375,17 +375,28 @@ namespace FractalEngine
 				return;
 			}
 
-			if (!(subJob.ParentJob is Job))
+			if (!(subJob.ParentJob is Job localJob))
 			{
 				throw new InvalidOperationException("When processing a subjob, the parent job must be implemented by the Job class.");
 			}
 
-			MapSectionWorkRequest mswr = subJob.MapSectionWorkRequest;
-			MapCalculator mapCalculator = new MapCalculator(mswr.MaxIterations);
+			MapSectionResult msr = localJob.RetrieveWorkResultFromRepo(subJob);
+			if(msr != null)
+			{
+				subJob.MapSectionResult = msr;
+			}
+			else
+			{
+				MapSectionWorkRequest mswr = subJob.MapSectionWorkRequest;
+				MapCalculator mapCalculator = new MapCalculator(mswr.MaxIterations);
 
-			MapSectionWorkResult workResult = mapCalculator.GetInitialWorkingValues(mswr);
-			workResult = mapCalculator.GetWorkingValues(mswr, workResult);
-			subJob.workResult = workResult;
+				MapSectionWorkResult workResult = mapCalculator.GetInitialWorkingValues(mswr);
+				workResult = mapCalculator.GetWorkingValues(mswr, workResult);
+				localJob.WriteWorkResult(subJob.MapSectionWorkRequest.MapSection, workResult);
+
+				MapSectionResult result = new MapSectionResult(localJob.JobId, mswr.MapSection, workResult.Counts);
+				subJob.MapSectionResult = result;
+			}
 
 			SendQueue.Add(subJob);
 		}
@@ -410,14 +421,17 @@ namespace FractalEngine
 
 							if (_clientConnector != null)
 							{
-								MapSectionResult msr = subJob.BuildMapSectionResult();
-								_clientConnector.ReceiveImageData(subJob.ConnectionId, msr, isFinalSubJob);
+								_clientConnector.ReceiveImageData(subJob.ConnectionId, subJob.MapSectionResult, isFinalSubJob);
 							}
 
-							if (subJob.ParentJob is Job pJob)
-							{
-								pJob.WriteWorkResult(subJob.MapSectionWorkRequest.MapSection, subJob.workResult);
-							}
+							//if (subJob.ParentJob is Job pJob)
+							//{
+							//	if (subJob.WorkResult != null)
+							//	{
+							//		// A Map Section Work Result was created -- write it to the Repo.
+							//		pJob.WriteWorkResult(subJob.MapSectionWorkRequest.MapSection, subJob.WorkResult);
+							//	}
+							//}
 						}
 					}
 				}
@@ -561,11 +575,16 @@ namespace FractalEngine
 
 		private SubJob CreateSubJob(FJobResult jobResult, IJob parentJob)
 		{
-			MapSectionWorkRequest mswr = CreateMSWR(jobResult, parentJob.SMapWorkRequest.MaxIterations);
+			MapSectionWorkResult workResult = CreateWorkResult(jobResult);
 
-			SubJob subJob = new SubJob(parentJob, mswr, parentJob.ConnectionId)
+			// TODO: Have the parentJob write the workResult to the Repo.
+
+			MapSectionWorkRequest workRequest = CreateMSWR(jobResult, parentJob.SMapWorkRequest.MaxIterations);
+			MapSectionResult msr = CreateMapSectionResult(parentJob.JobId, workRequest, workResult);
+
+			SubJob subJob = new SubJob(parentJob, workRequest, parentJob.ConnectionId)
 			{
-				workResult = CreateWorkResult(jobResult)
+				MapSectionResult = msr
 			};
 
 			return subJob;
@@ -582,6 +601,13 @@ namespace FractalEngine
 		{
 			int[] counts = fJobResult.GetValues();
 			MapSectionWorkResult result = new MapSectionWorkResult(counts);
+			return result;
+		}
+
+		// This is only used by MQ Jobs
+		private MapSectionResult CreateMapSectionResult(int jobId, MapSectionWorkRequest workRequest, MapSectionWorkResult workResult)
+		{
+			MapSectionResult result = new MapSectionResult(jobId, workRequest.MapSection, workResult.Counts);
 			return result;
 		}
 

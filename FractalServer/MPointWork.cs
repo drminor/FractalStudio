@@ -9,8 +9,6 @@ namespace FractalServer
 		private static readonly double Log2 = Math.Log10(2);
 		private readonly int _maxIterations;
 
-		//private DPoint _z;
-        //private int _cntr;
 		private int _cntr2;
         private double _xSquared;
         private double _ySquared;
@@ -21,12 +19,10 @@ namespace FractalServer
 			//_z = new DPoint(0, 0);
 		}
 
-		public double Iterate(DPoint c, ref DPoint z, ref int cntr)
+		public double Iterate(DPoint c, ref DPoint z, ref int cntr, out bool done)
         {
+			done = false;
             double escapeVelocity = 0.0;
-
-            //_z.X = 0;
-            //_z.Y = 0;
 
             _xSquared = 0;
             _ySquared = 0;
@@ -41,6 +37,7 @@ namespace FractalServer
 
                 if ( (_xSquared + _ySquared) > 4)
                 {
+					done = true;
                     escapeVelocity = GetEscapeVelocity(z, c, _xSquared, _ySquared);
                     //escapeVelocity = 0.4;
                     break;

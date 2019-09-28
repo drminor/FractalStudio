@@ -1,6 +1,6 @@
 import { Component, ViewChild, ElementRef } from '@angular/core';
 
-import { MapInfo, IBox, Box,  Histogram, ICanvasSize, CanvasSize, SCoords} from '../../m-map/m-map-common';
+import { MapInfo, IBox, Box,  Histogram, ICanvasSize, CanvasSize, SCoords, Point} from '../../m-map/m-map-common';
 
 import { MapInfoWithColorMap } from '../m-map-common-ui';
 
@@ -83,6 +83,8 @@ export class MMapViewerComponent {
           coords = null;
         }
 
+        console.log('Creating new Virtual Map at Set Map Params.');
+
         this.virtualMap = this.createVirtualMap(value.name, coords, value, this.displaySize);
         this.updateParamsFromVirtualMap(value, this.virtualMap);
         this.overLayBox = this.virtualMap.getOverLayBox(value.left, value.top);
@@ -130,6 +132,8 @@ export class MMapViewerComponent {
 
     let params = this.virtualMapParamsProp;
     if (params !== null) {
+      console.log('Creating new Virtual Map at Set MapInfo.');
+
       this.virtualMap = this.createVirtualMap(mapInfoName, coords, params, this.displaySize);
       this.updateParamsFromVirtualMap(params, this.virtualMap);
       this.overLayBox = this.virtualMap.getOverLayBox(params.left, params.top);
@@ -144,6 +148,7 @@ export class MMapViewerComponent {
     return this._miwcm;
   }
 
+  public curArea: MapSection;
   public curMapInfoWithColorMap: MapInfoWithColorMap;
   public isBuilding: boolean = false;
 
@@ -151,6 +156,7 @@ export class MMapViewerComponent {
   public overLayBox: IBox;
 
   constructor(private fService: FracServerService) {
+    this.curArea = null;
     this.curMapInfoWithColorMap = null;
 
     this.ColorMapSerialNumber = 0;
@@ -209,7 +215,12 @@ export class MMapViewerComponent {
   }
 
   set curViewCoords(value: IBox) {
-    console.log('Viewer component is updating its cur map property.');
+    if (value !== null) {
+      console.log('Viewer component is updating its cur map property. The box is x:' + value.botLeft.x + ' y:' + value.topRight.y + '.');
+    }
+    else {
+      console.log('Viewer component is updating its cur map property. The box is null.');
+    }
 
     if (this._miwcm !== null) {
       let cmi = this._miwcm.mapInfo;
@@ -221,11 +232,17 @@ export class MMapViewerComponent {
       console.log('Creating a new MapInfo for the current frame with name = ' + name + '.');
       let newMapInfo = new MapInfo(name, coords, cmi.maxIterations, cmi.threshold, cmi.iterationsPerStep);
       let newMapInfoWithColorMap = new MapInfoWithColorMap(newMapInfo, this._miwcm.colorMapUi);
+      
       this.curMapInfoWithColorMap = newMapInfoWithColorMap;
+
+      //if (value !== null) {
+      //  this.curArea = new MapSection(new Point(300, 0), new CanvasSize(9, 6));
+      //}
 
       this.isBuilding = true;
     }
     else {
+      this.curArea = null;
       this.curMapInfoWithColorMap = null;
     }
   }

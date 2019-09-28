@@ -240,10 +240,12 @@ namespace FractalEngineRunner
 			DPoint leftBot = new DPoint(-2, -1);
 			DPoint rightTop = new DPoint(1, 1);
 			SCoords coords = new SCoords(new SPoint(leftBot), new SPoint(rightTop));
+			MapSection area = new MapSection(new Point(0, 0), canvasSize.GetWholeUnits(Engine.BLOCK_SIZE));
+
 			int maxIterations = 100;
 			string connectionId = "dummy";
 
-			SMapWorkRequest mapWorkRequest = new SMapWorkRequest("FEngRunner", coords, maxIterations, canvasSize, connectionId)
+			SMapWorkRequest mapWorkRequest = new SMapWorkRequest("FEngRunner", coords, canvasSize, area, maxIterations, connectionId)
 			{
 				JobId = jobId
 			};

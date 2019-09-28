@@ -1,5 +1,4 @@
 import { IPoint, IBox, ICanvasSize, SCoords, Point, CanvasSize } from './m-map-common';
-import { read } from 'fs';
 
 //export enum JobRequestType {
 //  Generate,
@@ -44,7 +43,7 @@ export class SMapWorkRequest {
   public connectionId: string;
   public jobId: number;
 
-  constructor(public name: string, public coords: SCoords, public maxIterations: number, public canvasSize: ICanvasSize) {
+  constructor(public name: string, public coords: SCoords, public canvasSize: ICanvasSize, public area: MapSection, public maxIterations: number) {
     this.connectionId = null;
     this.jobId = -1;
   }

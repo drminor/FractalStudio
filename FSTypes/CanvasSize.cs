@@ -1,5 +1,6 @@
 ﻿using MqMessages;
 using Newtonsoft.Json;
+using System;
 
 namespace FSTypes
 {
@@ -27,6 +28,16 @@ namespace FSTypes
 		public SizeInt GetSizeInt()
 		{
 			return new SizeInt(Width, Height);
+		}
+
+		public CanvasSize GetWholeUnits(int blockSize)
+		{
+			CanvasSize result = new CanvasSize()
+			{
+				Width = (int) Math.Ceiling(Width / (double)blockSize),
+				Height = (int) Math.Ceiling(Height / (double)blockSize)
+			};
+			return result;
 		}
 
     }

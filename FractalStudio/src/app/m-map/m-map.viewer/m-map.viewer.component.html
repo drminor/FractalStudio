@@ -30,6 +30,7 @@
 
 
       <app-m-map-display #mapDisplay
+                          [area] ="curArea"
                           [mapInfoWithColorMap]="curMapInfoWithColorMap"
                           [allowZoom]="false"
                           (haveImageData)="onHaveImageData($event)"

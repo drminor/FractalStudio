@@ -22,6 +22,7 @@ namespace FractalEngine
 		private int _numberOfSectionRemainingToSend;
 
 		private ValueRecords<RectangleInt, MapSectionWorkResult> _countsRepo;
+		private readonly object _repoLock = new object();
 
 		public Job(SMapWorkRequest sMapWorkRequest) : base(sMapWorkRequest)
 		{
@@ -31,21 +32,25 @@ namespace FractalEngine
 
 			IsCompleted = false;
 			_numberOfSectionRemainingToSend = _samplePoints.NumberOfHSections * _samplePoints.NumberOfVSections;
-			_countsRepo = null;
+
+			string filename = RepoFilename;
+			Debug.WriteLine($"Creating new Repo. Name: {filename}, JobId: {JobId}.");
+			_countsRepo = new ValueRecords<RectangleInt, MapSectionWorkResult>(filename);
 		}
 
-		private ValueRecords<RectangleInt, MapSectionWorkResult> CountsRepo
-		{
-			get
-			{
-				if(_countsRepo == null)
-				{
-					string filename = RepoFilename;
-					_countsRepo = new ValueRecords<RectangleInt, MapSectionWorkResult>(filename);
-				}
-				return _countsRepo;
-			}
-		}
+		//private ValueRecords<RectangleInt, MapSectionWorkResult> CountsRepo
+		//{
+		//	get
+		//	{
+		//		if(_countsRepo == null)
+		//		{
+		//			string filename = RepoFilename;
+		//			Debug.WriteLine($"Creating new Repo. Name: {filename}, JobId: {JobId}.");
+		//			_countsRepo = new ValueRecords<RectangleInt, MapSectionWorkResult>(filename);
+		//		}
+		//		return _countsRepo;
+		//	}
+		//}
 
 		private const string DiagTimeFormat = "HH:mm:ss ffff";
 
@@ -65,7 +70,18 @@ namespace FractalEngine
 		public void WriteWorkResult(MapSection key, MapSectionWorkResult val)
 		{
 			RectangleInt riKey = key.GetRectangleInt();
-			CountsRepo.Add(riKey, val, saveOnWrite: true);
+
+			try
+			{
+				lock (_repoLock)
+				{
+					_countsRepo.Add(riKey, val, saveOnWrite: true);
+				}
+			}
+			catch
+			{
+				Debug.WriteLine($"Could not write data for x: {riKey.Point.X} and y: {riKey.Point.Y}.");
+			}
 		}
 
 		public bool CanReplayResults()
@@ -80,7 +96,8 @@ namespace FractalEngine
 
 			while(subJob != null)
 			{
-				Tuple<MapSectionResult, bool> item = RetrieveWorkResultFromRepo(subJob);
+				MapSectionResult msr = RetrieveWorkResultFromRepo(subJob);
+				Tuple<MapSectionResult, bool> item = new Tuple<MapSectionResult, bool>(msr, IsLastSubJob);
 				DecrementSubJobsRemainingToBeSent();
 
 				subJob = GetNextSubJob();
@@ -88,21 +105,29 @@ namespace FractalEngine
 			}
 		}
 
-		public Tuple<MapSectionResult, bool> RetrieveWorkResultFromRepo(SubJob subJob)
+		public MapSectionResult RetrieveWorkResultFromRepo(SubJob subJob)
 		{
 			MapSection ms = subJob.MapSectionWorkRequest.MapSection;
-			MapSectionWorkResult val = new MapSectionWorkResult(ms.CanvasSize.Width * ms.CanvasSize.Height, false, false);
-			if(CountsRepo.ReadParts(ms.GetRectangleInt(), val))
+			MapSectionWorkResult workResult = new MapSectionWorkResult(ms.CanvasSize.Width * ms.CanvasSize.Height, true, false);
+
+			lock (_repoLock)
 			{
-				subJob.workResult = val;
-				MapSectionResult msr = subJob.BuildMapSectionResult();
-				Tuple<MapSectionResult, bool> item = new Tuple<MapSectionResult, bool>(msr, IsLastSubJob);
-				return item;
+				if (_countsRepo.ReadParts(ms.GetRectangleInt(), workResult))
+				{
+					MapSectionResult msr = CreateMapSectionResult(JobId, ms, workResult);
+					return msr;
+				}
+				else
+				{
+					return null;
+				}
 			}
-			else
-			{
-				return null;
-			}
+		}
+
+		public MapSectionResult CreateMapSectionResult(int jobId, MapSection ms, MapSectionWorkResult workResult)
+		{
+			MapSectionResult result = new MapSectionResult(jobId, ms, workResult.Counts);
+			return result;
 		}
 
 		private MapSectionWorkResult CreateEmptyResult(RectangleInt area)

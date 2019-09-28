@@ -7,7 +7,7 @@ import {
   WebWorkerImageDataResponse, WebWorkerMessage, WebWorkerStartRequest,
   WebWorkerIterateRequest, WebWorkerUpdateColorMapRequest,
   Histogram, WebWorkerHistogramRequest, WebWorkerHistorgramResponse,
-  HistArrayPair,  RawMapDataProcessor, SCoords, SPoint
+  HistArrayPair,  RawMapDataProcessor, SCoords, SPoint, JOB_BLOCK_SIZE
 } from '../m-map-common';
 
 import { ColorMapUI, MapInfoWithColorMap } from '../m-map-common-ui';
@@ -28,7 +28,6 @@ enum WorkMethod {
   providers: [FracServerService]
 })
 export class MMapDisplayComponent implements AfterViewInit {
-
 
   @ViewChild('myCanvas') canvasRef: ElementRef;
   @ViewChild('myControlCanvas') canvasControlRef: ElementRef;
@@ -70,6 +69,17 @@ export class MMapDisplayComponent implements AfterViewInit {
   private mapDataProcessor: RawMapDataProcessor;
   private mapSectionResults: MapSectionResult[];
 
+  private _area: MapSection;
+  @Input('area')
+  set area(value: MapSection) {
+    this._area = value;
+    if (this._area !== null && this._mapInfo !== null && this.viewInitialized) {
+      this.buildWorkingData();
+    }
+  }
+  get area(): MapSection {
+    return this._area;
+  }
 
   @Input('mapInfoWithColorMap')
   set mapInfoWithColorMap(value: MapInfoWithColorMap) {
@@ -134,7 +144,6 @@ export class MMapDisplayComponent implements AfterViewInit {
           this._colorMap = cm;
           this._mapInfo = mi;
           if (this.viewInitialized) {
-            //this.clearTheCanvas();
             this.buildWorkingData();
           }
           return
@@ -195,6 +204,8 @@ export class MMapDisplayComponent implements AfterViewInit {
     this.viewInitialized = false;
 
     this._mapInfo = null;
+    this._area = null;
+
     this._colorMap = null;
 
     this.workers = [];
@@ -483,6 +494,10 @@ export class MMapDisplayComponent implements AfterViewInit {
       // Get the size of our canvas.
       this.canvasSize = this.initMapDisplay(this.canvasElement);
 
+      if (this._area !== null) {
+        this._area = new MapSection(new Point(0, 0), this.canvasSize.getWholeUnits(JOB_BLOCK_SIZE));
+      }
+
       // Set our control canvas to be the same size.
       this.canvasControlElement.width = this.canvasSize.width;
       this.canvasControlElement.height = this.canvasSize.height;
@@ -570,7 +585,7 @@ export class MMapDisplayComponent implements AfterViewInit {
     this.mapSectionResults = [];
     this.mapDataProcessor = new RawMapDataProcessor(regularColorMap);
 
-    let jobRequest: SMapWorkRequest = new SMapWorkRequest(this._mapInfo.name, this._mapInfo.sCoords, this._mapInfo.maxIterations, this.canvasSize);
+    let jobRequest: SMapWorkRequest = new SMapWorkRequest(this._mapInfo.name, this._mapInfo.sCoords, this.canvasSize, this._area, this._mapInfo.maxIterations);
 
     let cc = this.fService.submitJob(jobRequest);
     cc.subscribe(
@@ -580,6 +595,17 @@ export class MMapDisplayComponent implements AfterViewInit {
     );
 
   }
+
+  //private getOurArea(curArea: MapSection, canvasSize: ICanvasSize): MapSection {
+  //  if (curArea !== null) {
+  //    return curArea;
+  //  }
+  //  else {
+  //    const BLOCK_SIZE: number = 100;
+  //    let result = new MapSection(new Point(0, 0), canvasSize.getWholeUnits(BLOCK_SIZE));
+  //    return result;
+  //  }
+  //}
 
   private getDiagTime(): string {
     let dt = new Date();

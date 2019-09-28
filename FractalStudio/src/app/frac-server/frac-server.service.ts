@@ -85,7 +85,7 @@ export class FracServerService {
     //  this.imageDataSubject.complete();
     //}
 
-    let delRequest = new SMapWorkRequest('del', null, 0, null);
+    let delRequest = new SMapWorkRequest('del', null, null, null, 0);
     delRequest.jobId = this.jobId;
     delRequest.connectionId = 'delete';
     let res: Observable<SMapWorkRequest> = this.http.post<SMapWorkRequest>(this.baseUrl + this.controllerPath, delRequest);

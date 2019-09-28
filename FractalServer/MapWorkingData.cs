@@ -51,9 +51,9 @@ namespace FractalServer
 
 				DPoint z = new DPoint(0, 0);
 				int cnt = 0;
-				double escapeVelocity = _mPointWork.Iterate(c, ref z, ref cnt);
+				double escapeVelocity = _mPointWork.Iterate(c, ref z, ref cnt, done: out bool notUsed);
 
-                int[] cComps;
+				int[] cComps;
                 if (cnt == MapInfo.MaxIterations)
                 {
                     cComps = ColorMap.HighColorEntry.StartColor.ColorComps;

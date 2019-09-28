@@ -147,6 +147,7 @@ class ColorNumbers {
 const MAX_CANVAS_WIDTH: number = 50000;
 const MAX_CANVAS_HEIGHT: number = 50000;
 
+export const JOB_BLOCK_SIZE: number = 100;
 
 export interface IPoint {
   x: number;
@@ -167,6 +168,7 @@ export interface ICanvasSize {
 
   mult(amount: number): ICanvasSize;
   scale(factor: ICanvasSize): ICanvasSize;
+  getWholeUnits(blockSize: number): ICanvasSize;
 }
 
 export interface IBox {
@@ -605,6 +607,11 @@ export class CanvasSize implements ICanvasSize {
 
   public scale(factor: ICanvasSize): ICanvasSize {
     let result = new CanvasSize(this.width * factor.width, this.height * factor.height);
+    return result;
+  }
+
+  public getWholeUnits(blockSize: number): ICanvasSize {
+    let result = new CanvasSize(Math.ceil(this.width / blockSize), Math.ceil(this.height / blockSize));
     return result;
   }
 

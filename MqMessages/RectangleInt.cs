@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Runtime.Serialization;
 
 namespace MqMessages
 {
@@ -65,18 +64,5 @@ namespace MqMessages
 			return !(int1 == int2);
 		}
 
-
-		#region ISerializable Implementation
-		//public RectangleInt(SerializationInfo info, StreamingContext context)
-		//{
-		//	Point = info.g
-		//}
-
-		//public void GetObjectData(SerializationInfo info, StreamingContext context)
-		//{
-		//	info.AddValue("Point", Point);
-		//	info.AddValue("Size", Size);
-		//}
-		#endregion
 	}
 }
