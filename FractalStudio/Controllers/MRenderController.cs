@@ -52,6 +52,7 @@ namespace FractalStudio.Controllers
       }
       else
       {
+        //System.Threading.Thread.Sleep(2000);
         IJob job = new JobFactory().CreateJob(sMapWorkRequest);
         int jobId = _engine.SubmitJob(job);
         sMapWorkRequest.JobId = jobId;

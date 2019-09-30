@@ -1,52 +1,44 @@
-import {  Point, IBox, Box, ICanvasSize, CanvasSize} from './m-map-common';
+import { IPoint, Point, IBox, Box, ICanvasSize, CanvasSize, JOB_BLOCK_SIZE} from './m-map-common';
 
 export interface IVirtualMapParams {
   name: string;
-  imageSize: ICanvasSize;
+  imageSizeInInches: ICanvasSize;
+
   printDensity: number;
-  scrToPrnPixRat: number;
-  zoomFactor: ICanvasSize;
   left: number,
   top: number,
 
+  imageSize: ICanvasSize;
   viewSize: ICanvasSize;
-  imageSizeInInches: ICanvasSize;
+  zoomFactor: ICanvasSize;
   viewSizeInInches: ICanvasSize;
 }
 
 export interface IVirtualMap {
-  name: string;
   imageSize: ICanvasSize;
-  scrToPrnPixRat: number;
-
-  coords: IBox;
   displaySize: ICanvasSize;
 
-  getViewSize(): ICanvasSize;
-  getCurCoords(left: number, top: number): IBox;
+  getCurCoords(left: number, top: number): IPoint;
   getOverLayBox(left: number, top: number): IBox;
-
   scaleFactor: ICanvasSize;
+
+  getNextCoords(left: number, top: number): IPoint;
 }
 
 export class VirtualMapParams implements IVirtualMapParams {
 
-  private _imageSizeInInches: ICanvasSize;
-  public get imageSizeInInches(): ICanvasSize {
-    return this._imageSizeInInches;
-  }
-
-  private _viewSizeInInches: ICanvasSize;
-  public get viewSizeInInches(): ICanvasSize {
-    return this._viewSizeInInches
+  private _imageSize: ICanvasSize;
+  public get imageSize(): ICanvasSize {
+    return this._imageSize;
   }
 
   private _viewSize: ICanvasSize;
   public set viewSize(value: ICanvasSize) {
     this._viewSize = value;
     if (value !== null) {
-      this._viewSizeInInches = this.getSizeInInches(value, this.printDensity);
       this._zoomFactor = this.getZoomFactor(this.imageSize, value);
+
+      this._viewSizeInInches = new CanvasSize(this.imageSizeInInches.width / this._zoomFactor.width, this.imageSizeInInches.height * this._zoomFactor.height);
     }
   }
   public get viewSize(): ICanvasSize {
@@ -62,37 +54,42 @@ export class VirtualMapParams implements IVirtualMapParams {
     return this._zoomFactor;
   }
 
-  constructor(public name: string, public imageSize: ICanvasSize, public printDensity: number,
-    public scrToPrnPixRat: number, public left: number, public top: number) {
-    this._imageSizeInInches = this.getSizeInInches(imageSize, printDensity);
+  private _viewSizeInInches: ICanvasSize;
+  public get viewSizeInInches(): ICanvasSize {
+    return this._viewSizeInInches
+  }
+
+  // imageSize is the size of the image in inches
+  constructor(public name: string, public imageSizeInInches: ICanvasSize, public printDensity: number,
+    public left: number, public top: number) {
+    this._imageSize = new CanvasSize(imageSizeInInches.width * printDensity, imageSizeInInches.height * printDensity);
 
     this.viewSize = null;
     this._viewSizeInInches = null;
     this._zoomFactor = null;
   }
 
-  private getSizeInInches(sz: ICanvasSize, printDensity: number): ICanvasSize {
-    let result = new CanvasSize(sz.width / printDensity, sz.height / printDensity);
-    return result;
-  }
-
   private getZoomFactor(imageSize: ICanvasSize, viewSize: ICanvasSize): ICanvasSize {
     let result = new CanvasSize(imageSize.width / viewSize.width, imageSize.height / viewSize.height);
     return result;
   }
-
 }
 
 export class VirtualMap implements IVirtualMap {
 
+  private _imageSizeInBlocks: ICanvasSize;
+  public get imageSizeInBlocks(): ICanvasSize {
+    return this._imageSizeInBlocks;
+  }
+
+  private _displaySizeInBlocks: ICanvasSize;
+  public get displaySizeInBlocks(): ICanvasSize {
+    return this._displaySizeInBlocks;
+  }
+
   private _scaleFactor: ICanvasSize;
   public get scaleFactor(): ICanvasSize {
     return this._scaleFactor;
-  }
-
-  private _maxScrToPrnPixRat: number;
-  public get maxScrToPrnPixRat(): number {
-    return this._maxScrToPrnPixRat;
   }
 
   private _maxLeft: number;
@@ -105,87 +102,74 @@ export class VirtualMap implements IVirtualMap {
     return this._maxTop;
   }
 
-  constructor(public name: string, public coords: IBox, public imageSize: ICanvasSize, public scrToPrnPixRat: number, public displaySize: ICanvasSize) {
+  constructor(public imageSize: ICanvasSize, public displaySize: ICanvasSize) {
 
-    // If the given scrToPrnPixRat is too high, set it to the maximum
-    // value that keeps the entire viewWidth > the display width.
-    this._maxScrToPrnPixRat = this.getMaxScreenToPrintPixRat(imageSize.width, displaySize.width);
+    //let vScaleFactor = displaySize.width / this.imageSize.width;
+    //let hScaleFactor = displaySize.height / this.imageSize.height;
+    //this._scaleFactor = new CanvasSize(vScaleFactor, hScaleFactor);
 
-    if (scrToPrnPixRat > this._maxScrToPrnPixRat) {
-      this.scrToPrnPixRat = this._maxScrToPrnPixRat;
-    }
+    this._displaySizeInBlocks = new CanvasSize(Math.ceil(displaySize.width / JOB_BLOCK_SIZE), Math.ceil(displaySize.height / JOB_BLOCK_SIZE));
+    this._imageSizeInBlocks = new CanvasSize(Math.ceil(imageSize.width / JOB_BLOCK_SIZE), Math.ceil(imageSize.height / JOB_BLOCK_SIZE));
 
-    // Set our Scale Factor.
-    let vScaleFactor = this.scrToPrnPixRat * this.displaySize.width / this.imageSize.width;
-    let hScaleFactor = this.scrToPrnPixRat * this.displaySize.height / this.imageSize.height;
+    let vScaleFactor = this._displaySizeInBlocks.width / this._imageSizeInBlocks.width;
+    let hScaleFactor = this._displaySizeInBlocks.height / this._imageSizeInBlocks.height;
     this._scaleFactor = new CanvasSize(vScaleFactor, hScaleFactor);
 
-    this._maxLeft = 24;
-    this._maxTop = 16;
-  }
-
-  // How many logical pixels are displayed on our canvas.
-  public getViewSize(): ICanvasSize {
-    let result = this.displaySize.mult(this.scrToPrnPixRat);
-    return result;
-  }
-
-  // If the screen to print pixel ratio is any larger than this
-  // then the resulting image will be smaller than our Map Display Canvas.
-  public getMaxScreenToPrintPixRat(imageWidthPx: number, displayWidthPx: number): number {
-    let screenToPrintRat = imageWidthPx / displayWidthPx;
-
-    // Truncate to the nearest integer
-    let result = parseInt((screenToPrintRat).toString());
-    return result;
+    this._maxLeft = -1 + this._imageSizeInBlocks.width - this._displaySizeInBlocks.width;
+    this._maxTop = -1 + this._imageSizeInBlocks.height - this._displaySizeInBlocks.height;
   }
 
   // Top is the distance measured from the top of the image to the top of the section being displayed.
   // Left is the distance measured from the left of the image to the left of the section being displayed.
-  public getCurCoords(left: number, top: number): IBox {
+  public getCurCoords(left: number, top: number): Point {
 
-    if (this.coords === null) {
-      return null;
-    }
+    console.log('Calculating new area: the current position is left:' + left + ' top:' + top + '.');
 
-    //console.log('The current coords are ' + this.coords.toString() + '.');
-    //console.log('The current width is ' + this.coords.width + '.');
+    left = Math.trunc(left);
+    top = Math.trunc(top);
 
-    //let curWidth = this.coords.width;
+    if (left < 0) left = 0;
+    if (top < 0) top = 0;
 
-    let imageTop = this.coords.absTop;
+    if (left > this._maxLeft) left = this._maxLeft;
+    if (top > this._maxTop) top = this._maxTop;
 
-    // Calculate indexes into the virtual x and y values array.
+    console.log('Calculating new area: the new position is left:' + left + ' top:' + top + '.');
 
-    let scaleFactor = this.coords.absSize.scale(this.scaleFactor);
-
-    let sx = this.coords.botLeft.x + left * scaleFactor.width;
-    let ex = this.coords.botLeft.x + (left + 1) * scaleFactor.width;
-
-    let sy = imageTop - (top + 1) * scaleFactor.height;
-    let ey = imageTop - top * scaleFactor.height;
-
-    let result = new Box(new Point(sx, sy), new Point(ex, ey));
-
-    //console.log('The new coords are ' + result.toString() + '.');
-    //console.log('The new width is ' + result.width + '.');
-
-    //let diff = result.width - curWidth;
-    //console.log('The new width - the old width = ' + diff + '.');
+    let result = new Point(left, top);
 
     return result;
   }
 
   public getOverLayBox(left: number, top: number): IBox {
 
-    if (this.coords === null) {
-      return null;
-    }
-
-    let viewBox = new Box(new Point(left, top), new Point(left + 1, top + 1));
+    let scLeft = left / this.displaySizeInBlocks.width;
+    let scTop = top / this.displaySizeInBlocks.height;
+    let viewBox = new Box(new Point(scLeft, scTop), new Point(scLeft + 1, scTop + 1));
     let result = viewBox.scale(this.scaleFactor);
 
     return result;
   }
+
+  public getNextCoords(left: number, top: number): IPoint {
+    let nLeft: number;
+    let nTop: number;
+
+    if (left >= this.maxLeft && top >= this.maxTop) {
+      return null;
+    }
+
+    if (left >= this.maxLeft) {
+      nLeft = 0;
+      nTop = top + 7;
+    }
+    else {
+      nLeft = left + 10;
+      nTop = top;
+    }
+
+    return new Point(nLeft, nTop);
+  }
+
 
 }

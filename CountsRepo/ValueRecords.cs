@@ -369,6 +369,7 @@ namespace CountsRepo
 					_indices.Save();
 					try
 					{
+						_fs.Flush();
 						_fs.Dispose();
 					}
 					catch

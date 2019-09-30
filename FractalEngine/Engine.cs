@@ -153,7 +153,7 @@ namespace FractalEngine
 				}
 				else if(job is Job localJob) 
 				{
-					localJob.DeleteCountsRepo();
+					//localJob.DeleteCountsRepo();
 					localJob.Dispose();
 				}
 				else

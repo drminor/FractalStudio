@@ -1,6 +1,6 @@
 import { Component, ViewChild, ElementRef } from '@angular/core';
 
-import { MapInfo, IBox, Box,  Histogram, ICanvasSize, CanvasSize, SCoords, Point} from '../../m-map/m-map-common';
+import { MapInfo, IBox, Box,  Histogram, ICanvasSize, CanvasSize, SCoords, Point, IPoint} from '../../m-map/m-map-common';
 
 import { MapInfoWithColorMap } from '../m-map-common-ui';
 
@@ -34,6 +34,7 @@ export class MMapViewerComponent {
   private virtualMap: IVirtualMap;
 
   public virtualMapParams: IVirtualMapParams = null;
+  public surveyMode: boolean = false;
 
   set virtualMapParamsProp(value: IVirtualMapParams) {
     if (value === null) {
@@ -42,7 +43,7 @@ export class MMapViewerComponent {
 
         // Clear the virtual map and the current display.
         this.virtualMap = null;
-        this.curViewCoords = null;
+        this.curViewPosition = null;
       }
     }
     else {
@@ -52,50 +53,46 @@ export class MMapViewerComponent {
       if (this.virtualMapParams === null) {
         buildNewMap = true;
       }
-      else if (this.virtualMapParams.imageSize.width !== value.imageSize.width
-        || this.virtualMapParams.scrToPrnPixRat !== value.scrToPrnPixRat) {
+      else if (this.virtualMapParams.imageSize.width !== value.imageSize.width) {
         buildNewMap = true;
       }
       else {
-        if (this.virtualMapParams.left !== value.left) {
+        if (this.virtualMapParams.left !== value.left ||
+          this.virtualMapParams.top !== value.top) {
           updatePos = true;
         }
-        if (this.virtualMapParams.top !== value.top) {
-          updatePos = true;
-        }
+      }
 
+      if (this.displaySize === null) {
+        console.log('Initing the display size on set params prop.');
+        this.displaySize = new CanvasSize(939, 626);
       }
 
       if (buildNewMap) {
+
         // Create a new VirtualMap.
 
         // Reset the position to 0.
         value.left = 0;
         value.top = 0;
 
-        let coords: IBox;
-        if (this._miwcm !== null && this._miwcm.mapInfo !== null) {
-          // TODO: sc.Don't convert SCoords to IBox
-          coords = Box.fromSCoords(this._miwcm.mapInfo.sCoords);
-          //coords = this._miwcm.mapInfo.coords;
-        }
-        else {
-          coords = null;
-        }
-
         console.log('Creating new Virtual Map at Set Map Params.');
 
-        this.virtualMap = this.createVirtualMap(value.name, coords, value, this.displaySize);
-        this.updateParamsFromVirtualMap(value, this.virtualMap);
+        this.virtualMap = new VirtualMap(value.imageSize, this.displaySize);
+        value.viewSize = this.displaySize;
+        //this.updateParamsFromVirtualMap(value, this.virtualMap);
         this.overLayBox = this.virtualMap.getOverLayBox(value.left, value.top);
-        this.curViewCoords = this.virtualMap.getCurCoords(value.left, value.top);
+
+        // WE ARE NOT SETTING OUR CUR MAP
+        this.curViewPosition = this.virtualMap.getCurCoords(value.left, value.top);
       }
       else {
         if (updatePos) {
           if (this.virtualMap !== null) {
-            this.updateParamsFromVirtualMap(value, this.virtualMap);
+            value.viewSize = this.displaySize;
+            //this.updateParamsFromVirtualMap(value, this.virtualMap);
             this.overLayBox = this.virtualMap.getOverLayBox(value.left, value.top);
-            this.curViewCoords = this.virtualMap.getCurCoords(value.left, value.top);
+            this.curViewPosition = this.virtualMap.getCurCoords(value.left, value.top);
           }
         }
       }
@@ -113,34 +110,34 @@ export class MMapViewerComponent {
   private _miwcm: MapInfoWithColorMap;
   set mapInfoWithColorMap(value: MapInfoWithColorMap) {
 
-    // The name from the loaded MapInfo file.
-    let mapInfoName: string = null;
-    let coords: IBox = null;
+    let copy: MapInfoWithColorMap;
 
     if (value !== null) {
-      mapInfoName = value.mapInfo.name;
-
+      copy = value.clone();
       // Set the Map Overview's map name to something different.
-      value.mapInfo.name = mapInfoName + '_OverView';
-
-      //coords = value.mapInfo.coords;
-      // TODO: sc.Don't convert SCoords to IBox
-      coords = Box.fromSCoords(value.mapInfo.sCoords);
+      copy.mapInfo.name = copy.mapInfo.name + '_OverView';
+    }
+    else {
+      copy = null;
     }
 
-    this._miwcm = value;
+    this._miwcm = copy;
 
     let params = this.virtualMapParamsProp;
     if (params !== null) {
       console.log('Creating new Virtual Map at Set MapInfo.');
 
-      this.virtualMap = this.createVirtualMap(mapInfoName, coords, params, this.displaySize);
-      this.updateParamsFromVirtualMap(params, this.virtualMap);
+      this.virtualMap = new VirtualMap(params.imageSize, this.displaySize);
+      params.name = value.mapInfo.name;
+      params.viewSize = this.displaySize;
+
+      // SETTING OUR CUR MAP
+      this.curMapInfoWithColorMap = value;
       this.overLayBox = this.virtualMap.getOverLayBox(params.left, params.top);
-      this.curViewCoords = this.virtualMap.getCurCoords(params.left, params.top);
+      this.curViewPosition = this.virtualMap.getCurCoords(params.left, params.top);
     }
     else {
-      this.curViewCoords = null;
+      this.curViewPosition = null;
     }
   }
 
@@ -181,77 +178,38 @@ export class MMapViewerComponent {
 
   private buildVirtualMapParams(): IVirtualMapParams {
     let name = 'VMapInfo';
-    let imageSize = new CanvasSize(21600, 14400);
+    let imageSize = new CanvasSize(36, 24);
     let printDensity = 300;
-    let scrToPrnPixRat = 10; // 23
+    //let scrToPrnPixRat = 10; // 23
     let left = 0;
     let top = 0;
-    let result = new VirtualMapParams(name, imageSize, printDensity, scrToPrnPixRat, left, top);
+    let result = new VirtualMapParams(name, imageSize, printDensity, left, top);
     return result;
   }
 
-  private createVirtualMap(name: string, coords: IBox, params: IVirtualMapParams, displaySize: ICanvasSize): IVirtualMap {
-    let result = new VirtualMap(name, coords, params.imageSize, params.scrToPrnPixRat, displaySize);
-    return result;
-  }
-
-  private updateParamsFromVirtualMap(params: IVirtualMapParams, virtualMap: IVirtualMap): void {
-
-    if (virtualMap === null) {
-      console.log('The Virtual Map is null on call to updateParamsFromVirtualMap.');
-      params.imageSize = new CanvasSize(100, 100);
-      return;
-    }
-
-    params.name = virtualMap.name;
-
-    if (virtualMap.scrToPrnPixRat !== params.scrToPrnPixRat) {
-      // The Virtual Map has adjusted the scrToPrnPixRat to valid value,
-      // now update our value to match.
-      params.scrToPrnPixRat = virtualMap.scrToPrnPixRat;
-    }
-
-    params.viewSize = virtualMap.getViewSize();
-  }
-
-  set curViewCoords(value: IBox) {
+  set curViewPosition(value: IPoint) {
     if (value !== null) {
-      console.log('Viewer component is updating its cur map property. The box is x:' + value.botLeft.x + ' y:' + value.topRight.y + '.');
-    }
-    else {
-      console.log('Viewer component is updating its cur map property. The box is null.');
-    }
-
-    if (this._miwcm !== null) {
-      let cmi = this._miwcm.mapInfo;
-      let coords = SCoords.fromBox(value);
-
-      // Use the name of the entire virtual map to build the curMapInfo
-      let name = this.virtualMapParamsProp.name;
-
-      console.log('Creating a new MapInfo for the current frame with name = ' + name + '.');
-      let newMapInfo = new MapInfo(name, coords, cmi.maxIterations, cmi.threshold, cmi.iterationsPerStep);
-      let newMapInfoWithColorMap = new MapInfoWithColorMap(newMapInfo, this._miwcm.colorMapUi);
-      
-      this.curMapInfoWithColorMap = newMapInfoWithColorMap;
-
-      //if (value !== null) {
-      //  this.curArea = new MapSection(new Point(300, 0), new CanvasSize(9, 6));
-      //}
-
+      console.log('Viewer component is updating its cur map property. The box is x:' + value.x + ' y:' + value.y + '.');
+      this.curArea = new MapSection(value, this.virtualMap.imageSize);
       this.isBuilding = true;
     }
     else {
+      console.log('Viewer component is updating its cur map property. The box is null.');
       this.curArea = null;
-      this.curMapInfoWithColorMap = null;
     }
   }
 
   onVirtualMapParamsUpdated(params: IVirtualMapParams) {
     console.log('Viewer component is receiving a Params update.');
-    //if (params !== null) {
-    //  params.viewSize = this.displaySize;
-    //}
+
+    if (params !== null) {
+      if (this.displaySize === null) {
+        console.log('The display size has not yet been set.');
+      }
+
+      params.viewSize = this.displaySize;
+    }
+
     this.virtualMapParamsProp = params;
   }
 
@@ -284,24 +242,49 @@ export class MMapViewerComponent {
           break;
       }
 
-      let newParams = new VirtualMapParams(params.name, params.imageSize, params.printDensity, params.scrToPrnPixRat, newLeft, newTop);
-      this.updateParamsFromVirtualMap(newParams, this.virtualMap);
-      this.virtualMapParamsProp = newParams;
-
-      if (this.virtualMap !== null) {
-        this.overLayBox = this.virtualMap.getOverLayBox(newLeft, newTop);
-        this.curViewCoords = this.virtualMap.getCurCoords(newLeft, newTop);
-      }
+      this.updateMapPos(params, newLeft, newTop);
     }
-
   }
-  
-  onBuildingComplete() {
+
+  private updateMapPos(params: IVirtualMapParams, newLeft: number, newTop: number): void {
+    let newParams = new VirtualMapParams(params.name, params.imageSizeInInches, params.printDensity, newLeft, newTop);
+    newParams.viewSize = this.displaySize;
+    this.virtualMapParamsProp = newParams;
+
+    if (this.virtualMap !== null) {
+      this.overLayBox = this.virtualMap.getOverLayBox(newLeft, newTop);
+      this.curViewPosition = this.virtualMap.getCurCoords(newLeft, newTop);
+    }
+  }
+
+  onBuildingComplete():void {
     this.isBuilding = false;
+
+    if (!this.surveyMode) return;
+
+    let params = this.virtualMapParamsProp;
+
+    if (params !== null) {
+      let curLeft = this.virtualMapParamsProp.left;
+      let curTop = this.virtualMapParamsProp.top;
+
+      let newPos = this.virtualMap.getNextCoords(curLeft, curTop);
+      if (newPos !== null)
+        this.updateMapPos(params, newPos.x, newPos.y);
+      else
+        console.log('Completed the survey.');
+    }
   }
 
   onHaveHistogram(h: Histogram) {
     this.isBuilding = false;
+  }
+
+  onSurveyModeUpdated(value: boolean) {
+    this.surveyMode = value;
+
+    if(value)
+      this.curViewPosition = new Point(0, 0);
   }
 
   onHaveImageData(imageBlob: Blob) {
@@ -323,6 +306,12 @@ export class MMapViewerComponent {
     if (miwcm.colorMapUi.serialNumber === -1) {
       miwcm.colorMapUi.serialNumber = this.ColorMapSerialNumber++;
     }
+
+    // Update the Parameters screen with the new info.
+    let params = this.virtualMapParamsProp;
+    let newParams = new VirtualMapParams(params.name, params.imageSizeInInches, params.printDensity, 0, 0);
+    newParams.viewSize = this.displaySize;
+    this.virtualMapParamsProp = newParams;
 
     this.mapInfoWithColorMap = miwcm;
   }

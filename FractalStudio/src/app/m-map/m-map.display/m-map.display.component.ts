@@ -63,6 +63,7 @@ export class MMapDisplayComponent implements AfterViewInit {
 
   private _buildingNewMap: boolean;
   private _sectionCompleteFlags: boolean[];
+  private _insideSubmitWebRequest: boolean;
 
   private zoomBox: IBox;
 
@@ -72,13 +73,58 @@ export class MMapDisplayComponent implements AfterViewInit {
   private _area: MapSection;
   @Input('area')
   set area(value: MapSection) {
-    this._area = value;
-    if (this._area !== null && this._mapInfo !== null && this.viewInitialized) {
-      this.buildWorkingData();
+
+    console.log('The area is being set. The value is ' + this.formatArea(value));
+
+    if (!this.areAreasTheSame(this._area, value)) {
+      console.log('Updating the area.');
+      this._area = value;
+      if (this._area !== null && this._mapInfo !== null && this.viewInitialized) {
+        console.log('Building new map because of an area update.');
+        this.buildWorkingData();
+      }
     }
   }
+
   get area(): MapSection {
     return this._area;
+  }
+
+  private formatArea(ms1: MapSection): string {
+    if (ms1 === null) {
+      return 'null';
+    }
+    else {
+      return 'x:' + ms1.sectionAnchor.x + ', y:' + ms1.sectionAnchor.y + '.';
+    }
+  }
+
+  private areAreasTheSame(ms1: MapSection, ms2: MapSection): boolean {
+    if (ms1 === null) {
+      if (ms2 === null) {
+        return true;
+      }
+      else {
+        return false;
+      }
+    }
+    else {
+      if (ms2 === null) {
+        return false;
+      }
+      else {
+        if (ms1.sectionAnchor.x !== ms2.sectionAnchor.x
+          || ms1.sectionAnchor.y !== ms2.sectionAnchor.y
+          || ms1.canvasSize.width != ms2.canvasSize.width
+          || ms2.canvasSize.height != ms2.canvasSize.height
+        ) {
+          return false;
+        }
+        else {
+          return true;
+        }
+      }
+    }
   }
 
   @Input('mapInfoWithColorMap')
@@ -202,6 +248,7 @@ export class MMapDisplayComponent implements AfterViewInit {
     console.log('m-map.display is being constructed.');
 
     this.viewInitialized = false;
+    this._insideSubmitWebRequest = false;
 
     this._mapInfo = null;
     this._area = null;
@@ -494,9 +541,13 @@ export class MMapDisplayComponent implements AfterViewInit {
       // Get the size of our canvas.
       this.canvasSize = this.initMapDisplay(this.canvasElement);
 
-      if (this._area !== null) {
-        this._area = new MapSection(new Point(0, 0), this.canvasSize.getWholeUnits(JOB_BLOCK_SIZE));
-      }
+      //if (this._area === null) {
+      //  console.log('Setting the area to a default value on ngAfterViewInit.');
+      //  this._area = new MapSection(new Point(0, 0), this.canvasSize.getWholeUnits(JOB_BLOCK_SIZE));
+      //}
+      //else {
+      //  console.log('Not setting the area on ngAfterViewInit -- it already has a value of ' + this.formatArea(this._area));
+      //}
 
       // Set our control canvas to be the same size.
       this.canvasControlElement.width = this.canvasSize.width;
@@ -553,13 +604,17 @@ export class MMapDisplayComponent implements AfterViewInit {
     }
     else if (this.workMethod === WorkMethod.WebService) {
 
+      if (this._insideSubmitWebRequest) return;
+
+      this._insideSubmitWebRequest = true;
       let dc1 = this.fService.cancelJob();
 
       if (dc1 != null) {
-        dc1.subscribe(
-          () => console.log('Cancel MapWorkRequestJob has been sent.'),
-          () => console.log('Received an error while cancelling a MapWorkRequest job.'),
-          () => this.afterDelRequestComplete());
+        //dc1.subscribe(
+        //  () => console.log('Cancel MapWorkRequestJob has been sent.'),
+        //  () => console.log('Received an error while cancelling a MapWorkRequest job.'),
+        //  () => this.afterDelRequestComplete());
+        dc1.subscribe(resp => this.afterDelRequestComplete(resp));
       }
       else {
         console.log('Not clearing the canvas -- no current job.');
@@ -571,8 +626,9 @@ export class MMapDisplayComponent implements AfterViewInit {
     }
   }
 
-  private afterDelRequestComplete() {
-    console.log('Clearing the canvas -- we just cancelled the last job.');
+  private afterDelRequestComplete(request: SMapWorkRequest) {
+    
+    console.log('Clearing the canvas -- we just cancelled the last job. The request is ' + request.name + '.');
     this.clearTheCanvas();
     this.submitMapWorkRequest();
   }
@@ -585,7 +641,19 @@ export class MMapDisplayComponent implements AfterViewInit {
     this.mapSectionResults = [];
     this.mapDataProcessor = new RawMapDataProcessor(regularColorMap);
 
-    let jobRequest: SMapWorkRequest = new SMapWorkRequest(this._mapInfo.name, this._mapInfo.sCoords, this.canvasSize, this._area, this._mapInfo.maxIterations);
+    let area: MapSection;
+    let samplePoints: ICanvasSize;
+
+    if (this._area === null) {
+      area = new MapSection(new Point(0, 0), this.canvasSize.getWholeUnits(JOB_BLOCK_SIZE));
+      samplePoints = this.canvasSize;
+    }
+    else {
+      area = new MapSection(this._area.sectionAnchor, this.canvasSize.getWholeUnits(JOB_BLOCK_SIZE));
+      samplePoints = this._area.canvasSize;
+    }
+
+    let jobRequest: SMapWorkRequest = new SMapWorkRequest(this._mapInfo.name, this._mapInfo.sCoords, samplePoints, area, this._mapInfo.maxIterations);
 
     let cc = this.fService.submitJob(jobRequest);
     cc.subscribe(
@@ -594,6 +662,7 @@ export class MMapDisplayComponent implements AfterViewInit {
       () => this.webServiceMapWorkDone()
     );
 
+    this._insideSubmitWebRequest = false;
   }
 
   //private getOurArea(curArea: MapSection, canvasSize: ICanvasSize): MapSection {
@@ -601,8 +670,8 @@ export class MMapDisplayComponent implements AfterViewInit {
   //    return curArea;
   //  }
   //  else {
-  //    const BLOCK_SIZE: number = 100;
-  //    let result = new MapSection(new Point(0, 0), canvasSize.getWholeUnits(BLOCK_SIZE));
+  //    console.log('Building default area because the area is null.');
+  //    let result = new MapSection(new Point(0, 0), canvasSize.getWholeUnits(JOB_BLOCK_SIZE));
   //    return result;
   //  }
   //}

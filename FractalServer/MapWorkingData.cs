@@ -1,12 +1,12 @@
 ﻿using FSTypes;
 using Hjg.Pngcs;
-using System.Drawing;
+using System;
 
 namespace FractalServer
 {
     public class MapWorkingData
     {
-        public readonly Size CanvasSize;
+        public readonly CanvasSize CanvasSize;
         public readonly MapInfo MapInfo;
         public readonly ColorMap ColorMap;
 
@@ -15,7 +15,7 @@ namespace FractalServer
 
 		private readonly MPointWork _mPointWork;
 
-		public MapWorkingData(Size canvasSize, MapInfo mapInfo, ColorMap colorMap)
+		public MapWorkingData(CanvasSize canvasSize, MapInfo mapInfo, ColorMap colorMap)
         {
             CanvasSize = canvasSize;
             MapInfo = mapInfo;
@@ -67,7 +67,36 @@ namespace FractalServer
             }
         }
 
-        private double[] BuildVals(int canvasExtent, double start, double end)
+		public void BuildPngImageLineSegment(int pixPtr, int[] counts, ImageLine iLine)
+		{
+			for (int xPtr = 0; xPtr < counts.Length; xPtr++)
+			{
+				double escapeVelocity = GetEscVel(counts[xPtr], out int cnt);
+
+				int[] cComps;
+				if (cnt == MapInfo.MaxIterations)
+				{
+					cComps = ColorMap.HighColorEntry.StartColor.ColorComps;
+				}
+				else
+				{
+					cComps = ColorMap.GetColor(cnt, escapeVelocity);
+				}
+
+				ImageLineHelper.SetPixel(iLine, pixPtr++, cComps[0], cComps[1], cComps[2]);
+			}
+		}
+
+		private double GetEscVel(int rawCount, out int count)
+		{
+			double result = rawCount / 10000d;
+			count = (int)Math.Truncate(result);
+			result -= count;
+			return result;
+		}
+
+
+		private double[] BuildVals(int canvasExtent, double start, double end)
         {
             double mapExtent = end - start;
             double unitExtent = mapExtent / canvasExtent;

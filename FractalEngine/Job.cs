@@ -38,26 +38,12 @@ namespace FractalEngine
 			_countsRepo = new ValueRecords<RectangleInt, MapSectionWorkResult>(filename);
 		}
 
-		//private ValueRecords<RectangleInt, MapSectionWorkResult> CountsRepo
-		//{
-		//	get
-		//	{
-		//		if(_countsRepo == null)
-		//		{
-		//			string filename = RepoFilename;
-		//			Debug.WriteLine($"Creating new Repo. Name: {filename}, JobId: {JobId}.");
-		//			_countsRepo = new ValueRecords<RectangleInt, MapSectionWorkResult>(filename);
-		//		}
-		//		return _countsRepo;
-		//	}
-		//}
-
 		private const string DiagTimeFormat = "HH:mm:ss ffff";
 
 		public void DeleteCountsRepo()
 		{
 			Debug.WriteLine($"Starting to delete the old repo: {RepoFilename} at {DateTime.Now.ToString(DiagTimeFormat)}.");
-			if(_countsRepo != null)
+			if (_countsRepo != null)
 			{
 				_countsRepo.Dispose();
 				_countsRepo = null;
@@ -70,12 +56,15 @@ namespace FractalEngine
 		public void WriteWorkResult(MapSection key, MapSectionWorkResult val)
 		{
 			RectangleInt riKey = key.GetRectangleInt();
+			// When writing include the Area's offset.
+			riKey.Point.X += SMapWorkRequest.Area.SectionAnchor.X * SECTION_WIDTH;
+			riKey.Point.Y += SMapWorkRequest.Area.SectionAnchor.Y * SECTION_HEIGHT;
 
 			try
 			{
 				lock (_repoLock)
 				{
-					_countsRepo.Add(riKey, val, saveOnWrite: true);
+					_countsRepo.Add(riKey, val, saveOnWrite: false);
 				}
 			}
 			catch
@@ -94,7 +83,7 @@ namespace FractalEngine
 		{
 			SubJob subJob = GetNextSubJob();
 
-			while(subJob != null)
+			while (subJob != null)
 			{
 				MapSectionResult msr = RetrieveWorkResultFromRepo(subJob);
 				Tuple<MapSectionResult, bool> item = new Tuple<MapSectionResult, bool>(msr, IsLastSubJob);
@@ -110,9 +99,14 @@ namespace FractalEngine
 			MapSection ms = subJob.MapSectionWorkRequest.MapSection;
 			MapSectionWorkResult workResult = new MapSectionWorkResult(ms.CanvasSize.Width * ms.CanvasSize.Height, true, false);
 
+			RectangleInt riKey = ms.GetRectangleInt();
+			// When writing include the Area's offset.
+			riKey.Point.X += SMapWorkRequest.Area.SectionAnchor.X * SECTION_WIDTH;
+			riKey.Point.Y += SMapWorkRequest.Area.SectionAnchor.Y * SECTION_HEIGHT;
+
 			lock (_repoLock)
 			{
-				if (_countsRepo.ReadParts(ms.GetRectangleInt(), workResult))
+				if (_countsRepo.ReadParts(riKey, workResult))
 				{
 					MapSectionResult msr = CreateMapSectionResult(JobId, ms, workResult);
 					return msr;
@@ -122,6 +116,7 @@ namespace FractalEngine
 					return null;
 				}
 			}
+			//return null;
 		}
 
 		public MapSectionResult CreateMapSectionResult(int jobId, MapSection ms, MapSectionWorkResult workResult)
@@ -153,33 +148,10 @@ namespace FractalEngine
 			}
 			//System.Diagnostics.Debug.WriteLine($"Creating SubJob for hSection: {_hSectionPtr}, vSection: {_vSectionPtr}.");
 
-			int w;
-			int h;
-
-			if (_hSectionPtr == _samplePoints.NumberOfHSections - 1)
-			{
-				//w = _samplePoints.LastSectionWidth;
-				w = SECTION_WIDTH;
-			}
-			else
-			{
-				w = SECTION_WIDTH;
-			}
-
-			if (_vSectionPtr == _samplePoints.NumberOfVSections - 1)
-			{
-				//h = _samplePoints.LastSectionHeight;
-				h = SECTION_HEIGHT;
-			}
-			else
-			{
-				h = SECTION_HEIGHT;
-			}
-
 			int left = _hSectionPtr * SECTION_WIDTH;
 			int top = _vSectionPtr * SECTION_HEIGHT;
 
-			MapSection mapSection = new MapSection(new Point(left, top), new CanvasSize(w, h));
+			MapSection mapSection = new MapSection(new Point(left, top), new CanvasSize(SECTION_WIDTH, SECTION_HEIGHT));
 
 			double[] xValues = _samplePoints.XValueSections[_hSectionPtr++];
 			double[] yValues = _samplePoints.YValueSections[_vSectionPtr];
@@ -198,7 +170,7 @@ namespace FractalEngine
 		public void DecrementSubJobsRemainingToBeSent()
 		{
 			int newVal = Interlocked.Decrement(ref _numberOfSectionRemainingToSend);
-			if(newVal == 0)
+			if (newVal == 0)
 			{
 				IsLastSubJob = true;
 			}
@@ -206,34 +178,26 @@ namespace FractalEngine
 
 		private SamplePoints<double> GetSamplePoints(SMapWorkRequest sMapWorkRequest)
 		{
-			int SECTION_WIDTH = 100;
-			int SECTION_HEIGHT = 100;
 
 			if (Coords.TryGetFromSCoords(sMapWorkRequest.SCoords, out Coords coords))
 			{
 				double[][] xValueSections = BuildValueSections(coords.LeftBot.X, coords.RightTop.X,
 					sMapWorkRequest.CanvasSize.Width, SECTION_WIDTH,
-					out int numSectionsH, out int lastExtentH);
+					sMapWorkRequest.Area.SectionAnchor.X, sMapWorkRequest.Area.CanvasSize.Width);
 
-				//_numberOfHSections = numSectionsH;
-				//_lastSectionWidth = lastExtentH;
 
 				double[][] yValueSections;
 				if (!coords.IsUpsideDown)
 				{
 					yValueSections = BuildValueSections(coords.RightTop.Y, coords.LeftBot.Y,
 						sMapWorkRequest.CanvasSize.Height, SECTION_HEIGHT,
-						out int numSectionsV, out int lastExtentV);
-					//_numberOfVSections = numSectionsV;
-					//_lastSectionHeight = lastExtentV;
+						sMapWorkRequest.Area.SectionAnchor.Y, sMapWorkRequest.Area.CanvasSize.Height);
 				}
 				else
 				{
 					yValueSections = BuildValueSections(coords.LeftBot.Y, coords.RightTop.Y,
 						sMapWorkRequest.CanvasSize.Height, SECTION_HEIGHT,
-						out int numSectionsV, out int lastExtentV);
-					//_numberOfVSections = numSectionsV;
-					//_lastSectionHeight = lastExtentV;
+						sMapWorkRequest.Area.SectionAnchor.Y, sMapWorkRequest.Area.CanvasSize.Height);
 				}
 
 				return new SamplePoints<double>(xValueSections, yValueSections);
@@ -244,61 +208,30 @@ namespace FractalEngine
 			}
 		}
 
-		private double[][] BuildValueSections(double start, double end, int extent, int sectionExtent, out int sectionCount, out int lastExtent)
+		private double[][] BuildValueSections(double start, double end, int extent, int sectionExtent, int areaStart, int areaExtent)
 		{
-			sectionCount = GetSectionCount(extent, sectionExtent, out lastExtent);
-
 			double mapExtent = end - start;
 			double unitExtent = mapExtent / extent;
+			int resultExtent = areaExtent * sectionExtent;
+
+			double resultStart = start + unitExtent * (areaStart * sectionExtent);
+
 
 			int sectionPtr = 0;
 			int inSectPtr = 0;
-			double[][] result = new double[sectionCount][];
+			double[][] result = new double[areaExtent][]; // Number of sections, each with 100 pixels
 
-			//if (sectionCount == 1)
-			//{
-			//	result[0] = new double[lastExtent];
-			//}
-			//else
-			//{
-			//	result[0] = new double[sectionExtent];
-			//}
 			result[0] = new double[sectionExtent];
 
-
-			for (int ptr = 0; ptr < extent; ptr++)
+			for (int ptr = 0; ptr < resultExtent; ptr++)
 			{
-				result[sectionPtr][inSectPtr++] = start + unitExtent * ptr;
-				if (inSectPtr > sectionExtent - 1 && ptr < extent - 1)
+				result[sectionPtr][inSectPtr++] = resultStart + unitExtent * ptr;
+				if (inSectPtr > sectionExtent - 1 && ptr < resultExtent - 1)
 				{
 					inSectPtr = 0;
 					sectionPtr++;
-
-					//if (sectionPtr == sectionCount - 1)
-					//{
-					//	result[sectionPtr] = new double[lastExtent];
-					//}
-					//else
-					//{
-					//	result[sectionPtr] = new double[sectionExtent];
-					//}
 					result[sectionPtr] = new double[sectionExtent];
 				}
-			}
-
-			return result;
-		}
-
-		protected int GetSectionCount(int totalExtent, int sectionExtent, out int lastExtent)
-		{
-			lastExtent = sectionExtent;
-			double r = totalExtent / (double)sectionExtent;
-
-			int result = (int)Math.Truncate(r);
-			if (r != result)
-			{
-				lastExtent = totalExtent - sectionExtent * result;
-				result++;
 			}
 
 			return result;
@@ -315,7 +248,7 @@ namespace FractalEngine
 				if (disposing)
 				{
 					// Dispose managed state (managed objects).
-					if(_countsRepo != null)
+					if (_countsRepo != null)
 					{
 						_countsRepo.Dispose();
 					}
@@ -346,3 +279,4 @@ namespace FractalEngine
 		#endregion
 	}
 }
+

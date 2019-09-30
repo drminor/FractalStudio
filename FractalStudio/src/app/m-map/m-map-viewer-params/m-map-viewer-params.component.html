@@ -32,11 +32,11 @@
         <label>Print Size: {{printSize}}</label>
       </td>
     </tr>
-    <tr>
+    <!--<tr>
       <td>
         <label>Each screen pixel covers <input type="text" formControlName="screenToPrintPixRatio" size="1"> print pixels.</label>
       </td>
-    </tr>
+    </tr>-->
     <tr>
       <td>
         <label>Left: <input type="text" formControlName="left" size="1"></label>
@@ -47,12 +47,11 @@
         <label>Top: <input type="text" formControlName="top" size="1"></label>
       </td>
     </tr>
-
-    <tr>
+    <!--<tr>
       <td>
         <label>Zoom Factor: {{mapViewForm.controls.zoomFactor.value}}</label>
       </td>
-    </tr>
+    </tr>-->
     <tr>
       <td>
         <label>View Size: {{viewSize}}</label>
@@ -69,6 +68,9 @@
     <button id="mRight" type="button" (click)="onMoveR($event)" style="margin-left:15px">Right</button>
     <button id="mUp" type="button" (click)="onMoveU($event)" style="margin-left:15px">Up</button>
     <button id="mDown" type="button" (click)="onMoveD($event)" style="margin-left:15px">Down</button>
+    <button id="mDown" type="button" (click)="onMoveD($event)" style="margin-left:15px">Down</button>
+    <button id="setSurveyMode" type="button" (click)="onSetSurveyMode($event)" style="margin-left:15px">Survey</button>
+
   </div>
 
 </form>

@@ -637,14 +637,16 @@ export class MapInfo implements IMapInfo {
 
   public static fromIMapInfo(mi: IMapInfo): MapInfo {
 
-    if (typeof mi.version === 'undefined') {
-      mi.version = 1.0;
-    }
+    //if (typeof mi.version === 'undefined') {
+    //  mi.version = 1.0;
+    //}
 
-    let bl = new SPoint(mi.sCoords.botLeft.x, mi.sCoords.botLeft.y);
-    let tr = new SPoint(mi.sCoords.topRight.x, mi.sCoords.topRight.y);
+    //let bl = new SPoint(mi.sCoords.botLeft.x, mi.sCoords.botLeft.y);
+    //let tr = new SPoint(mi.sCoords.topRight.x, mi.sCoords.topRight.y);
 
-    let coords: SCoords = new SCoords(bl, tr);
+    //let coords: SCoords = new SCoords(bl, tr);
+
+    let coords = SCoords.clone(mi.sCoords);
 
     let threshold: number;
     if (mi.threshold === undefined) {

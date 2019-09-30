@@ -7,7 +7,9 @@
                             [isBuilding]="isBuilding"
                             (virtualMapParamsUpdated)="onVirtualMapParamsUpdated($event)"
                             (mapInfoLoaded)="onMapInfoLoaded($event)"
-                            (mapPositionUpdated)="onMapPositionUpdated($event)">
+                            (mapPositionUpdated)="onMapPositionUpdated($event)"
+                            (surveyModeUpdated)="onSurveyModeUpdated($event)">
+ 
   </app-m-map-viewer-params>
 
   <button type="button" (click)="mapDisplay.getImageDataForExport()" style="margin: 10px 0px 0px 0px">Get Image Data</button>

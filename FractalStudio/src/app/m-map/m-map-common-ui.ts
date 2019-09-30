@@ -216,6 +216,11 @@ export class ColorMapUI {
     return result;
   }
 
+  public clone(): ColorMapUI {
+    let result: ColorMapUI = new ColorMapUI(this.cloneRanges(), this.highColorCss, this.serialNumber);
+    return result;
+  }
+
   public cloneRanges(): ColorMapUIEntry[] {
     let result: ColorMapUIEntry[] = [];
 
@@ -339,6 +344,11 @@ export class MapInfoWithColorMap {
 
     let result = new MapInfoWithColorMap(mapInfo, colorMap);
     return result;
+  }
+
+  public clone(): MapInfoWithColorMap {
+    let r = new MapInfoWithColorMap(MapInfo.fromIMapInfo(this.mapInfo), this.colorMapUi.clone());
+    return r;
   }
 }
 

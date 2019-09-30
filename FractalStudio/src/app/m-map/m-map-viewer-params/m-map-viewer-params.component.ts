@@ -19,6 +19,8 @@ export class MMapViewerParamsComponent implements OnInit {
   public viewSize: string;
   public printSize: string;
 
+  private _surveyMode: boolean = false;
+
   private _virtualMapParams;
   @Input('virtualMapParams')
   set virtualMapParams(value: IVirtualMapParams) {
@@ -44,6 +46,8 @@ export class MMapViewerParamsComponent implements OnInit {
   @Output() mapInfoLoaded = new EventEmitter<MapInfoWithColorMap>();
   @Output() virtualMapParamsUpdated = new EventEmitter<IVirtualMapParams>();
   @Output() mapPositionUpdated = new EventEmitter<string>();
+  @Output() surveyModeUpdated = new EventEmitter<boolean>();
+
 
   @ViewChild('applyButton') applyButton: ElementRef;
   @ViewChild('fileSelector') fileSelectorRef: ElementRef;
@@ -56,24 +60,26 @@ export class MMapViewerParamsComponent implements OnInit {
 
     let result = new FormGroup({
       jobName: new FormControl(),
-      imageWidthPx: new FormControl(21600),
-      imageHeightPx: new FormControl(14400),
 
-      imageWidth: new FormControl(72),
-      imageHeight: new FormControl(48),
+      imageWidth: new FormControl(36),
+      imageHeight: new FormControl(24),
 
       printDensity: new FormControl(300),
-      zoomFactor: new FormControl(1),
+
+      imageWidthPx: new FormControl(10800),
+      imageHeightPx: new FormControl(7200),
+
+      zoomFactor: new FormControl(11.14551),
       left: new FormControl(0),
       top: new FormControl(0),
 
-      viewWidthPx: new FormControl(21600),
-      viewHeightPx: new FormControl(14400),
+      //viewWidthPx: new FormControl(21600),
+      //viewHeightPx: new FormControl(14400),
 
-      viewWidth: new FormControl(72),
-      viewHeight: new FormControl(48),
+      //viewWidth: new FormControl(72),
+      //viewHeight: new FormControl(48),
 
-      screenToPrintPixRatio: new FormControl(24),
+      screenToPrintPixRatio: new FormControl(1),
     });
 
     return result;
@@ -82,29 +88,31 @@ export class MMapViewerParamsComponent implements OnInit {
   private updateForm(params: IVirtualMapParams): void {
 
     this.mapViewForm.controls.jobName.setValue(params.name);
-    this.mapViewForm.controls.imageWidthPx.setValue(params.imageSize.width);
-    this.mapViewForm.controls.imageHeightPx.setValue(params.imageSize.height);
 
     // Width of print output in inches.
     this.mapViewForm.controls.imageWidth.setValue(params.imageSizeInInches.width);
     this.mapViewForm.controls.imageHeight.setValue(params.imageSizeInInches.height);
 
-    // Number of print output pixels currently displayed.
-    this.mapViewForm.controls.viewWidthPx.setValue(params.viewSize.width);
-    this.mapViewForm.controls.viewHeightPx.setValue(params.viewSize.height);
+    this.mapViewForm.controls.imageWidthPx.setValue(params.imageSize.width);
+    this.mapViewForm.controls.imageHeightPx.setValue(params.imageSize.height);
 
-    // Number of print output inches currently displayed.
-    this.mapViewForm.controls.viewWidth.setValue(params.viewSizeInInches.width);
-    this.mapViewForm.controls.viewHeight.setValue(params.viewSizeInInches.height);
+    //// Number of print output pixels currently displayed.
+    //this.mapViewForm.controls.viewWidthPx.setValue(params.viewSize.width);
+    //this.mapViewForm.controls.viewHeightPx.setValue(params.viewSize.height);
 
-    this.mapViewForm.controls.screenToPrintPixRatio.setValue(params.scrToPrnPixRat);
+    //// Number of print output inches currently displayed.
+    //this.mapViewForm.controls.viewWidth.setValue(params.viewSizeInInches.width);
+    //this.mapViewForm.controls.viewHeight.setValue(params.viewSizeInInches.height);
+
+    //this.mapViewForm.controls.screenToPrintPixRatio.setValue(params.scrToPrnPixRat);
+    //this.mapViewForm.controls.screenToPrintPixRatio.setValue(1);
 
     this.mapViewForm.controls.left.setValue(params.left);
     this.mapViewForm.controls.top.setValue(params.top);
 
-    //let zoomFactor = params.imageSize.width / params.viewSize.width;
-    let zoomFactor = params.zoomFactor;
-    this.mapViewForm.controls.zoomFactor.setValue(zoomFactor.width);
+    ////let zoomFactor = params.imageSize.width / params.viewSize.width;
+    //let zoomFactor = params.zoomFactor;
+    //this.mapViewForm.controls.zoomFactor.setValue(zoomFactor.width);
 
     this.viewSize = params.viewSizeInInches.width + ' x ' + params.viewSizeInInches.height + ' inches (' + params.viewSize.width + ' x ' + params.viewSize.height + ' pixels)';
     this.printSize = params.imageSize.width + ' x ' + params.imageSize.height + ' pixels';
@@ -117,48 +125,61 @@ export class MMapViewerParamsComponent implements OnInit {
 
     let name = this.mapViewForm.controls.jobName.value;
 
-    let imageSize = new CanvasSize(
-      this.mapViewForm.controls.imageWidthPx.value,
-      this.mapViewForm.controls.imageWidthPx.value / 1.5);
+    let widthInches = this.mapViewForm.controls.imageWidth.value;
+    let heigthInches = Math.trunc(widthInches / 1.5);
+
+    let imageSize = new CanvasSize(widthInches, heigthInches);
 
     let printDensity = this.mapViewForm.controls.printDensity.value;
 
-    let screenToPrintPixRat = parseInt(this.mapViewForm.controls.screenToPrintPixRatio.value);
+    //let screenToPrintPixRat = parseInt(this.mapViewForm.controls.screenToPrintPixRatio.value);
 
     let left = parseFloat(this.mapViewForm.controls.left.value);
     let top = parseFloat(this.mapViewForm.controls.top.value);
 
-    let params = new VirtualMapParams(name, imageSize, printDensity, screenToPrintPixRat, left, top);
+    let params = new VirtualMapParams(name, imageSize, printDensity, left, top);
     console.log('Viewer Params is emitting a Params Update.');
     this.virtualMapParamsUpdated.emit(params);
   }
 
   onMoveL(evt: KeyboardEvent) {
-    this.moveMap('l', this.getFactorFromKeyState(evt));
+    this.moveMap('l', this.getFactorFromKeyState(evt, true));
   }
 
   onMoveR(evt: KeyboardEvent) {
-    this.moveMap('r', this.getFactorFromKeyState(evt));
+    this.moveMap('r', this.getFactorFromKeyState(evt, true));
   }
 
   onMoveU(evt: KeyboardEvent) {
-    this.moveMap('u', this.getFactorFromKeyState(evt));
+    this.moveMap('u', this.getFactorFromKeyState(evt, false));
   }
 
   onMoveD(evt: KeyboardEvent) {
-    this.moveMap('d', this.getFactorFromKeyState(evt));
+    this.moveMap('d', this.getFactorFromKeyState(evt, false));
   }
 
-  private getFactorFromKeyState(evt: KeyboardEvent): number {
-    let result: number = evt.shiftKey ? 1.0 : evt.ctrlKey ? 0.2 : 0.5;
+  private getFactorFromKeyState(evt: KeyboardEvent, forHoriz: boolean): number {
+    let result: number;
+    if (forHoriz) {
+      result = evt.shiftKey ? 20 : evt.ctrlKey ? 1 : 10;
+    }
+    else {
+      result = evt.shiftKey ? 14 : evt.ctrlKey ? 1 : 7;
+    }
     return result;
   }
 
   private moveMap(dir: string, factor: number): void {
     let eventData: string = dir + factor.toString();
-    console.log('Viewer Params is emitting a Map Pos Update.');
+    console.log('Viewer Params is emitting a Map Pos Update. Dir:' + dir + ' factor:' + factor + '.');
 
     this.mapPositionUpdated.emit(eventData);
+  }
+
+  onSetSurveyMode(evt: KeyboardEvent) {
+    console.log('Got onSetSurveyMode with shift key = ' + evt.shiftKey + '.');
+    this._surveyMode = !this._surveyMode;
+    this.surveyModeUpdated.emit(this._surveyMode);
   }
 
   ngOnInit(): void {
