@@ -5,8 +5,10 @@ export interface IVirtualMapParams {
   imageSizeInInches: ICanvasSize;
 
   printDensity: number;
-  left: number,
-  top: number,
+
+  position: IPoint;
+  //left: number,
+  //top: number,
 
   imageSize: ICanvasSize;
   viewSize: ICanvasSize;
@@ -18,11 +20,11 @@ export interface IVirtualMap {
   imageSize: ICanvasSize;
   displaySize: ICanvasSize;
 
-  getCurCoords(left: number, top: number): IPoint;
-  getOverLayBox(left: number, top: number): IBox;
+  getCurCoords(pos: IPoint): IPoint;
+  getOverLayBox(pos: IPoint): IBox;
   scaleFactor: ICanvasSize;
 
-  getNextCoords(left: number, top: number): IPoint;
+  getNextCoords(pos: IPoint): IPoint;
 }
 
 export class VirtualMapParams implements IVirtualMapParams {
@@ -61,7 +63,7 @@ export class VirtualMapParams implements IVirtualMapParams {
 
   // imageSize is the size of the image in inches
   constructor(public name: string, public imageSizeInInches: ICanvasSize, public printDensity: number,
-    public left: number, public top: number) {
+    public position: IPoint) {
     this._imageSize = new CanvasSize(imageSizeInInches.width * printDensity, imageSizeInInches.height * printDensity);
 
     this.viewSize = null;
@@ -121,12 +123,12 @@ export class VirtualMap implements IVirtualMap {
 
   // Top is the distance measured from the top of the image to the top of the section being displayed.
   // Left is the distance measured from the left of the image to the left of the section being displayed.
-  public getCurCoords(left: number, top: number): Point {
+  public getCurCoords(pos: IPoint): Point {
 
-    console.log('Calculating new area: the current position is left:' + left + ' top:' + top + '.');
+    console.log('Calculating new area: the current position is left:' + pos.x + ' top:' + pos.y + '.');
 
-    left = Math.trunc(left);
-    top = Math.trunc(top);
+    let left = Math.trunc(pos.x);
+    let top = Math.trunc(pos.y);
 
     if (left < 0) left = 0;
     if (top < 0) top = 0;
@@ -141,31 +143,31 @@ export class VirtualMap implements IVirtualMap {
     return result;
   }
 
-  public getOverLayBox(left: number, top: number): IBox {
+  public getOverLayBox(pos: IPoint): IBox {
 
-    let scLeft = left / this.displaySizeInBlocks.width;
-    let scTop = top / this.displaySizeInBlocks.height;
+    let scLeft = pos.x / this.displaySizeInBlocks.width;
+    let scTop = pos.y / this.displaySizeInBlocks.height;
     let viewBox = new Box(new Point(scLeft, scTop), new Point(scLeft + 1, scTop + 1));
     let result = viewBox.scale(this.scaleFactor);
 
     return result;
   }
 
-  public getNextCoords(left: number, top: number): IPoint {
+  public getNextCoords(pos: IPoint): IPoint {
     let nLeft: number;
     let nTop: number;
 
-    if (left >= this.maxLeft && top >= this.maxTop) {
+    if (pos.x >= this.maxLeft && pos.y >= this.maxTop) {
       return null;
     }
 
-    if (left >= this.maxLeft) {
+    if (pos.x >= this.maxLeft) {
       nLeft = 0;
-      nTop = top + 7;
+      nTop = pos.y + 7;
     }
     else {
-      nLeft = left + 10;
-      nTop = top;
+      nLeft = pos.x + 10;
+      nTop = pos.y;
     }
 
     return new Point(nLeft, nTop);

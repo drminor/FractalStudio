@@ -4,7 +4,6 @@ using Newtonsoft.Json;
 
 namespace FSTypes
 {
-
 	//[MessagePackObject]
 	public class MapSectionResult
 	{

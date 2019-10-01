@@ -8,6 +8,7 @@
                             (virtualMapParamsUpdated)="onVirtualMapParamsUpdated($event)"
                             (mapInfoLoaded)="onMapInfoLoaded($event)"
                             (mapPositionUpdated)="onMapPositionUpdated($event)"
+                            (HistogramRequested)="onHistogramRequested()"
                             (surveyModeUpdated)="onSurveyModeUpdated($event)">
  
   </app-m-map-viewer-params>
@@ -32,11 +33,13 @@
 
 
       <app-m-map-display #mapDisplay
-                          [area] ="curArea"
+                          [area]="curArea"
                           [mapInfoWithColorMap]="curMapInfoWithColorMap"
                           [allowZoom]="false"
+                          [repoMode]="repoMode"
                           (haveImageData)="onHaveImageData($event)"
                           (haveHistogram)="onHaveHistogram($event)"
+                          (haveHistogramForEntireArea)="onHaveHistogramForEntireArea($event)"
                           (buildingComplete)="onBuildingComplete()">
       </app-m-map-display>
 

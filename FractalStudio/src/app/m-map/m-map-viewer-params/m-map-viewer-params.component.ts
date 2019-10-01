@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Output, Input, ViewChild, ElementRef, OnInit } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 
-import { CanvasSize } from '../m-map-common';
+import { Point, CanvasSize } from '../m-map-common';
 import { IVirtualMapParams, VirtualMapParams } from '../m-map-viewer-state';
 
 import { MapInfoWithColorMap, MapInfoWithColorMapForExport } from '../m-map-common-ui';
@@ -47,6 +47,7 @@ export class MMapViewerParamsComponent implements OnInit {
   @Output() virtualMapParamsUpdated = new EventEmitter<IVirtualMapParams>();
   @Output() mapPositionUpdated = new EventEmitter<string>();
   @Output() surveyModeUpdated = new EventEmitter<boolean>();
+  @Output() HistogramRequested = new EventEmitter();
 
 
   @ViewChild('applyButton') applyButton: ElementRef;
@@ -107,8 +108,8 @@ export class MMapViewerParamsComponent implements OnInit {
     //this.mapViewForm.controls.screenToPrintPixRatio.setValue(params.scrToPrnPixRat);
     //this.mapViewForm.controls.screenToPrintPixRatio.setValue(1);
 
-    this.mapViewForm.controls.left.setValue(params.left);
-    this.mapViewForm.controls.top.setValue(params.top);
+    this.mapViewForm.controls.left.setValue(params.position.x);
+    this.mapViewForm.controls.top.setValue(params.position.y);
 
     ////let zoomFactor = params.imageSize.width / params.viewSize.width;
     //let zoomFactor = params.zoomFactor;
@@ -137,7 +138,7 @@ export class MMapViewerParamsComponent implements OnInit {
     let left = parseFloat(this.mapViewForm.controls.left.value);
     let top = parseFloat(this.mapViewForm.controls.top.value);
 
-    let params = new VirtualMapParams(name, imageSize, printDensity, left, top);
+    let params = new VirtualMapParams(name, imageSize, printDensity, new Point(left, top));
     console.log('Viewer Params is emitting a Params Update.');
     this.virtualMapParamsUpdated.emit(params);
   }
@@ -180,6 +181,10 @@ export class MMapViewerParamsComponent implements OnInit {
     console.log('Got onSetSurveyMode with shift key = ' + evt.shiftKey + '.');
     this._surveyMode = !this._surveyMode;
     this.surveyModeUpdated.emit(this._surveyMode);
+  }
+
+  onRequestHistogramEntire(evt: KeyboardEvent) {
+    this.HistogramRequested.emit();
   }
 
   ngOnInit(): void {

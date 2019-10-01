@@ -15,8 +15,9 @@ namespace FractalEngine
 		public const int SECTION_WIDTH = 100;
 		public const int SECTION_HEIGHT = 100;
 
-		private readonly SamplePoints<double> _samplePoints;
+		private const string DiagTimeFormat = "HH:mm:ss ffff";
 
+		private readonly SamplePoints<double> _samplePoints;
 		private int _hSectionPtr;
 		private int _vSectionPtr;
 		private int _numberOfSectionRemainingToSend;
@@ -36,99 +37,10 @@ namespace FractalEngine
 			string filename = RepoFilename;
 			Debug.WriteLine($"Creating new Repo. Name: {filename}, JobId: {JobId}.");
 			_countsRepo = new ValueRecords<RectangleInt, MapSectionWorkResult>(filename);
-		}
 
-		private const string DiagTimeFormat = "HH:mm:ss ffff";
-
-		public void DeleteCountsRepo()
-		{
-			Debug.WriteLine($"Starting to delete the old repo: {RepoFilename} at {DateTime.Now.ToString(DiagTimeFormat)}.");
-			if (_countsRepo != null)
-			{
-				_countsRepo.Dispose();
-				_countsRepo = null;
-			}
-
-			ValueRecords<RectangleInt, MapSectionWorkResult>.DeleteRepo(RepoFilename);
-			Debug.WriteLine($"Completed deleting the old repo: {RepoFilename} at {DateTime.Now.ToString(DiagTimeFormat)}.");
-		}
-
-		public void WriteWorkResult(MapSection key, MapSectionWorkResult val)
-		{
-			RectangleInt riKey = key.GetRectangleInt();
-			// When writing include the Area's offset.
-			riKey.Point.X += SMapWorkRequest.Area.SectionAnchor.X * SECTION_WIDTH;
-			riKey.Point.Y += SMapWorkRequest.Area.SectionAnchor.Y * SECTION_HEIGHT;
-
-			try
-			{
-				lock (_repoLock)
-				{
-					_countsRepo.Add(riKey, val, saveOnWrite: false);
-				}
-			}
-			catch
-			{
-				Debug.WriteLine($"Could not write data for x: {riKey.Point.X} and y: {riKey.Point.Y}.");
-			}
-		}
-
-		public bool CanReplayResults()
-		{
-			bool result = ValueRecords<RectangleInt, MapSectionWorkResult>.RepoExists(RepoFilename);
-			return result;
-		}
-
-		public IEnumerable<Tuple<MapSectionResult, bool>> ReplayResults()
-		{
-			SubJob subJob = GetNextSubJob();
-
-			while (subJob != null)
-			{
-				MapSectionResult msr = RetrieveWorkResultFromRepo(subJob);
-				Tuple<MapSectionResult, bool> item = new Tuple<MapSectionResult, bool>(msr, IsLastSubJob);
-				DecrementSubJobsRemainingToBeSent();
-
-				subJob = GetNextSubJob();
-				yield return item;
-			}
-		}
-
-		public MapSectionResult RetrieveWorkResultFromRepo(SubJob subJob)
-		{
-			MapSection ms = subJob.MapSectionWorkRequest.MapSection;
-			MapSectionWorkResult workResult = new MapSectionWorkResult(ms.CanvasSize.Width * ms.CanvasSize.Height, true, false);
-
-			RectangleInt riKey = ms.GetRectangleInt();
-			// When writing include the Area's offset.
-			riKey.Point.X += SMapWorkRequest.Area.SectionAnchor.X * SECTION_WIDTH;
-			riKey.Point.Y += SMapWorkRequest.Area.SectionAnchor.Y * SECTION_HEIGHT;
-
-			lock (_repoLock)
-			{
-				if (_countsRepo.ReadParts(riKey, workResult))
-				{
-					MapSectionResult msr = CreateMapSectionResult(JobId, ms, workResult);
-					return msr;
-				}
-				else
-				{
-					return null;
-				}
-			}
-			//return null;
-		}
-
-		public MapSectionResult CreateMapSectionResult(int jobId, MapSection ms, MapSectionWorkResult workResult)
-		{
-			MapSectionResult result = new MapSectionResult(jobId, ms, workResult.Counts);
-			return result;
-		}
-
-		private MapSectionWorkResult CreateEmptyResult(RectangleInt area)
-		{
-			MapSectionWorkResult result = new MapSectionWorkResult(area.Size.W * area.Size.H, false, false);
-			return result;
+			//Debug.WriteLine($"Starting to get histogram for {RepoFilename} at {DateTime.Now.ToString(DiagTimeFormat)}.");
+			//Dictionary<int, int> h = GetHistogram();
+			//Debug.WriteLine($"Histogram complete for {RepoFilename} at {DateTime.Now.ToString(DiagTimeFormat)}.");
 		}
 
 		public SubJob GetNextSubJob()
@@ -174,6 +86,125 @@ namespace FractalEngine
 			{
 				IsLastSubJob = true;
 			}
+		}
+
+		public void WriteWorkResult(MapSection key, MapSectionWorkResult val)
+		{
+			RectangleInt riKey = key.GetRectangleInt();
+			// When writing include the Area's offset.
+			riKey.Point.X += SMapWorkRequest.Area.SectionAnchor.X * SECTION_WIDTH;
+			riKey.Point.Y += SMapWorkRequest.Area.SectionAnchor.Y * SECTION_HEIGHT;
+
+			try
+			{
+				lock (_repoLock)
+				{
+					_countsRepo.Add(riKey, val, saveOnWrite: false);
+				}
+			}
+			catch
+			{
+				Debug.WriteLine($"Could not write data for x: {riKey.Point.X} and y: {riKey.Point.Y}.");
+			}
+		}
+
+		public MapSectionResult RetrieveWorkResultFromRepo(SubJob subJob)
+		{
+			MapSection ms = subJob.MapSectionWorkRequest.MapSection;
+
+			RectangleInt riKey = ms.GetRectangleInt();
+			// When writing include the Area's offset.
+			riKey.Point.X += SMapWorkRequest.Area.SectionAnchor.X * SECTION_WIDTH;
+			riKey.Point.Y += SMapWorkRequest.Area.SectionAnchor.Y * SECTION_HEIGHT;
+
+			MapSectionWorkResult workResult = GetEmptyResult(riKey);
+
+			lock (_repoLock)
+			{
+				if (_countsRepo.ReadParts(riKey, workResult))
+				{
+					MapSectionResult msr = CreateMapSectionResult(JobId, ms, workResult);
+					return msr;
+				}
+				else
+				{
+					return null;
+				}
+			}
+		}
+
+		public MapSectionResult CreateMapSectionResult(int jobId, MapSection ms, MapSectionWorkResult workResult)
+		{
+			MapSectionResult result = new MapSectionResult(jobId, ms, workResult.Counts);
+			return result;
+		}
+
+		public IEnumerable<Tuple<MapSectionResult, bool>> ReplayResults()
+		{
+			SubJob subJob = GetNextSubJob();
+
+			while (subJob != null)
+			{
+				MapSectionResult msr = RetrieveWorkResultFromRepo(subJob);
+				Tuple<MapSectionResult, bool> item = new Tuple<MapSectionResult, bool>(msr, IsLastSubJob);
+				DecrementSubJobsRemainingToBeSent();
+
+				subJob = GetNextSubJob();
+				yield return item;
+			}
+		}
+
+		public void DeleteCountsRepo()
+		{
+			Debug.WriteLine($"Starting to delete the old repo: {RepoFilename} at {DateTime.Now.ToString(DiagTimeFormat)}.");
+			if (_countsRepo != null)
+			{
+				_countsRepo.Dispose();
+				_countsRepo = null;
+			}
+
+			ValueRecords<RectangleInt, MapSectionWorkResult>.DeleteRepo(RepoFilename);
+			Debug.WriteLine($"Completed deleting the old repo: {RepoFilename} at {DateTime.Now.ToString(DiagTimeFormat)}.");
+		}
+
+		public Dictionary<int, int> GetHistogram()
+		{
+			Dictionary<int, int> result = new Dictionary<int, int>();
+			IEnumerable<MapSectionWorkResult> workResults = _countsRepo.GetValues(GetEmptyResult);
+
+			foreach(MapSectionWorkResult wr in workResults)
+			{
+				foreach(int cntAndEsc in wr.Counts)
+				{
+					int cnt = cntAndEsc / 10000;
+					if(result.TryGetValue(cnt, out int occurances))
+					{
+						result[cnt] = occurances + 1;
+					}
+					else
+					{
+						result[cnt] = 1;
+					}
+				}
+			}
+
+			return result;
+		}
+
+		private MapSectionWorkResult _emptyResult = null;
+		private MapSectionWorkResult GetEmptyResult(RectangleInt area)
+		{
+			if(area.Size.W != 100 || area.Size.H != 100)
+			{
+				Debug.WriteLine("Wrong Area.");
+			}
+			if (_emptyResult == null)
+			{
+				_emptyResult = new MapSectionWorkResult(area.Size.W * area.Size.H, true, false);
+			}
+			return _emptyResult;
+			//MapSectionWorkResult temp = new MapSectionWorkResult(10000, true, false);
+			//return temp;
 		}
 
 		private SamplePoints<double> GetSamplePoints(SMapWorkRequest sMapWorkRequest)

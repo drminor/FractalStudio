@@ -35,7 +35,7 @@ namespace FractalServer
 
 					DPoint z = currentValues.ZValues[ptr];
 					int cnt = currentValues.Counts[ptr];
-					if (cnt != 0) cnt /= 10000;
+					cnt /= 10000;
 
 					c.X = mswr.XValues[xPtr];
 

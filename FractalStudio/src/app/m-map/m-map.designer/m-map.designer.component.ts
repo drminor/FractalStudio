@@ -27,8 +27,6 @@ export class MMapDesignerComponent {
   @ViewChild('download') downloadRef: ElementRef;
   @ViewChild('mapDisplay') mapDisplayComponent: MMapDisplayComponent
 
-  mapInfo: IMapInfo;
-
   _colorMap: ColorMapUI = null;
   set colorMap(value: ColorMapUI) {
     if (this._colorMap === null || (this._colorMap !== null && value === null)) {
@@ -52,7 +50,6 @@ export class MMapDesignerComponent {
   }
 
   private _miwcm: MapInfoWithColorMap;
-
   set mapInfoWithColorMap(value: MapInfoWithColorMap) {
     this._miwcm = value;
     this.colorMap = value.colorMapUi;
@@ -64,13 +61,13 @@ export class MMapDesignerComponent {
     return this._miwcm;
   }
 
-  histogram: Histogram;
+  public isBuilding: boolean = false;
+  public histogram: Histogram;
 
-  history: IMapInfo[] = [];
-  isBuilding: boolean = false;
-  atHome: boolean;
-
-  sectionCnt: number;
+  private mapInfo: IMapInfo;
+  private history: IMapInfo[] = [];
+  private atHome: boolean;
+  private sectionCnt: number;
 
   public ColorMapSerialNumber: number;
 
@@ -116,9 +113,6 @@ export class MMapDesignerComponent {
 
   onHaveHistogram(h: Histogram) {
     console.log('We now have a histogram. It has ' + h.entriesMap.size + ' entries.');
-
-    //console.log(h.toString());
-
     this.histogram = h;
     this.isBuilding = false;
   }

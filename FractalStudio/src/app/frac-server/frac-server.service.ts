@@ -5,7 +5,7 @@ import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import * as signalR from '@aspnet/signalr';
 import * as msgPackHubProtocol from '@aspnet/signalr-protocol-msgpack';
 
-import { SCoordsWorkRequest, TransformType, SMapWorkRequest, MapSectionResult, MapSection } from '../m-map/m-map-common-server';
+import { SMapWorkRequest, SCoordsWorkRequest, HistogramRequest, MapSection, MapSectionResult } from '../m-map/m-map-common-server';
 import { Point, CanvasSize } from '../m-map/m-map-common';
 
 interface IHaveConnIdCallback {
@@ -18,6 +18,7 @@ export class FracServerService {
   public baseUrl = 'https://localhost:44330';
   public controllerPath = '/api/mrender';
   public transformControllerPath = '/api/transform';
+  public histogramControllerPath = '/api/histogram';
 
   public hubUrl = '/hubs/mgen';
 
@@ -32,7 +33,6 @@ export class FracServerService {
 
 
   private request: SMapWorkRequest;
-  private coordsResult: SCoordsWorkRequest;
 
   constructor(private http: HttpClient) {
     this.hubConnection = null;
@@ -55,6 +55,7 @@ export class FracServerService {
     return result;
   }
 
+  // -- Map Work Request
   public submitJob(request: SMapWorkRequest): Observable<MapSectionResult> {
     this.request = request;
     this.imageDataSubject = new Subject<MapSectionResult>();
@@ -76,7 +77,38 @@ export class FracServerService {
     return res;
   }
 
-  public cancelJob(): Observable<SMapWorkRequest> {
+  // -- Transform Request
+  public submitCoordsTransformRequest(cRequest: SCoordsWorkRequest): Observable<SCoordsWorkRequest> {
+    console.log('Submitting a Transform Request with type: ' + cRequest.transformType + '.');
+    let res: Observable<SCoordsWorkRequest> = this.http.post<SCoordsWorkRequest>(this.baseUrl + this.transformControllerPath, cRequest);
+
+    return res;
+  }
+
+  // -- Histogram
+  public getEntireHistorgram(): Observable<HistogramRequest> {
+    if (this.jobId === -1) {
+      console.log('The job id is -1 on getEntireHistogram.');
+      return null;
+    }
+    console.log('The job id is ' + this.jobId + ' on getEntireHistogram.');
+
+    let hRequest = new HistogramRequest(this.jobId, null, null);
+    let res: Observable<HistogramRequest> = this.http.post<HistogramRequest>(this.baseUrl + this.histogramControllerPath, hRequest);
+
+    //res.subscribe(resp => this.histRequestResponseHandler(resp));
+    return res;
+  }
+
+  //private histRequestResponseHandler(hRequest: HistogramRequest) {
+  //  if (hRequest.jobId !== this.jobId) {
+  //    console.log('The job ids dont match during handling the histRequestResponse.');
+  //  }
+  //  console.log('Handling histRequestResponse. The result has ' + hRequest.values.length + ' entries.');
+  //}
+
+  // -- Cancel Job
+  public cancelJob(deleteRepo: boolean): Observable<SMapWorkRequest> {
     if (this.jobId === -1) {
       return null;
     }
@@ -85,7 +117,9 @@ export class FracServerService {
     //  this.imageDataSubject.complete();
     //}
 
-    let delRequest = new SMapWorkRequest('del', null, null, null, 0);
+    let jobName = deleteRepo ? 'delJobAndRepo' : 'delJob';
+
+    let delRequest = new SMapWorkRequest(jobName, null, null, null, 0);
     delRequest.jobId = this.jobId;
     delRequest.connectionId = 'delete';
     let res: Observable<SMapWorkRequest> = this.http.post<SMapWorkRequest>(this.baseUrl + this.controllerPath, delRequest);
@@ -192,13 +226,6 @@ export class FracServerService {
 
   //  return result / data.length;
   //}
-
-  public submitCoordsTransformRequest(cRequest: SCoordsWorkRequest): Observable<SCoordsWorkRequest> {
-    console.log('Submitting a Transform Request with type: ' + cRequest.transformType + '.');
-    let res: Observable<SCoordsWorkRequest> = this.http.post<SCoordsWorkRequest>(this.baseUrl + this.transformControllerPath, cRequest);
-
-    return res;
-  }
 
 
 }

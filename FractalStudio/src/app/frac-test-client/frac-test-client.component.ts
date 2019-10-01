@@ -52,7 +52,7 @@ export class FracTestClientComponent  {
 
 
   cancelJob() {
-    this.fService.cancelJob();
+    this.fService.cancelJob(true);
     console.log("Just asked for the job to be cancelled.");
   }
 

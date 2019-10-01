@@ -12,7 +12,7 @@ import {
 
 import { ColorMapUI, MapInfoWithColorMap } from '../m-map-common-ui';
 
-import { MapSection, MapSectionResult, SMapWorkRequest, SCoordsWorkRequest, TransformType } from '../../m-map/m-map-common-server';
+import { MapSection, MapSectionResult, SMapWorkRequest, SCoordsWorkRequest, TransformType, HistogramRequest } from '../../m-map/m-map-common-server';
 import { FracServerService } from '../../frac-server/frac-server.service';
 
 enum WorkMethod {
@@ -37,6 +37,7 @@ export class MMapDisplayComponent implements AfterViewInit {
   @Output() haveImageData = new EventEmitter<Blob>();
   @Output() haveHistogram = new EventEmitter<Histogram>();
   @Output() buildingComplete = new EventEmitter();
+  @Output() haveHistogramForEntireArea = new EventEmitter<Histogram>();
 
   private _mapInfo: IMapInfo;
   private _colorMap: ColorMapUI;
@@ -69,6 +70,15 @@ export class MMapDisplayComponent implements AfterViewInit {
 
   private mapDataProcessor: RawMapDataProcessor;
   private mapSectionResults: MapSectionResult[];
+
+  private _repoMode: string;
+  @Input('repoMode')
+  set repoMode(value: string) {
+    this._repoMode = value;
+  }
+  get repoMode(): string {
+    return this._repoMode;
+  }
 
   private _area: MapSection;
   @Input('area')
@@ -177,58 +187,67 @@ export class MMapDisplayComponent implements AfterViewInit {
       }
       else {
         // The new mapInfo has a value, and we have a working map.
-
-        if (!this._mapInfo.sCoords.isEqual(mi.sCoords)
-          || this._mapInfo.threshold !== mi.threshold
-          || this._mapInfo.maxIterations > mi.maxIterations
-          || (this._colorMap.serialNumber !== cm.serialNumber && this._mapInfo.maxIterations !== mi.maxIterations)
-          || (this._mapInfo.maxIterations < mi.maxIterations && this.workMethod === WorkMethod.WebService))
-        {
-          // The coordinates have changed,
-          // or we are reducing the number of iterations,
-          // or we are decreasing the number of iterations and we have a new color map, rebuild.
-          this._colorMap = cm;
-          this._mapInfo = mi;
-          if (this.viewInitialized) {
-            this.buildWorkingData();
-          }
-          return
+        if (this.workMethod === WorkMethod.WebService) {
+          this.handleMiwcmChangesWebService(mi, cm);
         }
-
-        if (this._colorMap.serialNumber !== cm.serialNumber) {
-          console.log('map-display found the colormap serial #s to be different.');
-          // We would not be here if we have an updated maxIterations.
-          this._mapInfo.iterationsPerStep = mi.iterationsPerStep;
-          this._colorMap = cm;
-
-          if (this.viewInitialized) {
-            this.updateWorkersColorMap();
-          }
-        }
-        else {
-          console.log('map-display found the colormap serial #s to be the same.');
-          if (this._mapInfo.maxIterations !== mi.maxIterations) {
-            this._mapInfo.iterationsPerStep = mi.iterationsPerStep;
-            this._mapInfo.maxIterations = mi.maxIterations;
-            this.doMoreIterations(mi.maxIterations);
-          }
-          else {
-            console.log('map-display found no change in the mapinfo or color map.');
-            //if (this._mapInfo.iterationsPerStep !== mi.iterationsPerStep) {
-            //  // The only change is to the iterationsPerStep.
-            //  // We must force a change so that our caller will get a signal
-            //  // that the rebuild is complete.
-            //  this._mapInfo.iterationsPerStep = mi.iterationsPerStep;
-
-            //  if (this.viewInitialized) {
-            //    console.log('m-map.display.component is getting an update of only the iterationsPerStep and is forcing a colorMapUpdate.');
-            //    this.updateWorkersColorMap();
-            //  }
-            //}
-          }
-
+        if (this.workMethod === WorkMethod.WebWorkers || this.workMethod == WorkMethod.ForeGround) {
+          this.handleMiwcmChangesWebWorker(mi, cm);
         }
       }
+    }
+  }
+
+  private handleMiwcmChangesWebWorker(mi: IMapInfo, cm: ColorMapUI): void {
+    if (!this._mapInfo.sCoords.isEqual(mi.sCoords)
+      || this._mapInfo.threshold !== mi.threshold
+      || this._mapInfo.maxIterations > mi.maxIterations // Reduction
+      || (this._colorMap.serialNumber !== cm.serialNumber && this._mapInfo.maxIterations !== mi.maxIterations)) {
+      // The coordinates have changed,
+      // or we are reducing the number of iterations,
+      // or we are increasing the number of iterations and we have a new color map, rebuild.
+      this._colorMap = cm;
+      this._mapInfo = mi;
+      if (this.viewInitialized) {
+        this.buildWorkingData();
+      }
+    }
+    else {
+      if (this._colorMap.serialNumber !== cm.serialNumber) {
+        console.log('map-display found the colormap serial #s to be different.');
+        // We would not be here if we have an updated maxIterations.
+        this._mapInfo.iterationsPerStep = mi.iterationsPerStep;
+        this._colorMap = cm;
+        if (this.viewInitialized) {
+          this.updateWorkersColorMap();
+        }
+      }
+      else {
+        console.log('map-display found the colormap serial #s to be the same.');
+        if (this._mapInfo.maxIterations !== mi.maxIterations) {
+          this._mapInfo.iterationsPerStep = mi.iterationsPerStep;
+          this._mapInfo.maxIterations = mi.maxIterations;
+          this.doMoreIterations(mi.maxIterations);
+        }
+        else {
+          console.log('map-display found no change in the mapinfo or color map.');
+        }
+      }
+    }
+  }
+
+  private handleMiwcmChangesWebService(mi: IMapInfo, cm: ColorMapUI): void {
+    if (!this._mapInfo.sCoords.isEqual(mi.sCoords)
+      || this._mapInfo.maxIterations != mi.maxIterations
+      || this._colorMap.serialNumber !== cm.serialNumber) {
+      this._colorMap = cm;
+      this._mapInfo = mi;
+      if (this.viewInitialized) {
+        this.buildWorkingData();
+      }
+      return
+    }
+    else {
+      console.log('map-display found no change in the mapinfo or color map.');
     }
   }
 
@@ -252,7 +271,7 @@ export class MMapDisplayComponent implements AfterViewInit {
 
     this._mapInfo = null;
     this._area = null;
-
+    this._repoMode = 'delete';
     this._colorMap = null;
 
     this.workers = [];
@@ -284,7 +303,7 @@ export class MMapDisplayComponent implements AfterViewInit {
     this.overLayBox = null;
 
     this.mapDataProcessor = null;
-    this.mapSectionResults = [];
+    //this.mapSectionResults = [];
   }
 
   public getImageDataForExport(): void {
@@ -304,6 +323,13 @@ export class MMapDisplayComponent implements AfterViewInit {
   }
 
   public getHistogram(): void {
+    if (this.workMethod !== WorkMethod.WebService) {
+      throw new Error('getHistogram is only supported when the workMethod is WebService.');
+    }
+    this.subHistogramRequest();
+  }
+
+  private getHistogramWebWorker(): void {
 
     this._histogram = null;
     this.resetSectionCompleteFlags();
@@ -315,8 +341,7 @@ export class MMapDisplayComponent implements AfterViewInit {
     }
   }
 
-  assembleHistorgram(arrayPair: HistArrayPair, sectionNumber: number): void {
-
+  private assembleHistorgram(arrayPair: HistArrayPair, sectionNumber: number): void {
     if (this._histogram == null) {
       this._histogram = Histogram.fromHistArrayPair(arrayPair);
     }
@@ -337,58 +362,12 @@ export class MMapDisplayComponent implements AfterViewInit {
     }
   }
 
-  drawEndNote(): void {
+  private drawEndNote(): void {
     //let ctx: CanvasRenderingContext2D = this.canvasRef.nativeElement.getContext('2d');
-
     //ctx.fillStyle = '#DD0031';
     //ctx.clearRect(0, 0, this.canvasSize.width, 20);
-
     this.buildingComplete.emit();
   }
-
-  //private draw_old(imageData: ImageData, sectionNumber: number): void {
-
-  //  let canvasElement = this.canvasElement;
-
-  //  let ctx: CanvasRenderingContext2D = canvasElement.getContext('2d');
-
-  //  let cw: number = canvasElement.width;
-  //  let ch: number = canvasElement.height;
-
-  //  //console.log("Drawing on canvas with W = " + cw + " H = " + ch);
-
-  //  //if (sectionNumber > 2) return;
-
-  //  let mapWorkingData: IMapWorkingData = this.sections[sectionNumber];
-
-  //  if (cw !== this.canvasSize.width || ch !== this.canvasSize.height) {
-  //    console.log('Draw detects that our canvas size has changed since intialization.')
-  //  }
-
-  //  // Check the image data's width to the canvas width for this section.
-  //  if (imageData.width !== mapWorkingData.canvasSize.width) {
-  //    console.log('Draw is being called with ImageData whose width does not equal canvas width for section number ' + sectionNumber + '.');
-  //  }
-
-  //  // Check the image data's height to the canvas height for this section.
-  //  if (imageData.height !== mapWorkingData.canvasSize.height) {
-  //    console.log('Draw is being called with ImageData whose height does not equal the canvas height for section number ' + sectionNumber + '.');
-  //  }
-
-  //  let left: number = mapWorkingData.sectionAnchor.x;
-  //  let bot: number = mapWorkingData.sectionAnchor.y;
-
-  //  ctx.fillStyle = '#DD0031';
-  //  ctx.clearRect(left, bot, imageData.width, imageData.height);
-
-  //  ctx.putImageData(imageData, left, bot);
-
-  //  //if (this.overLayBox !== null) {
-  //  //  this.drawOverLayBox(this.overLayBox);
-  //  //}
-
-  //  //console.log('Just drew image data for sn=' + sectionNumber + ' left=' + left + ' bot =' + bot  + '.');
-  //}
 
   private draw(imageData: ImageData, mapSection: MapSection): void {
 
@@ -541,24 +520,14 @@ export class MMapDisplayComponent implements AfterViewInit {
       // Get the size of our canvas.
       this.canvasSize = this.initMapDisplay(this.canvasElement);
 
-      //if (this._area === null) {
-      //  console.log('Setting the area to a default value on ngAfterViewInit.');
-      //  this._area = new MapSection(new Point(0, 0), this.canvasSize.getWholeUnits(JOB_BLOCK_SIZE));
-      //}
-      //else {
-      //  console.log('Not setting the area on ngAfterViewInit -- it already has a value of ' + this.formatArea(this._area));
-      //}
-
       // Set our control canvas to be the same size.
       this.canvasControlElement.width = this.canvasSize.width;
       this.canvasControlElement.height = this.canvasSize.height;
 
       this.registerZoomEventHandlers(this.canvasControlElement);
 
-      console.log("The initial canvas size is W = " + this.canvasSize.width + " H = " + this.canvasSize.height);
-
       // Now that we know the size of our canvas,
-
+      console.log("The initial canvas size is W = " + this.canvasSize.width + " H = " + this.canvasSize.height);
       if (this._mapInfo !== null) {
         this.buildWorkingData();
       }
@@ -607,7 +576,8 @@ export class MMapDisplayComponent implements AfterViewInit {
       if (this._insideSubmitWebRequest) return;
 
       this._insideSubmitWebRequest = true;
-      let dc1 = this.fService.cancelJob();
+      let deleteRepo: boolean = this._repoMode === 'delete' ? true : false;
+      let dc1 = this.fService.cancelJob(deleteRepo);
 
       if (dc1 != null) {
         //dc1.subscribe(
@@ -638,7 +608,7 @@ export class MMapDisplayComponent implements AfterViewInit {
 
     let regularColorMap = this._colorMap.getRegularColorMap();
 
-    this.mapSectionResults = [];
+    //this.mapSectionResults = [];
     this.mapDataProcessor = new RawMapDataProcessor(regularColorMap);
 
     let area: MapSection;
@@ -687,7 +657,7 @@ export class MMapDisplayComponent implements AfterViewInit {
     let pixelData = this.mapDataProcessor.getPixelData(ms.imageData, true);
     let imageData = new ImageData(pixelData, ms.mapSection.canvasSize.width, ms.mapSection.canvasSize.height);
 
-    this.mapSectionResults.push(ms);
+    //this.mapSectionResults.push(ms);
     //console.log('About to draw map section for x:' + ms.mapSection.sectionAnchor.x + ' and y:' + ms.mapSection.sectionAnchor.y);
     this.draw(imageData, ms.mapSection);
   }
@@ -712,6 +682,24 @@ export class MMapDisplayComponent implements AfterViewInit {
     //console.log('The Escape Velocity historgram is ' + this.mapDataProcessor.EscVelHist + '.');
 
     this.haveHistogram.emit(this._histogram);
+  }
+
+
+  private subHistogramRequest() {
+    if (this._insideSubmitWebRequest) return;
+
+    this._insideSubmitWebRequest = true;
+    let histReqObs = this.fService.getEntireHistorgram();
+    if(histReqObs !== null)
+      histReqObs.subscribe(resp => this.histRequestComplete(resp));
+  }
+
+  private histRequestComplete(request: HistogramRequest) {
+    console.log('Handling histRequestComplete the JobId is ' + request.jobId + '.');
+
+    let result = Histogram.fromArrays(request.values, request.occurances);
+    this.haveHistogramForEntireArea.emit(result);
+    this._insideSubmitWebRequest = false;
   }
 
   private initMapDisplay(ce: HTMLCanvasElement): ICanvasSize {
@@ -821,7 +809,6 @@ export class MMapDisplayComponent implements AfterViewInit {
         webWorker.postMessage(iterateRequest);
         mapWorkingData.curIterations += numberOfIterations;
       }
-
     }
 
     return result;
@@ -830,9 +817,7 @@ export class MMapDisplayComponent implements AfterViewInit {
   private initWebWorkersForExport(workingMaps: IMapWorkingData[], iterCount: number): Worker[] {
 
     let numberOfSections = workingMaps.length;
-
     let result: Worker[] = new Array<Worker>(numberOfSections);
-
     let ptr: number = 0;
 
     for (ptr = 0; ptr < numberOfSections; ptr++) {
@@ -900,7 +885,8 @@ export class MMapDisplayComponent implements AfterViewInit {
     console.log('m-map.display.component updating the image based on the new color map.');
 
     if (this.workMethod === WorkMethod.WebService) {
-      this.updateWebServiceColorMap();
+      //this.updateWebServiceColorMap();
+      throw new Error('Cannot update workkers color map when the WorkMethod is WebService.');
     }
     else {
       //if (this._buildingNewMap) {
@@ -918,31 +904,31 @@ export class MMapDisplayComponent implements AfterViewInit {
     }
   }
 
-  private updateWebServiceColorMap(): void {
-    let regularColorMap = this._colorMap.getRegularColorMap();
-    let updateHist: boolean;
-    if (this.mapDataProcessor == null) {
-      this.mapDataProcessor = new RawMapDataProcessor(regularColorMap);
-      updateHist = true;
-    }
-    else {
-      this.mapDataProcessor.colorMap = regularColorMap;
-      updateHist = false;
-    }
+  //private updateWebServiceColorMap(): void {
+  //  let regularColorMap = this._colorMap.getRegularColorMap();
+  //  let updateHist: boolean;
+  //  if (this.mapDataProcessor == null) {
+  //    this.mapDataProcessor = new RawMapDataProcessor(regularColorMap);
+  //    updateHist = true;
+  //  }
+  //  else {
+  //    this.mapDataProcessor.colorMap = regularColorMap;
+  //    updateHist = false;
+  //  }
 
-    let jobId = this.fService.JobId;
+  //  let jobId = this.fService.JobId;
 
-    let ptr: number;
-    for (ptr = 0; ptr < this.mapSectionResults.length; ptr++) {
-      let msr = this.mapSectionResults[ptr];
-      if (msr.jobId === jobId) {
-        this.reUseMapSectionResult(msr, updateHist);
-      }
-      else {
-        console.log('Not using MapSectionResult to redraw during updateWebServiceColorMap because the jobId doesnt match.');
-      }
-    }
-  }
+  //  let ptr: number;
+  //  for (ptr = 0; ptr < this.mapSectionResults.length; ptr++) {
+  //    let msr = this.mapSectionResults[ptr];
+  //    if (msr.jobId === jobId) {
+  //      this.reUseMapSectionResult(msr, updateHist);
+  //    }
+  //    else {
+  //      console.log('Not using MapSectionResult to redraw during updateWebServiceColorMap because the jobId doesnt match.');
+  //    }
+  //  }
+  //}
 
   private progressively(): void {
     console.log('Doing progresslvy');

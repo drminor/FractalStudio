@@ -1,3 +1,4 @@
+import { IPerfLoggingPrefs } from "selenium-webdriver/chrome";
 
 // Duplicate of src\app\m-map\ColorNumbers.ts
 class ColorNumbers {
@@ -160,6 +161,7 @@ export interface IPoint {
   translate(factor: IPoint): IPoint;
 
   isEqual(p: IPoint): boolean;
+  clone(): IPoint;
 }
 
 export interface ICanvasSize {
@@ -281,6 +283,10 @@ export class Point implements IPoint {
     if (p.y !== this.y) return false;
 
     return true;
+  }
+  public clone(): IPoint {
+    let result = new Point(this.x, this.y);
+    return result;
   }
 }
 
@@ -1085,6 +1091,16 @@ export class Histogram {
     let ptr: number;
     for (ptr = 0; ptr < arrayPair.vals.length; ptr++) {
       result.entriesMap.set(arrayPair.vals[ptr], arrayPair.occurances[ptr]);
+    }
+    return result;
+  }
+
+  public static fromArrays(values: number[], occurances: number[]): Histogram {
+    let result = new Histogram();
+
+    let ptr: number;
+    for (ptr = 0; ptr < values.length; ptr++) {
+      result.entriesMap.set(values[ptr], occurances[ptr]);
     }
     return result;
   }

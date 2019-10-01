@@ -6,6 +6,8 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using MqMessages;
 using PngImageBuilder;
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 
@@ -60,6 +62,52 @@ namespace FractalServerTests
 					}
 				}
 			}
+		}
+
+		[TestMethod]
+		public void GetHistogramTest()
+		{
+			int w = 108; // blocks
+			int h = 72;
+
+			CanvasSize imageSize = new CanvasSize(w * 100, h * 100);
+
+			string fn = "17";
+			string filename = $"MandlebrodtMapInfo ({fn})";
+			string imagePath = Path.Combine(BasePath, $"MBB({fn})_{imageSize.Width}.png");
+
+			IDictionary<int, int> hist = new Dictionary<int, int>();
+
+			ValueRecords<RectangleInt, MapSectionWorkResult> countsRepo = new ValueRecords<RectangleInt, MapSectionWorkResult>(filename);
+
+			RectangleInt key = new RectangleInt(new PointInt(0, 0), new SizeInt(100, 100));
+			MapSectionWorkResult workResult = new MapSectionWorkResult(10000, true, false);
+
+			for (int vBPtr = 0; vBPtr < h; vBPtr++)
+			{
+				key.Point.Y = vBPtr * 100;
+				for (int hBPtr = 0; hBPtr < w; hBPtr++)
+				{
+					key.Point.X = hBPtr * 100;
+					if (countsRepo.ReadParts(key, workResult))
+					{
+						foreach (int cntAndEsc in workResult.Counts)
+						{
+							int cnt = cntAndEsc / 10000;
+							if (hist.TryGetValue(cnt, out int occurances))
+							{
+								hist[cnt] = occurances + 1;
+							}
+							else
+							{
+								hist[cnt] = 1;
+							}
+						}
+					}
+				}
+			}
+
+			Debug.WriteLine($"The histogram has {hist.Count} entries.");
 		}
 
 		private int[] GetOneLineFromCountsBlock(int[] counts, int lPtr)

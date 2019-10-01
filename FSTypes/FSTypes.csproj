@@ -47,6 +47,7 @@
     <Compile Include="CanvasSize.cs" />
     <Compile Include="Coords.cs" />
     <Compile Include="DPoint.cs" />
+    <Compile Include="Histogram.cs" />
     <Compile Include="IPartsBin.cs" />
     <Compile Include="MapSection.cs" />
     <Compile Include="MapSectionResult.cs" />

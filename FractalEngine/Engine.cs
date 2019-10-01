@@ -82,26 +82,36 @@ namespace FractalEngine
 			return jobId;
 		}
 
-		public bool SubmitSubJob(SubJob subJob)
+		public IDictionary<int, int> GetHistogram(int jobId)
+		{
+			IJob job = GetJob(jobId);
+			if(job != null)
+			{
+				if(job is Job localJob)
+				{
+					Dictionary<int, int> result = localJob.GetHistogram();
+					return result;
+				}
+			}
+			return null;
+		}
+
+		public void SubmitSubJob(SubJob subJob)
 		{
 			IJob parentJob = subJob.ParentJob;
 
 			if(parentJob is Job localJob)
 			{
-				if(localJob.CanReplayResults())
+				MapSectionResult msr = localJob.RetrieveWorkResultFromRepo(subJob);
+				if (msr != null)
 				{
-					MapSectionResult msr = localJob.RetrieveWorkResultFromRepo(subJob);
-					if(msr != null)
-					{
-						// TODO: Nothing is managing the IsLastSubJob here.
-						SendReplayResultToClient(msr, parentJob.IsLastSubJob, localJob.ConnectionId);
-					}
-					else
-					{
-						ProcessSubJob(subJob);
-					}
+					// TODO: Nothing is managing the IsLastSubJob here.
+					SendReplayResultToClient(msr, parentJob.IsLastSubJob, localJob.ConnectionId);
 				}
-				return true;
+				else
+				{
+					ProcessSubJob(subJob);
+				}
 			}
 			else
 			{
@@ -128,7 +138,7 @@ namespace FractalEngine
 			_clientConnector.ReceiveImageData(connectionId, msr, isFinalSection);
 		}
 
-		public void CancelJob(int jobId)
+		public void CancelJob(int jobId, bool deleteRepo)
 		{
 			IJob job = RemoveJob(jobId);
 
@@ -153,8 +163,10 @@ namespace FractalEngine
 				}
 				else if(job is Job localJob) 
 				{
-					//localJob.DeleteCountsRepo();
-					localJob.Dispose();
+					if(deleteRepo)
+						localJob.DeleteCountsRepo();
+					else
+						localJob.Dispose();
 				}
 				else
 				{
@@ -226,7 +238,7 @@ namespace FractalEngine
 			var jobIds = _jobs.Values.Select(v => v.JobId).ToList();
 			foreach (int jobId in jobIds)
 			{
-				CancelJob(jobId);
+				CancelJob(jobId, deleteRepo: false);
 			}
 		}
 

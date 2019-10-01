@@ -61,7 +61,11 @@ export class SCoordsWorkRequest {
     let result = new SCoordsWorkRequest(req.transformType, req.coords, req.canvasSize, req.mapSection);
     return result;
   }
+}
 
+export class HistogramRequest {
+  constructor(public jobId: number, public values: number[], public occurances: number[]) {
+  }
 }
 
 

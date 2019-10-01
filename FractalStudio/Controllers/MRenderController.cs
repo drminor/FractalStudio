@@ -1,5 +1,4 @@
 using FractalEngine;
-using FractalServer;
 using FractalStudio.Hubs;
 using FSTypes;
 using Microsoft.AspNetCore.Mvc;
@@ -48,17 +47,17 @@ namespace FractalStudio.Controllers
     {
       if (sMapWorkRequest.ConnectionId.ToLower() == "delete")
       {
-        _engine.CancelJob(sMapWorkRequest.JobId);
+        bool deleteRepo = sMapWorkRequest.Name == "delJobAndRepo" ? true : false;
+        _engine.CancelJob(sMapWorkRequest.JobId, deleteRepo);
+        return Ok(sMapWorkRequest);
       }
       else
       {
-        //System.Threading.Thread.Sleep(2000);
         IJob job = new JobFactory().CreateJob(sMapWorkRequest);
         int jobId = _engine.SubmitJob(job);
         sMapWorkRequest.JobId = jobId;
+        return Ok(sMapWorkRequest);
       }
-
-      return Ok(sMapWorkRequest);
     }
 
     // PUT: api/MRender/5
