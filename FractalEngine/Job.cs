@@ -71,7 +71,7 @@ namespace FractalEngine
 			MapSectionWorkRequest mswr = new MapSectionWorkRequest(mapSection, MaxIterations, xValues, yValues);
 			//Debug.WriteLine($"w: {w} h: {h} xLen: {xValues.Length} yLen: {yValues.Length}.");
 
-			SubJob result = new SubJob(this, mswr, ConnectionId);
+			SubJob result = new SubJob(this, mswr);
 
 			return result;
 		}

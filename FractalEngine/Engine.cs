@@ -28,7 +28,10 @@ namespace FractalEngine
 		private readonly Dictionary<int, IJob> _jobs;
 		private readonly CancellationTokenSource _cts;
 		private readonly object _jobLock = new object();
-		private readonly ManualResetEvent HaveWork;
+		private readonly ManualResetEvent _haveWork;
+
+		private readonly BlockingCollection<SubJob> _workQueue = new BlockingCollection<SubJob>(10);
+		private readonly BlockingCollection<SubJob> _sendQueue = new BlockingCollection<SubJob>(50);
 
 		public Engine()
 		{
@@ -36,7 +39,7 @@ namespace FractalEngine
 			_jobs = new Dictionary<int, IJob>();
 			_cts = new CancellationTokenSource();
 
-			HaveWork = new ManualResetEvent(false);
+			_haveWork = new ManualResetEvent(false);
 			WaitDuration = DefaultWaitDuration;
 
 			_nextJobId = 0;
@@ -48,7 +51,7 @@ namespace FractalEngine
 		public void Quit()
 		{
 			_cts.Cancel();
-			HaveWork.Set();
+			_haveWork.Set();
 		}
 
 		#region Job Control
@@ -76,7 +79,7 @@ namespace FractalEngine
 
 				Debug.WriteLine("Adding job to queue.");
 				_jobs.Add(jobId, job);
-				HaveWork.Set();
+				_haveWork.Set();
 			}
 
 			return jobId;
@@ -252,7 +255,7 @@ namespace FractalEngine
 					break;
 				}
 
-				bool wasSignaled = HaveWork.WaitOne(1000);
+				bool wasSignaled = _haveWork.WaitOne(1000);
 
 				if (cts.IsCancellationRequested)
 				{
@@ -269,7 +272,7 @@ namespace FractalEngine
 						{
 							Debug.WriteLine("There are no un completed jobs, resetting HaveWork.");
 							_nextJobPtr = 0;
-							HaveWork.Reset();
+							_haveWork.Reset();
 						}
 						else
 						{
@@ -293,17 +296,14 @@ namespace FractalEngine
 
 		#region Work
 
-		private readonly BlockingCollection<SubJob> WorkQueue = new BlockingCollection<SubJob>(10);
-		private readonly BlockingCollection<SubJob> SendQueue = new BlockingCollection<SubJob>(50);
-
 		public void Start(IClientConnector clientConnector)
 		{
 			_clientConnector = clientConnector;
 
 			// Start one producer and one consumer.
-			Task.Run(() => SendProcessor(SendQueue, _cts.Token), _cts.Token);
-			Task.Run(() => WorkProcessor(WorkQueue, SendQueue, _cts.Token), _cts.Token);
-			Task.Run(() => QueueWork(WorkQueue, _cts.Token), _cts.Token);
+			Task.Run(() => SendProcessor(_sendQueue, _cts.Token), _cts.Token);
+			Task.Run(() => WorkProcessor(_workQueue, _sendQueue, _cts.Token), _cts.Token);
+			Task.Run(() => QueueWork(_workQueue, _cts.Token), _cts.Token);
 		}
 
 		private void QueueWork(BlockingCollection<SubJob> workQueue, CancellationToken ct)
@@ -320,7 +320,7 @@ namespace FractalEngine
 
 					CancellationTokenSource listenerCts = new CancellationTokenSource();
 					Debug.WriteLine($"Starting a new ImageResultListener for {jobForMq.JobId}.");
-					Task listenerTask = Task.Run(async () => await MqImageResultListenerAsync(jobForMq, SendQueue, listenerCts.Token));
+					Task listenerTask = Task.Run(async () => await MqImageResultListenerAsync(jobForMq, _sendQueue, listenerCts.Token));
 
 					jobForMq.ListenerTask = new Tuple<Task, CancellationTokenSource>(listenerTask, listenerCts);
 					jobForMq.MarkAsCompleted();
@@ -410,7 +410,7 @@ namespace FractalEngine
 				subJob.MapSectionResult = result;
 			}
 
-			SendQueue.Add(subJob);
+			_sendQueue.Add(subJob);
 		}
 
 		private void SendProcessor(BlockingCollection<SubJob> sendQueue, CancellationToken ct)
@@ -435,15 +435,6 @@ namespace FractalEngine
 							{
 								_clientConnector.ReceiveImageData(subJob.ConnectionId, subJob.MapSectionResult, isFinalSubJob);
 							}
-
-							//if (subJob.ParentJob is Job pJob)
-							//{
-							//	if (subJob.WorkResult != null)
-							//	{
-							//		// A Map Section Work Result was created -- write it to the Repo.
-							//		pJob.WriteWorkResult(subJob.MapSectionWorkRequest.MapSection, subJob.WorkResult);
-							//	}
-							//}
 						}
 					}
 				}
@@ -504,7 +495,7 @@ namespace FractalEngine
 
 					SubJob subJob = CreateSubJob(jobResult, jobForMq);
 
-					SendQueue.Add(subJob);
+					sendQueue.Add(subJob);
 				}
 
 				if(jobForMq.IsLastSubJob)
@@ -589,12 +580,10 @@ namespace FractalEngine
 		{
 			MapSectionWorkResult workResult = CreateWorkResult(jobResult);
 
-			// TODO: Have the parentJob write the workResult to the Repo.
-
 			MapSectionWorkRequest workRequest = CreateMSWR(jobResult, parentJob.SMapWorkRequest.MaxIterations);
-			MapSectionResult msr = CreateMapSectionResult(parentJob.JobId, workRequest, workResult);
+			MapSectionResult msr = CreateMapSectionResult(parentJob.JobId, workRequest.MapSection, workResult);
 
-			SubJob subJob = new SubJob(parentJob, workRequest, parentJob.ConnectionId)
+			SubJob subJob = new SubJob(parentJob, workRequest)
 			{
 				MapSectionResult = msr
 			};
@@ -616,10 +605,9 @@ namespace FractalEngine
 			return result;
 		}
 
-		// This is only used by MQ Jobs
-		private MapSectionResult CreateMapSectionResult(int jobId, MapSectionWorkRequest workRequest, MapSectionWorkResult workResult)
+		private MapSectionResult CreateMapSectionResult(int jobId, MapSection mapSection, MapSectionWorkResult workResult)
 		{
-			MapSectionResult result = new MapSectionResult(jobId, workRequest.MapSection, workResult.Counts);
+			MapSectionResult result = new MapSectionResult(jobId, mapSection, workResult.Counts);
 			return result;
 		}
 

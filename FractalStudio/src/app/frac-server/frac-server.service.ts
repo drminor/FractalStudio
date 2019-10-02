@@ -96,16 +96,16 @@ export class FracServerService {
     let hRequest = new HistogramRequest(this.jobId, null, null);
     let res: Observable<HistogramRequest> = this.http.post<HistogramRequest>(this.baseUrl + this.histogramControllerPath, hRequest);
 
-    //res.subscribe(resp => this.histRequestResponseHandler(resp));
+    res.subscribe(resp => this.histRequestResponseHandler(resp));
     return res;
   }
 
-  //private histRequestResponseHandler(hRequest: HistogramRequest) {
-  //  if (hRequest.jobId !== this.jobId) {
-  //    console.log('The job ids dont match during handling the histRequestResponse.');
-  //  }
-  //  console.log('Handling histRequestResponse. The result has ' + hRequest.values.length + ' entries.');
-  //}
+  private histRequestResponseHandler(hRequest: HistogramRequest) {
+    if (hRequest.jobId !== this.jobId) {
+      console.log('The job ids dont match during handling the histRequestResponse.');
+    }
+    console.log('Handling histRequestResponse. The result has ' + hRequest.values.length + ' entries.');
+  }
 
   // -- Cancel Job
   public cancelJob(deleteRepo: boolean): Observable<SMapWorkRequest> {

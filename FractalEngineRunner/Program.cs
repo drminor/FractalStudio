@@ -74,7 +74,7 @@ namespace FractalEngineRunner
 
 				case FJobRequestType.Delete:
 					Console.WriteLine($"Cancelling Job with JobId {jobId}.");
-					_engine.CancelJob(jobId);
+					_engine.CancelJob(jobId, false);
 					break;
 
 				default:
