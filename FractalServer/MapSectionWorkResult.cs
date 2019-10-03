@@ -111,6 +111,31 @@ namespace FractalServer
 			}
 		}
 
+		public void LoadPart(int partNumber, byte[] buf)
+		{
+			if (partNumber > PartCount - 1)
+			{
+				throw new ArgumentException($"This Parts Bin only has {PartCount} parts. Cannot get Part for PartNumber: {partNumber}.");
+			}
+			switch (partNumber)
+			{
+				case 0:
+					LoadBytesFromCounts(Counts, buf);
+					break;
+				case 1:
+					Array.Copy(BitConverter.GetBytes(IterationCount), buf, 1);
+					break;
+				case 2:
+					LoadBytesFromZValues(ZValues, buf);
+					break;
+				case 3:
+					LoadBytesFromDoneFlags(DoneFlags, buf);
+					break;
+				default:
+					throw new ArgumentException("The partnumber is out of bounds.");
+			}
+		}
+
 		public void SetPart(int partNumber, byte[] value)
 		{
 			if (partNumber > PartCount - 1)
@@ -151,6 +176,13 @@ namespace FractalServer
 			return tempBuf;
 		}
 
+		private void LoadBytesFromCounts(int[] values, byte[] buf)
+		{
+			for (int i = 0; i < values.Length; i++)
+			{
+				Array.Copy(BitConverter.GetBytes(values[i]), 0, buf, i * 4, 4);
+			}
+		}
 
 		private bool[] GetDoneFlags(byte[] buf, int size)
 		{
@@ -167,6 +199,14 @@ namespace FractalServer
 		{
 			byte[] tempBuf = values.SelectMany(value => BitConverter.GetBytes(value)).ToArray();
 			return tempBuf;
+		}
+
+		private void LoadBytesFromDoneFlags(bool[] values, byte[] buf)
+		{
+			for (int i = 0; i < values.Length; i++)
+			{
+				Array.Copy(BitConverter.GetBytes(values[i]), 0, buf, i, 1);
+			}
 		}
 
 		private DPoint[] GetZValues(byte[] buf, int size)
@@ -203,5 +243,15 @@ namespace FractalServer
 
 			return result;
 		}
+
+		private void LoadBytesFromZValues(DPoint[] values, byte[] buf)
+		{
+			for (int i = 0; i < values.Length; i++)
+			{
+				Array.Copy(BitConverter.GetBytes(values[i].X), 0, buf, i * 16, 8);
+				Array.Copy(BitConverter.GetBytes(values[i].Y), 0, buf, 8 + (i * 16), 8);
+			}
+		}
+
 	}
 }

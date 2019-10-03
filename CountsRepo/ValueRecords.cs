@@ -291,10 +291,10 @@ namespace CountsRepo
 			for(int partCntr = 0; partCntr < value.PartCount; partCntr++)
 			{
 				PartDetail pDetail = value.PartDetails[partCntr];
-
 				int partLen = pDetail.PartLength;
-				byte[] buf = value.GetPart(partCntr);
-				bw.Write(buf);
+				//byte[] buf = value.GetPart(partCntr);
+				value.LoadPart(partCntr, pDetail.Buf);
+				bw.Write(pDetail.Buf);
 				totalBytes += (uint) partLen;
 			}
 
@@ -309,8 +309,9 @@ namespace CountsRepo
 
 				if (pDetail.IncludeOnRead)
 				{
-					byte[] buf = br.ReadBytes(pDetail.PartLength);
-					value.SetPart(partCntr, buf);
+					//byte[] buf = br.ReadBytes(pDetail.PartLength);
+					br.Read(pDetail.Buf, 0, pDetail.PartLength);
+					value.SetPart(partCntr, pDetail.Buf);
 				}
 				else
 				{

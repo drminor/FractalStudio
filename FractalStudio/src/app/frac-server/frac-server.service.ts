@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
+//import { share } from 'rxjs/operators';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 
 import * as signalR from '@aspnet/signalr';
@@ -96,16 +97,16 @@ export class FracServerService {
     let hRequest = new HistogramRequest(this.jobId, null, null);
     let res: Observable<HistogramRequest> = this.http.post<HistogramRequest>(this.baseUrl + this.histogramControllerPath, hRequest);
 
-    res.subscribe(resp => this.histRequestResponseHandler(resp));
+    //res.subscribe(resp => this.histRequestResponseHandler(resp));
     return res;
   }
 
-  private histRequestResponseHandler(hRequest: HistogramRequest) {
-    if (hRequest.jobId !== this.jobId) {
-      console.log('The job ids dont match during handling the histRequestResponse.');
-    }
-    console.log('Handling histRequestResponse. The result has ' + hRequest.values.length + ' entries.');
-  }
+  //private histRequestResponseHandler(hRequest: HistogramRequest) {
+  //  if (hRequest.jobId !== this.jobId) {
+  //    console.log('The job ids dont match during handling the histRequestResponse.');
+  //  }
+  //  console.log('Handling histRequestResponse. The result has ' + hRequest.values.length + ' entries.');
+  //}
 
   // -- Cancel Job
   public cancelJob(deleteRepo: boolean): Observable<SMapWorkRequest> {
@@ -124,17 +125,19 @@ export class FracServerService {
     delRequest.connectionId = 'delete';
     let res: Observable<SMapWorkRequest> = this.http.post<SMapWorkRequest>(this.baseUrl + this.controllerPath, delRequest);
     
-    res.subscribe(resp => this.delRequestResponseHandler(resp));
+    //res.subscribe(resp => this.delRequestResponseHandler(resp));
     return res;
   }
 
-  private delRequestResponseHandler(delRequest: SMapWorkRequest) {
-    if (delRequest.jobId !== this.jobId) {
-      console.log('The job ids dont match during handling the delRequestResponse.');
-    }
-    console.log('Handling delRequestResponse. Setting the jobId to -1.');
-    this.jobId = -1;
-  }
+  //// HAVING TWO SUBSCRIBERS causes the request to be submitted twice.
+  //// If this is required use RxShare
+  //private delRequestResponseHandler(delRequest: SMapWorkRequest) {
+  //  if (delRequest.jobId !== this.jobId) {
+  //    console.log('The job ids dont match during handling the delRequestResponse.');
+  //  }
+  //  console.log('Handling delRequestResponse. Setting the jobId to -1.');
+  //  this.jobId = -1;
+  //}
   
   private submitJobInternal(): void {
     console.log('The job is requesting an interation count of ' + this.request.maxIterations + '.');

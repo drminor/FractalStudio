@@ -33,6 +33,8 @@ namespace FractalEngine
 		private readonly BlockingCollection<SubJob> _workQueue = new BlockingCollection<SubJob>(10);
 		private readonly BlockingCollection<SubJob> _sendQueue = new BlockingCollection<SubJob>(50);
 
+		private SubJobProcessor[] _subJobProcessors = null;
+
 		public Engine()
 		{
 			_clientConnector = null;
@@ -52,6 +54,11 @@ namespace FractalEngine
 		{
 			_cts.Cancel();
 			_haveWork.Set();
+
+			foreach(SubJobProcessor subJobProcessor in _subJobProcessors)
+			{
+				subJobProcessor.Stop();
+			}
 		}
 
 		#region Job Control
@@ -99,28 +106,28 @@ namespace FractalEngine
 			return null;
 		}
 
-		public void SubmitSubJob(SubJob subJob)
-		{
-			IJob parentJob = subJob.ParentJob;
+		//public void SubmitSubJob(SubJob subJob)
+		//{
+		//	IJob parentJob = subJob.ParentJob;
 
-			if(parentJob is Job localJob)
-			{
-				MapSectionResult msr = localJob.RetrieveWorkResultFromRepo(subJob);
-				if (msr != null)
-				{
-					// TODO: Nothing is managing the IsLastSubJob here.
-					SendReplayResultToClient(msr, parentJob.IsLastSubJob, localJob.ConnectionId);
-				}
-				else
-				{
-					ProcessSubJob(subJob);
-				}
-			}
-			else
-			{
-				throw new InvalidOperationException("Only subjobs of local jobs can be submitted.");
-			}
-		}
+		//	if(parentJob is Job localJob)
+		//	{
+		//		MapSectionResult msr = localJob.RetrieveWorkResultFromRepo(subJob);
+		//		if (msr != null)
+		//		{
+		//			// TODO: Nothing is managing the IsLastSubJob here.
+		//			SendReplayResultToClient(msr, parentJob.IsLastSubJob, localJob.ConnectionId);
+		//		}
+		//		else
+		//		{
+		//			ProcessSubJob(subJob);
+		//		}
+		//	}
+		//	else
+		//	{
+		//		throw new InvalidOperationException("Only subjobs of local jobs can be submitted.");
+		//	}
+		//}
 
 		private void ReplayResults(Job localJob)
 		{
@@ -302,7 +309,15 @@ namespace FractalEngine
 
 			// Start one producer and one consumer.
 			Task.Run(() => SendProcessor(_sendQueue, _cts.Token), _cts.Token);
-			Task.Run(() => WorkProcessor(_workQueue, _sendQueue, _cts.Token), _cts.Token);
+
+			//Task.Run(() => WorkProcessor(_workQueue, _sendQueue, _cts.Token), _cts.Token);
+			_subJobProcessors = new SubJobProcessor[4];
+			for(int wpCntr = 0; wpCntr < 4; wpCntr++)
+			{
+				_subJobProcessors[wpCntr] = new SubJobProcessor(_workQueue, _sendQueue);
+				_subJobProcessors[wpCntr].Start();
+			}
+
 			Task.Run(() => QueueWork(_workQueue, _cts.Token), _cts.Token);
 		}
 
@@ -330,6 +345,7 @@ namespace FractalEngine
 					SubJob subJob = localJob.GetNextSubJob();
 					if (subJob != null)
 					{
+						//Debug.WriteLine($"Adding subJob for JobId:{subJob.ParentJob.JobId}, the pos is {subJob.MapSectionWorkRequest.MapSection.SectionAnchor.X},{subJob.MapSectionWorkRequest.MapSection.SectionAnchor.Y}.");
 						workQueue.Add(subJob, ct);
 					}
 				}
@@ -355,63 +371,29 @@ namespace FractalEngine
 			return result;
 		}
 
-		private void WorkProcessor(BlockingCollection<SubJob> workQueue, BlockingCollection<SubJob> sendQueue, CancellationToken ct)
-		{
-			var parallelOptions = new ParallelOptions
-			{
-				MaxDegreeOfParallelism = 4,
-				CancellationToken = ct
-			};
+		//private void WorkProcessor(BlockingCollection<SubJob> workQueue, BlockingCollection<SubJob> sendQueue, CancellationToken ct)
+		//{
+		//	var parallelOptions = new ParallelOptions
+		//	{
+		//		MaxDegreeOfParallelism = 4,
+		//		CancellationToken = ct
+		//	};
 
-			try
-			{
-				Parallel.ForEach(workQueue.GetConsumingPartitioner(), parallelOptions, ProcessSubJob);
-			}
-			catch (OperationCanceledException)
-			{
-				Debug.WriteLine("Work Queue Consuming Enumerable canceled.");
-				throw;
-			}
-			catch (InvalidOperationException)
-			{
-				Debug.WriteLine("Work Queue Consuming Enumerable completed.");
-				throw;
-			}
-		}
-
-		private void ProcessSubJob(SubJob subJob)
-		{
-			if (subJob.ParentJob.CancelRequested)
-			{
-				Debug.WriteLine("Not Processing Sub Job.");
-				return;
-			}
-
-			if (!(subJob.ParentJob is Job localJob))
-			{
-				throw new InvalidOperationException("When processing a subjob, the parent job must be implemented by the Job class.");
-			}
-
-			MapSectionResult msr = localJob.RetrieveWorkResultFromRepo(subJob);
-			if(msr != null)
-			{
-				subJob.MapSectionResult = msr;
-			}
-			else
-			{
-				MapSectionWorkRequest mswr = subJob.MapSectionWorkRequest;
-				MapCalculator mapCalculator = new MapCalculator(mswr.MaxIterations);
-
-				MapSectionWorkResult workResult = mapCalculator.GetInitialWorkingValues(mswr);
-				workResult = mapCalculator.GetWorkingValues(mswr, workResult);
-				localJob.WriteWorkResult(subJob.MapSectionWorkRequest.MapSection, workResult);
-
-				MapSectionResult result = new MapSectionResult(localJob.JobId, mswr.MapSection, workResult.Counts);
-				subJob.MapSectionResult = result;
-			}
-
-			_sendQueue.Add(subJob);
-		}
+		//	try
+		//	{
+		//		Parallel.ForEach(workQueue.GetConsumingPartitioner(), parallelOptions, ProcessSubJob);
+		//	}
+		//	catch (OperationCanceledException)
+		//	{
+		//		Debug.WriteLine("Work Queue Consuming Enumerable canceled.");
+		//		throw;
+		//	}
+		//	catch (InvalidOperationException)
+		//	{
+		//		Debug.WriteLine("Work Queue Consuming Enumerable completed.");
+		//		throw;
+		//	}
+		//}
 
 		private void SendProcessor(BlockingCollection<SubJob> sendQueue, CancellationToken ct)
 		{

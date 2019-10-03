@@ -108,7 +108,7 @@ namespace FractalEngine
 			}
 		}
 
-		public MapSectionResult RetrieveWorkResultFromRepo(SubJob subJob)
+		public bool RetrieveWorkResultFromRepo(SubJob subJob, MapSectionWorkResult workResult)
 		{
 			MapSection ms = subJob.MapSectionWorkRequest.MapSection;
 
@@ -117,18 +117,20 @@ namespace FractalEngine
 			riKey.Point.X += SMapWorkRequest.Area.SectionAnchor.X * SECTION_WIDTH;
 			riKey.Point.Y += SMapWorkRequest.Area.SectionAnchor.Y * SECTION_HEIGHT;
 
-			MapSectionWorkResult workResult = GetEmptyResult(riKey);
+			//MapSectionWorkResult workResult = GetEmptyResult(riKey);
 
 			lock (_repoLock)
 			{
 				if (_countsRepo.ReadParts(riKey, workResult))
 				{
-					MapSectionResult msr = CreateMapSectionResult(JobId, ms, workResult);
-					return msr;
+					//MapSectionResult msr = CreateMapSectionResult(JobId, ms, workResult);
+					//return msr;
+					return true;
 				}
 				else
 				{
-					return null;
+					//return null;
+					return false;
 				}
 			}
 		}
@@ -145,12 +147,25 @@ namespace FractalEngine
 
 			while (subJob != null)
 			{
-				MapSectionResult msr = RetrieveWorkResultFromRepo(subJob);
-				Tuple<MapSectionResult, bool> item = new Tuple<MapSectionResult, bool>(msr, IsLastSubJob);
-				DecrementSubJobsRemainingToBeSent();
 
-				subJob = GetNextSubJob();
-				yield return item;
+				//MapSectionResult msr = RetrieveWorkResultFromRepo(subJob);
+
+				MapSectionWorkResult workResult = new MapSectionWorkResult(10000, true, false);
+				if(RetrieveWorkResultFromRepo(subJob, workResult))
+				{
+					MapSectionResult msr = new MapSectionResult(JobId, subJob.MapSectionWorkRequest.MapSection, workResult.Counts);
+
+					Tuple<MapSectionResult, bool> item = new Tuple<MapSectionResult, bool>(msr, IsLastSubJob);
+					DecrementSubJobsRemainingToBeSent();
+
+					subJob = GetNextSubJob();
+					yield return item;
+				}
+				else
+				{
+					yield return null;
+				}
+
 			}
 		}
 

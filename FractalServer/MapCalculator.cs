@@ -90,26 +90,6 @@ namespace FractalServer
 			return result;
 		}
 
-		public MapSectionWorkResult GetInitialWorkingValues(MapSectionWorkRequest mswr)
-		{
-			int width = mswr.MapSection.CanvasSize.Width;
-			int height = mswr.MapSection.CanvasSize.Height;
-
-			int len = width * height;
-
-			int[] counts = new int[len];
-			bool[] doneFlags = new bool[len];
-			DPoint[] zValues = new DPoint[len];
-
-			for(int ptr = 0; ptr < len; ptr++)
-			{
-				zValues[ptr] = new DPoint(0, 0);
-			}
-
-			MapSectionWorkResult result = new MapSectionWorkResult(counts, mswr.MaxIterations, zValues, doneFlags);
-			return result;
-		}
-
 		private void CheckCurrentValues(MapSectionWorkRequest mswr, MapSectionWorkResult currentValues)
 		{
 			int width = mswr.MapSection.CanvasSize.Width;

@@ -78,6 +78,7 @@
     <Compile Include="JobForMq.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SubJob.cs" />
+    <Compile Include="SubJobProcessor.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CountsRepo\CountsRepo.csproj">
