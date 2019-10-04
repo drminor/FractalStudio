@@ -8,15 +8,15 @@ namespace FractalServer
 		public readonly MapSection MapSection;
 		public readonly int MaxIterations;
 
-		public readonly double[] XValues;
-		public readonly double[] YValues;
+		public readonly int HPtr;
+		public readonly int VPtr;
 
-		public MapSectionWorkRequest(MapSection mapSection, int maxIterations, double[] xValues, double[] yValues)
+		public MapSectionWorkRequest(MapSection mapSection, int maxIterations, int hPtr, int vPtr)
 		{
 			MaxIterations = maxIterations;
 			MapSection = mapSection ?? throw new ArgumentNullException(nameof(mapSection));
-			XValues = xValues; //?? throw new ArgumentNullException(nameof(xValues));
-			YValues = yValues; //?? throw new ArgumentNullException(nameof(yValues));
+			HPtr = hPtr;
+			VPtr = vPtr;
 		}
 	}
 }

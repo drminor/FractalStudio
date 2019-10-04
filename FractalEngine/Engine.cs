@@ -296,10 +296,8 @@ namespace FractalEngine
 		{
 			_clientConnector = clientConnector;
 
-			// Start one producer and one consumer.
 			Task.Run(() => SendProcessor(_sendQueue, _cts.Token), _cts.Token);
 
-			//Task.Run(() => WorkProcessor(_workQueue, _sendQueue, _cts.Token), _cts.Token);
 			_subJobProcessors = new SubJobProcessor[4];
 			for(int wpCntr = 0; wpCntr < 4; wpCntr++)
 			{
@@ -370,30 +368,6 @@ namespace FractalEngine
 
 			return result;
 		}
-
-		//private void WorkProcessor(BlockingCollection<SubJob> workQueue, BlockingCollection<SubJob> sendQueue, CancellationToken ct)
-		//{
-		//	var parallelOptions = new ParallelOptions
-		//	{
-		//		MaxDegreeOfParallelism = 4,
-		//		CancellationToken = ct
-		//	};
-
-		//	try
-		//	{
-		//		Parallel.ForEach(workQueue.GetConsumingPartitioner(), parallelOptions, ProcessSubJob);
-		//	}
-		//	catch (OperationCanceledException)
-		//	{
-		//		Debug.WriteLine("Work Queue Consuming Enumerable canceled.");
-		//		throw;
-		//	}
-		//	catch (InvalidOperationException)
-		//	{
-		//		Debug.WriteLine("Work Queue Consuming Enumerable completed.");
-		//		throw;
-		//	}
-		//}
 
 		private void SendProcessor(BlockingCollection<SubJob> sendQueue, CancellationToken ct)
 		{
@@ -576,7 +550,7 @@ namespace FractalEngine
 		private MapSectionWorkRequest CreateMSWR(FJobResult jobResult, int maxIterations)
 		{
 			MapSection mapSection = new MapSection(jobResult.Area);
-			MapSectionWorkRequest result = new MapSectionWorkRequest(mapSection, maxIterations, null, null);
+			MapSectionWorkRequest result = new MapSectionWorkRequest(mapSection, maxIterations, 0, 0);
 			return result;
 		}
 

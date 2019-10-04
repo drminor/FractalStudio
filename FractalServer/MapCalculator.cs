@@ -5,29 +5,22 @@ namespace FractalServer
 {
 	public class MapCalculator
     {
-		private readonly int _maxIterations;
-		private readonly MPointWork _mPointWork;
-
-		public MapCalculator(int maxIterations)
+		public MapCalculator()
 		{
-			_maxIterations = maxIterations;
-			_mPointWork = new MPointWork(_maxIterations);
 		}
 
-		public MapSectionWorkResult GetWorkingValues(MapSectionWorkRequest mswr, MapSectionWorkResult currentValues)
+		public MapSectionWorkResult GetWorkingValues(double[] XValues, double[] YValues, int maxIterations, MapSectionWorkResult currentValues)
 		{
-			CheckMaxIterations(mswr, _maxIterations);
-			CheckCurrentValues(mswr, currentValues);
+			int width = XValues.Length;
+			int height = YValues.Length;
 
-			//MPointWork mPointWork = new MPointWork(mswr.MaxIterations);
+			CheckCurrentValues(width * height, currentValues);
 
-			int width = mswr.MapSection.CanvasSize.Width;
-			int height = mswr.MapSection.CanvasSize.Height;
-
+			MPointWork mPointWork = new MPointWork(maxIterations);
 			int ptr = 0;
 			for (int yPtr = 0; yPtr < height; yPtr++)
 			{
-				DPoint c = new DPoint(0, mswr.YValues[yPtr]);
+				DPoint c = new DPoint(0, YValues[yPtr]);
 
 				for (int xPtr = 0; xPtr < width; xPtr++)
 				{
@@ -37,9 +30,9 @@ namespace FractalServer
 					int cnt = currentValues.Counts[ptr];
 					cnt /= 10000;
 
-					c.X = mswr.XValues[xPtr];
+					c.X = XValues[xPtr];
 
-					double escapeVelocity = _mPointWork.Iterate(c, ref z, ref cnt, out bool done);
+					double escapeVelocity = mPointWork.Iterate(c, ref z, ref cnt, out bool done);
 
 					double cAndE = cnt + escapeVelocity;
 					cAndE *= 10000;
@@ -52,34 +45,33 @@ namespace FractalServer
 				}
 			}
 
-			currentValues.IterationCount = _maxIterations;
+			currentValues.IterationCount = maxIterations;
 			return currentValues;
 		}
 
-		public int[] GetValues(MapSectionWorkRequest mswr)
+		public int[] GetValues(double[] XValues, double[] YValues, int maxIterations)
 		{
-			CheckMaxIterations(mswr, _maxIterations);
-
 			int cntr = 0;
 			DPoint z = new DPoint(0, 0);
 
-			//MPointWork mPointWork = new MPointWork(mswr.MaxIterations);
+			int width = XValues.Length;
+			int height = YValues.Length;
 
-			int width = mswr.MapSection.CanvasSize.Width;
-			int height = mswr.MapSection.CanvasSize.Height;
 			int[] result = new int[width * height];
 
+			MPointWork mPointWork = new MPointWork(maxIterations);
 			int ptr = 0;
 			for (int yPtr = 0; yPtr < height; yPtr++)
 			{
-				DPoint c = new DPoint(0, mswr.YValues[yPtr]);
+				DPoint c = new DPoint(0, YValues[yPtr]);
 
 				for (int xPtr = 0; xPtr < width; xPtr++)
 				{
-					c.X = mswr.XValues[xPtr];
+					c.X = XValues[xPtr];
+
 					// Reset the input values for each map point.
 					z.X = 0; z.Y = 0; cntr = 0;
-					double escapeVelocity = _mPointWork.Iterate(c, ref z, ref cntr, done: out bool notUsed);
+					double escapeVelocity = mPointWork.Iterate(c, ref z, ref cntr, done: out bool notUsed);
 
 					double cAndE = cntr + escapeVelocity;
 					cAndE *= 10000;
@@ -91,27 +83,16 @@ namespace FractalServer
 			return result;
 		}
 
-		private void CheckCurrentValues(MapSectionWorkRequest mswr, MapSectionWorkResult currentValues)
+		private void CheckCurrentValues(int totalSampleCount, MapSectionWorkResult currentValues)
 		{
-			int width = mswr.MapSection.CanvasSize.Width;
-			int height = mswr.MapSection.CanvasSize.Height;
-
-			if(currentValues.Counts.Length != width * height)
+			if (currentValues.Counts.Length != totalSampleCount)
 			{
 				throw new ArgumentException("The current values must have a Counts array of length matching the size of the work request.");
 			}
 
-			if (currentValues.ZValues.Length != width * height)
+			if (currentValues.ZValues.Length != totalSampleCount)
 			{
 				throw new ArgumentException("The current values must have a ZValues array of length matching the size of the work request.");
-			}
-		}
-
-		private void CheckMaxIterations(MapSectionWorkRequest mswr, int maxIterations)
-		{
-			if(mswr.MaxIterations != maxIterations)
-			{
-				throw new ArgumentException("The Map Section Work Request has a different value for MaxIterations.");
 			}
 		}
 

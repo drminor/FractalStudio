@@ -43,7 +43,7 @@ namespace FractalServerTests
 			SubJob subJob = null;
 			while((subJob = job.GetNextSubJob()) != null)
 			{
-				int lx = subJob.MapSectionWorkRequest.XValues.Length;
+				int lx = subJob.MapSectionWorkRequest.MapSection.SectionAnchor.X;
 				ProcessSubJob(subJob);
 			}
         }
@@ -55,8 +55,13 @@ namespace FractalServerTests
 			//MapWorkingData2 workingData = new MapWorkingData2(mswr.MapSection.CanvasSize, mswr.MaxIterations, mswr.XValues, mswr.YValues);
 			//int[] packedCntsAndEscVels = workingData.GetValues();
 
-			MapCalculator workingData = new MapCalculator(mswr.MaxIterations);
-			int[] packedCntsAndEscVels = workingData.GetValues(mswr);
+			Job parentJob = subJob.ParentJob as Job;
+			double[] xValues = parentJob.SamplePoints.XValueSections[subJob.MapSectionWorkRequest.HPtr];
+			double[] YValues = parentJob.SamplePoints.YValueSections[subJob.MapSectionWorkRequest.VPtr];
+
+
+			MapCalculator workingData = new MapCalculator();
+			int[] packedCntsAndEscVels = workingData.GetValues(xValues, YValues, subJob.MapSectionWorkRequest.MaxIterations);
 		}
 
 		[TestMethod]

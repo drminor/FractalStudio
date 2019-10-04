@@ -14,12 +14,14 @@ namespace FractalEngine
 		private readonly BlockingCollection<SubJob> _workQueue;
 		private readonly BlockingCollection<SubJob> _sendQueue;
 
-		private readonly CancellationTokenSource _cts;
+		private readonly MapCalculator _mapCalculator;
 
+		private readonly CancellationTokenSource _cts;
 		private Task _task;
 
 		public SubJobProcessor(BlockingCollection<SubJob> workQueue, BlockingCollection<SubJob> sendQueue)
 		{
+			_mapCalculator = new MapCalculator();
 			_workQueue = workQueue;
 			_sendQueue = sendQueue;
 			_cts = new CancellationTokenSource();
@@ -113,7 +115,6 @@ namespace FractalEngine
 		private MapSectionResult CalculateMapValues(SubJob subJob, Job localJob, MapSectionWorkResult workResult)
 		{
 			MapSectionWorkRequest mswr = subJob.MapSectionWorkRequest;
-			MapCalculator mapCalculator = new MapCalculator(mswr.MaxIterations);
 
 			bool overwriteResults;
 			if (workResult == null)
@@ -126,7 +127,10 @@ namespace FractalEngine
 				overwriteResults = true;
 			}
 
-			workResult = mapCalculator.GetWorkingValues(mswr, workResult);
+			double[] xValues = localJob.SamplePoints.XValueSections[subJob.MapSectionWorkRequest.HPtr];
+			double[] yValues = localJob.SamplePoints.YValueSections[subJob.MapSectionWorkRequest.VPtr];
+
+			workResult = _mapCalculator.GetWorkingValues(xValues, yValues, subJob.MapSectionWorkRequest.MaxIterations, workResult);
 			localJob.WriteWorkResult(mswr.MapSection, workResult, overwriteResults);
 
 			MapSectionResult msr = new MapSectionResult(localJob.JobId, mswr.MapSection, workResult.Counts);

@@ -17,7 +17,6 @@ namespace FractalEngine
 
 		private const string DiagTimeFormat = "HH:mm:ss ffff";
 
-		private readonly SamplePoints<double> _samplePoints;
 		private int _hSectionPtr;
 		private int _vSectionPtr;
 		private int _numberOfSectionRemainingToSend;
@@ -29,12 +28,12 @@ namespace FractalEngine
 		public Job(SMapWorkRequest sMapWorkRequest) : base(sMapWorkRequest)
 		{
 			_position = new PointInt(sMapWorkRequest.Area.SectionAnchor.X * SECTION_WIDTH, sMapWorkRequest.Area.SectionAnchor.Y * SECTION_HEIGHT);
-			_samplePoints = GetSamplePoints(sMapWorkRequest);
+			SamplePoints = GetSamplePoints(sMapWorkRequest);
 			_hSectionPtr = 0;
 			_vSectionPtr = 0;
 
 			IsCompleted = false;
-			_numberOfSectionRemainingToSend = _samplePoints.NumberOfHSections * _samplePoints.NumberOfVSections;
+			_numberOfSectionRemainingToSend = SamplePoints.NumberOfHSections * SamplePoints.NumberOfVSections;
 
 			string filename = RepoFilename;
 			Debug.WriteLine($"Creating new Repo. Name: {filename}, JobId: {JobId}.");
@@ -45,16 +44,19 @@ namespace FractalEngine
 			//Debug.WriteLine($"Histogram complete for {RepoFilename} at {DateTime.Now.ToString(DiagTimeFormat)}.");
 		}
 
+		public readonly SamplePoints<double> SamplePoints;
+
+
 		public SubJob GetNextSubJob()
 		{
 			if (IsCompleted) return null;
 
-			if (_hSectionPtr > _samplePoints.NumberOfHSections - 1)
+			if (_hSectionPtr > SamplePoints.NumberOfHSections - 1)
 			{
 				_hSectionPtr = 0;
 				_vSectionPtr++;
 
-				if (_vSectionPtr > _samplePoints.NumberOfVSections - 1)
+				if (_vSectionPtr > SamplePoints.NumberOfVSections - 1)
 				{
 					IsCompleted = true;
 					return null;
@@ -66,13 +68,7 @@ namespace FractalEngine
 			int top = _vSectionPtr * SECTION_HEIGHT;
 
 			MapSection mapSection = new MapSection(new Point(left, top), new CanvasSize(SECTION_WIDTH, SECTION_HEIGHT));
-
-			double[] xValues = _samplePoints.XValueSections[_hSectionPtr++];
-			double[] yValues = _samplePoints.YValueSections[_vSectionPtr];
-
-			MapSectionWorkRequest mswr = new MapSectionWorkRequest(mapSection, MaxIterations, xValues, yValues);
-			//Debug.WriteLine($"w: {w} h: {h} xLen: {xValues.Length} yLen: {yValues.Length}.");
-
+			MapSectionWorkRequest mswr = new MapSectionWorkRequest(mapSection, MaxIterations, _hSectionPtr++, _vSectionPtr);
 			SubJob result = new SubJob(this, mswr);
 
 			return result;
