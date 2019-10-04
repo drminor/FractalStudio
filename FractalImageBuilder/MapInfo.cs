@@ -2,7 +2,7 @@
 using FSTypes;
 using Newtonsoft.Json;
 
-namespace FractalServer
+namespace FractalImageBuilder
 {
     public class MapInfo
     {

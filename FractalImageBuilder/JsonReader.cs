@@ -2,7 +2,7 @@
 using Newtonsoft.Json;
 using System.IO;
 
-namespace FractalServer
+namespace FractalImageBuilder
 {
     public class JsonReader
     {

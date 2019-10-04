@@ -1,5 +1,5 @@
 ﻿
-namespace FractalServer
+namespace FractalEngine
 {
 	public class SamplePoints<T>
 	{

@@ -1,8 +1,9 @@
-﻿using FSTypes;
+﻿using FractalServer;
+using FSTypes;
 using Hjg.Pngcs;
 using System;
 
-namespace FractalServer
+namespace FractalImageBuilder
 {
     public class MapWorkingData
     {

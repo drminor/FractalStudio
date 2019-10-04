@@ -4,15 +4,14 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{8EFE2D37-974C-4979-AF9A-E2C080BDD7E4}</ProjectGuid>
+    <ProjectGuid>{97744968-DB7C-45CA-8429-E90647F59886}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>FractalServer</RootNamespace>
-    <AssemblyName>FractalServer</AssemblyName>
+    <RootNamespace>FractalImageBuilder</RootNamespace>
+    <AssemblyName>FractalImageBuilder</AssemblyName>
     <TargetFrameworkVersion>v4.7</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
-    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -31,32 +30,12 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
-    <DebugSymbols>true</DebugSymbols>
-    <OutputPath>bin\x86\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <DebugType>full</DebugType>
-    <PlatformTarget>x86</PlatformTarget>
-    <ErrorReport>prompt</ErrorReport>
-    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
-    <OutputPath>bin\x86\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <Optimize>true</Optimize>
-    <DebugType>pdbonly</DebugType>
-    <PlatformTarget>x86</PlatformTarget>
-    <ErrorReport>prompt</ErrorReport>
-    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-  </PropertyGroup>
   <ItemGroup>
-    <Reference Include="MessagePack">
-      <HintPath>..\..\..\..\..\..\Program Files\dotnet\sdk\NuGetFallbackFolder\messagepack\1.7.3.4\lib\netstandard2.0\MessagePack.dll</HintPath>
+    <Reference Include="Newtonsoft.Json, Version=12.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.12.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <Reference Include="System.Drawing" />
-    <Reference Include="System.Numerics" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -65,13 +44,27 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="MapCalculator.cs" />
-    <Compile Include="MapSectionWorkResult.cs" />
-    <Compile Include="MapSectionWorkRequest.cs" />
-    <Compile Include="MPointWork.cs" />
+    <Compile Include="ColorMap.cs" />
+    <Compile Include="ColorMapBlendStyle.cs" />
+    <Compile Include="ColorMapColor.cs" />
+    <Compile Include="ColorMapEntry.cs" />
+    <Compile Include="ColorMapEntryForExport.cs" />
+    <Compile Include="ColorMapForExport.cs" />
+    <Compile Include="JsonReader.cs" />
+    <Compile Include="MapInfo.cs" />
+    <Compile Include="MapInfoWithColorMap.cs" />
+    <Compile Include="MapInfoWithColorMapForExport.cs" />
+    <Compile Include="MapWorkingData.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\FractalServer\FractalServer.csproj">
+      <Project>{8efe2d37-974c-4979-af9a-e2c080bdd7e4}</Project>
+      <Name>FractalServer</Name>
+    </ProjectReference>
     <ProjectReference Include="..\FSTypes\FSTypes.csproj">
       <Project>{6e598e37-990b-4456-a5e0-df0092b78418}</Project>
       <Name>FSTypes</Name>
@@ -79,6 +72,10 @@
     <ProjectReference Include="..\Hjg.Pngcs\Hjg.Pngcs.csproj">
       <Project>{fd3b0d50-46b3-4a83-9a6d-c641569142cf}</Project>
       <Name>Hjg.Pngcs</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\PngImageBuilder\PngImageBuilder.csproj">
+      <Project>{c9f8e097-bf85-442e-b942-2fa9d6c28ddb}</Project>
+      <Name>PngImageBuilder</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

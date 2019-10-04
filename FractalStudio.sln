@@ -31,6 +31,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FSTypes", "FSTypes\FSTypes.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CountsRepo", "CountsRepo\CountsRepo.csproj", "{EA81508D-FFA1-4B28-8F05-15BBAA2BF8B0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FractalImageBuilder", "FractalImageBuilder\FractalImageBuilder.csproj", "{97744968-DB7C-45CA-8429-E90647F59886}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -203,6 +205,22 @@ Global
 		{EA81508D-FFA1-4B28-8F05-15BBAA2BF8B0}.Release45|Any CPU.Build.0 = Release|Any CPU
 		{EA81508D-FFA1-4B28-8F05-15BBAA2BF8B0}.Release45|x86.ActiveCfg = Release|Any CPU
 		{EA81508D-FFA1-4B28-8F05-15BBAA2BF8B0}.Release45|x86.Build.0 = Release|Any CPU
+		{97744968-DB7C-45CA-8429-E90647F59886}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{97744968-DB7C-45CA-8429-E90647F59886}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{97744968-DB7C-45CA-8429-E90647F59886}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{97744968-DB7C-45CA-8429-E90647F59886}.Debug|x86.Build.0 = Debug|Any CPU
+		{97744968-DB7C-45CA-8429-E90647F59886}.Debug45|Any CPU.ActiveCfg = Debug|Any CPU
+		{97744968-DB7C-45CA-8429-E90647F59886}.Debug45|Any CPU.Build.0 = Debug|Any CPU
+		{97744968-DB7C-45CA-8429-E90647F59886}.Debug45|x86.ActiveCfg = Debug|Any CPU
+		{97744968-DB7C-45CA-8429-E90647F59886}.Debug45|x86.Build.0 = Debug|Any CPU
+		{97744968-DB7C-45CA-8429-E90647F59886}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{97744968-DB7C-45CA-8429-E90647F59886}.Release|Any CPU.Build.0 = Release|Any CPU
+		{97744968-DB7C-45CA-8429-E90647F59886}.Release|x86.ActiveCfg = Release|Any CPU
+		{97744968-DB7C-45CA-8429-E90647F59886}.Release|x86.Build.0 = Release|Any CPU
+		{97744968-DB7C-45CA-8429-E90647F59886}.Release45|Any CPU.ActiveCfg = Release|Any CPU
+		{97744968-DB7C-45CA-8429-E90647F59886}.Release45|Any CPU.Build.0 = Release|Any CPU
+		{97744968-DB7C-45CA-8429-E90647F59886}.Release45|x86.ActiveCfg = Release|Any CPU
+		{97744968-DB7C-45CA-8429-E90647F59886}.Release45|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

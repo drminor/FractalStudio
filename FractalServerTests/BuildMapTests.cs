@@ -1,4 +1,5 @@
 ﻿using CountsRepo;
+using FractalImageBuilder;
 using FractalServer;
 using FSTypes;
 using Hjg.Pngcs;

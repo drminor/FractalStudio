@@ -1,4 +1,5 @@
 ﻿using FractalEngine;
+using FractalImageBuilder;
 using FractalServer;
 using FSTypes;
 using Microsoft.VisualStudio.TestTools.UnitTesting;

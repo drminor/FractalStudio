@@ -90,6 +90,10 @@
       <Project>{b09271e9-bd16-44b9-a738-1d2d22a04655}</Project>
       <Name>FractalEngine</Name>
     </ProjectReference>
+    <ProjectReference Include="..\FractalImageBuilder\FractalImageBuilder.csproj">
+      <Project>{97744968-DB7C-45CA-8429-E90647F59886}</Project>
+      <Name>FractalImageBuilder</Name>
+    </ProjectReference>
     <ProjectReference Include="..\FractalServer\FractalServer.csproj">
       <Project>{8efe2d37-974c-4979-af9a-e2c080bdd7e4}</Project>
       <Name>FractalServer</Name>

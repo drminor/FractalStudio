@@ -1,4 +1,4 @@
-﻿namespace FractalServer
+﻿namespace FractalImageBuilder
 {
     public class ColorMapColor
     {
@@ -22,7 +22,7 @@
             _haveColorNum = false;
         }
 
-        private bool _haveColorNum;
+        private readonly bool _haveColorNum;
         private int _colorNum;
         public int ColorNum
         {

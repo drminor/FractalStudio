@@ -1,4 +1,4 @@
-﻿namespace FractalServer
+﻿namespace FractalImageBuilder
 {
     public class ColorMapEntry
     {
