@@ -50,17 +50,6 @@ namespace FractalEngine
 
 		public TimeSpan WaitDuration { get; set; }
 
-		public void Quit()
-		{
-			_cts.Cancel();
-			_haveWork.Set();
-
-			foreach(SubJobProcessor subJobProcessor in _subJobProcessors)
-			{
-				subJobProcessor.Stop();
-			}
-		}
-
 		#region Job Control
 
 		public int SubmitJob(IJob job)
@@ -319,6 +308,17 @@ namespace FractalEngine
 			}
 
 			Task.Run(() => QueueWork(_workQueue, _cts.Token), _cts.Token);
+		}
+
+		public void Stop()
+		{
+			_cts.Cancel();
+			_haveWork.Set();
+
+			foreach (SubJobProcessor subJobProcessor in _subJobProcessors)
+			{
+				subJobProcessor.Stop();
+			}
 		}
 
 		private void QueueWork(BlockingCollection<SubJob> workQueue, CancellationToken ct)

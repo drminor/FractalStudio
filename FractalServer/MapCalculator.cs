@@ -52,6 +52,7 @@ namespace FractalServer
 				}
 			}
 
+			currentValues.IterationCount = _maxIterations;
 			return currentValues;
 		}
 

@@ -207,12 +207,13 @@ namespace CountsRepo
 
 			if (value.TotalBytesToWrite > record.ValueLength)
             {
+				// Write new value at the end of the file.
                 _fs.Seek(0, SeekOrigin.End);            
                 record.Offset = (uint)_fs.Position;
             }       
             else
             {
-				// just change length
+				// Write the new data at the original offset.
 				_fs.Seek(record.Offset, SeekOrigin.Begin);
             }
 

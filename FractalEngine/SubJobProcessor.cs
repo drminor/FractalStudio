@@ -75,30 +75,73 @@ namespace FractalEngine
 				throw new InvalidOperationException("When processing a subjob, the parent job must be implemented by the Job class.");
 			}
 
-			MapSectionResult msr = RetrieveWorkResultFromRepo(subJob, localJob);
-			if (msr == null)
+
+			MapSectionResult result;
+			MapSection ms = subJob.MapSectionWorkRequest.MapSection;
+
+			MapSectionWorkResult workResult = RetrieveWorkResultFromRepo(ms, localJob, readZValues: false);
+
+			if (workResult == null)
 			{
-				MapSectionWorkRequest mswr = subJob.MapSectionWorkRequest;
-				MapCalculator mapCalculator = new MapCalculator(mswr.MaxIterations);
+				result = CalculateMapValues(subJob, localJob, null);
+			}
+			else
+			{
+				if(workResult.IterationCount == 0 || workResult.IterationCount == subJob.MapSectionWorkRequest.MaxIterations)
+				{
+					// The WorkResult read from file has the correct iteration count. (Or we are not tracking the interation count.)
+					result = new MapSectionResult(localJob.JobId, ms, workResult.Counts);
+				}
+				else if (workResult.IterationCount < subJob.MapSectionWorkRequest.MaxIterations)
+				{
+					// Fetch the entire WorkResult with ZValues
+					workResult = RetrieveWorkResultFromRepo(ms, localJob, readZValues: true);
 
-				MapSectionWorkResult workResult = GetInitialWorkingValues(mswr);
-				workResult = mapCalculator.GetWorkingValues(mswr, workResult);
-				localJob.WriteWorkResult(subJob.MapSectionWorkRequest.MapSection, workResult);
-
-				msr = new MapSectionResult(localJob.JobId, mswr.MapSection, workResult.Counts);
+					// Use the current work results to continue calculations to create
+					// a result with the target iteration count.
+					result = CalculateMapValues(subJob, localJob, workResult);
+				}
+				else
+				{
+					throw new InvalidOperationException("Cannot reduce the number of iterations of an existing job.");
+				}
 			}
 
+			return result;
+		}
+
+		private MapSectionResult CalculateMapValues(SubJob subJob, Job localJob, MapSectionWorkResult workResult)
+		{
+			MapSectionWorkRequest mswr = subJob.MapSectionWorkRequest;
+			MapCalculator mapCalculator = new MapCalculator(mswr.MaxIterations);
+
+			bool overwriteResults;
+			if (workResult == null)
+			{
+				workResult = BuildInitialWorkingValues(mswr);
+				overwriteResults = false;
+			}
+			else
+			{
+				overwriteResults = true;
+			}
+
+			workResult = mapCalculator.GetWorkingValues(mswr, workResult);
+			localJob.WriteWorkResult(mswr.MapSection, workResult, overwriteResults);
+
+			MapSectionResult msr = new MapSectionResult(localJob.JobId, mswr.MapSection, workResult.Counts);
 			return msr;
 		}
 
-		private MapSectionResult RetrieveWorkResultFromRepo(SubJob subJob, Job localJob)
-		{
-			MapSectionWorkResult workResult = GetEmptyResult(subJob.MapSectionWorkRequest.MapSection.GetRectangleInt());
 
-			if (localJob.RetrieveWorkResultFromRepo(subJob, workResult))
+		private MapSectionWorkResult RetrieveWorkResultFromRepo(MapSection ms, Job localJob, bool readZValues)
+		{
+			RectangleInt riKey = ms.GetRectangleInt();
+			MapSectionWorkResult workResult = GetEmptyResult(riKey, readZValues);
+
+			if (localJob.RetrieveWorkResultFromRepo(riKey, workResult))
 			{
-				MapSectionResult result = new MapSectionResult(localJob.JobId, subJob.MapSectionWorkRequest.MapSection, workResult.Counts);
-				return result;
+				return workResult;
 			}
 			else
 			{
@@ -107,45 +150,30 @@ namespace FractalEngine
 		}
 
 		private MapSectionWorkResult _emptyResult = null;
-		private MapSectionWorkResult GetEmptyResult(RectangleInt area)
+		private MapSectionWorkResult _emptyResultWithZValues = null;
+
+		private MapSectionWorkResult GetEmptyResult(RectangleInt area, bool readZValues)
 		{
 			if (area.Size.W != 100 || area.Size.H != 100)
 			{
 				Debug.WriteLine("Wrong Area.");
 			}
-			if (_emptyResult == null)
+
+			if(readZValues)
 			{
-				_emptyResult = new MapSectionWorkResult(area.Size.W * area.Size.H, true, false);
+				if (_emptyResultWithZValues == null)
+				{
+					_emptyResultWithZValues = new MapSectionWorkResult(area.Size.W * area.Size.H, true, true);
+				}
+				return _emptyResultWithZValues;
 			}
-			//_emptyResult = new MapSectionWorkResult(area.Size.W * area.Size.H, true, false);
-
-			return _emptyResult;
-		}
-
-		private MapSectionWorkResult _initialValues = null;
-
-		private MapSectionWorkResult GetInitialWorkingValues(MapSectionWorkRequest mswr)
-		{
-			//if(_initialValues == null)
-			//{
-			//	_initialValues = BuildInitialWorkingValues(mswr);
-			//}
-			//else
-			//{
-			//	ClearInitialValues(_initialValues);
-			//}
-			_initialValues = BuildInitialWorkingValues(mswr);
-
-			return _initialValues;
-		}
-
-		private void ClearInitialValues(MapSectionWorkResult workResult)
-		{
-			for (int ptr = 0; ptr < workResult.ZValues.Length; ptr++)
+			else
 			{
-				workResult.ZValues[ptr] = new DPoint(0, 0);
-				workResult.Counts[ptr] = 0;
-				workResult.DoneFlags[ptr] = false;
+				if (_emptyResult == null)
+				{
+					_emptyResult = new MapSectionWorkResult(area.Size.W * area.Size.H, true, false);
+				}
+				return _emptyResult;
 			}
 		}
 

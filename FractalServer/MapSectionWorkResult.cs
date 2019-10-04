@@ -10,7 +10,7 @@ namespace FractalServer
 		public int[] Counts { get; private set; }
 		public bool[] DoneFlags { get; private set; }
 		public DPoint[] ZValues { get; private set; }
-		public int IterationCount { get; private set; }
+		public int IterationCount { get; set; }
 
 		private readonly int _size;
 
@@ -48,7 +48,7 @@ namespace FractalServer
 				partDetails = new List<PartDetail>
 				{
 					new PartDetail(size * 4, true), // Counts
-					new PartDetail(4, includeZValuesOnRead), // InterationCount
+					new PartDetail(4, true), // IterationCount
 					new PartDetail(size * 16, includeZValuesOnRead), // ZValues
 					new PartDetail(size, includeZValuesOnRead) // DoneFlags
 				};

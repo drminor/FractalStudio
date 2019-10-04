@@ -17,6 +17,14 @@ namespace MqMessages
 		public PointInt Point { get; set; }
 		public SizeInt Size { get; set; }
 
+		public RectangleInt Translate(PointInt amount)
+		{
+			RectangleInt result = new RectangleInt(new PointInt(this.Point.X + amount.X, this.Point.Y + amount.Y), new SizeInt(Size.W, Size.H));
+			return result;
+		}
+
+		#region IEqualityComparer / IEquatable Support
+
 		public bool Equals(RectangleInt x, RectangleInt y)
 		{
 			if(x == null)
@@ -64,5 +72,6 @@ namespace MqMessages
 			return !(int1 == int2);
 		}
 
+		#endregion
 	}
 }
