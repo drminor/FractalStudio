@@ -192,17 +192,17 @@ namespace FractalEngine
 		private MapSectionWorkResult _emptyResult = null;
 		private MapSectionWorkResult GetEmptyResult(RectangleInt area)
 		{
-			if(area.Size.W != 100 || area.Size.H != 100)
+			if(area.Size.W != SECTION_WIDTH || area.Size.H != SECTION_HEIGHT)
 			{
 				Debug.WriteLine("Wrong Area.");
 			}
+
 			if (_emptyResult == null)
 			{
 				_emptyResult = new MapSectionWorkResult(area.Size.W * area.Size.H, true, false);
 			}
+
 			return _emptyResult;
-			//MapSectionWorkResult temp = new MapSectionWorkResult(10000, true, false);
-			//return temp;
 		}
 
 		private SamplePoints<double> GetSamplePoints(SMapWorkRequest sMapWorkRequest)

@@ -137,11 +137,10 @@ namespace FractalEngine
 			return msr;
 		}
 
-
 		private MapSectionWorkResult RetrieveWorkResultFromRepo(MapSection ms, Job localJob, bool readZValues)
 		{
 			RectangleInt riKey = ms.GetRectangleInt();
-			MapSectionWorkResult workResult = GetEmptyResult(riKey, readZValues);
+			MapSectionWorkResult workResult = GetEmptyResult(riKey, readZValues, Job.SECTION_WIDTH, Job.SECTION_HEIGHT);
 
 			if (localJob.RetrieveWorkResultFromRepo(riKey, workResult))
 			{
@@ -156,9 +155,9 @@ namespace FractalEngine
 		private MapSectionWorkResult _emptyResult = null;
 		private MapSectionWorkResult _emptyResultWithZValues = null;
 
-		private MapSectionWorkResult GetEmptyResult(RectangleInt area, bool readZValues)
+		private MapSectionWorkResult GetEmptyResult(RectangleInt area, bool readZValues, int jobSectionWidth, int jobSectionHeight)
 		{
-			if (area.Size.W != 100 || area.Size.H != 100)
+			if (area.Size.W != jobSectionWidth || area.Size.H != jobSectionHeight)
 			{
 				Debug.WriteLine("Wrong Area.");
 			}
