@@ -1,4 +1,5 @@
 ﻿using System;
+using MqMessages;
 using Newtonsoft.Json;
 
 namespace FSTypes
@@ -23,11 +24,11 @@ namespace FSTypes
 			RightTop = rightTop ?? throw new ArgumentNullException(nameof(rightTop));
 		}
 
-		//public SCoords(Coords coords)
-		//{
-		//	LeftBot = new SPoint(coords.LeftBot);
-		//	RightTop = new SPoint(coords.RightTop);
-		//}
+		public MqMessages.Coords GetCoords()
+		{
+			MqMessages.Coords result = new MqMessages.Coords(LeftBot.X, RightTop.X, LeftBot.Y, RightTop.Y);
+			return result;
+		}
 
 		public override string ToString()
 		{

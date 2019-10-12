@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Coords = MqMessages.Coords;
 
 namespace FractalEngine
 {
@@ -81,18 +82,29 @@ namespace FractalEngine
 			return jobId;
 		}
 
-		public IDictionary<int, int> GetHistogram(int jobId)
+		public Histogram GetHistogram(int jobId)
 		{
+			Histogram result = null;
+
 			IJob job = GetJob(jobId);
 			if(job != null)
 			{
 				if(job is Job localJob)
 				{
-					Dictionary<int, int> result = localJob.GetHistogram();
-					return result;
+					Dictionary<int, int> hDictionary = localJob.GetHistogram();
+					result = new Histogram(jobId, hDictionary);
+				}
+				else if(job is JobForMq mqJob)
+				{
+					result = new MqHistogram().GetHistogram(jobId);
+				}
+				else
+				{
+					throw new InvalidOperationException("The job is neither a local or mq job.");
 				}
 			}
-			return null;
+
+			return result;
 		}
 
 		//public void SubmitSubJob(SubJob subJob)
@@ -155,7 +167,7 @@ namespace FractalEngine
 					StopListenerTask(jobForMq);
 
 					// Send Cancel message to MQ.
-					SendDeleteJobRequestToMq(jobForMq);
+					SendDeleteJobRequestToMq(jobForMq, deleteRepo);
 
 					// Remove "in transit" responses.
 					RemoveResponses(jobForMq.MqRequestCorrelationId);
@@ -441,13 +453,8 @@ namespace FractalEngine
 					Debug.WriteLine("Received a message.");
 					FJobResult jobResult = (FJobResult)m.Body;
 
-					int lineNumber = jobResult.Area.Point.Y;
-					Debug.WriteLine($"The line number is {lineNumber}.");
-
-					if (lineNumber == jobForMq.SMapWorkRequest.CanvasSize.Height - 1)
-					{
-						jobForMq.SetIsLastSubJob(true);
-					}
+					PointInt pos = jobResult.Area.Point;
+					Debug.WriteLine($"Getting result from MQ. X:{pos.X}, Y:{pos.Y}.");
 
 					SubJob subJob = CreateSubJob(jobResult, jobForMq);
 
@@ -466,9 +473,6 @@ namespace FractalEngine
 				{
 					Debug.WriteLine($"The result listener for {jobForMq.JobId} is stopping for unknown reason.");
 				}
-
-				// Release reference to the Job to assist the garbage collector.
-				jobForMq = null;
 			}
 		}
 
@@ -520,11 +524,11 @@ namespace FractalEngine
 			}
 		}
 
-		private string SendDeleteJobRequestToMq(JobForMq job)
+		private string SendDeleteJobRequestToMq(JobForMq job, bool deleteRepo)
 		{
 			using (MessageQueue outQ = MqHelper.GetQ(OUTPUT_Q_PATH, QueueAccessMode.Send, null, null))
 			{
-				FJobRequest fJobRequest = FJobRequest.CreateDeleteRequest(job.JobId);
+				FJobRequest fJobRequest = FJobRequest.CreateDeleteRequest(job.JobId, deleteRepo);
 				Message m = new Message(fJobRequest);
 				outQ.Send(m);
 
@@ -532,7 +536,7 @@ namespace FractalEngine
 			}
 		}
 
-		private SubJob CreateSubJob(FJobResult jobResult, IJob parentJob)
+		private SubJob CreateSubJob(FJobResult jobResult, JobForMq parentJob)
 		{
 			MapSectionWorkResult workResult = CreateWorkResult(jobResult);
 
@@ -543,6 +547,8 @@ namespace FractalEngine
 			{
 				MapSectionResult = msr
 			};
+
+			if (jobResult.IsFinalResult) parentJob.SetIsLastSubJob(true);
 
 			return subJob;
 		}
@@ -569,13 +575,11 @@ namespace FractalEngine
 
 		private FJobRequest CreateFJobRequest(int jobId, SMapWorkRequest smwr)
 		{
-			SCoords sCoords = smwr.SCoords;
-			MqMessages.Coords coords = new MqMessages.Coords(sCoords.LeftBot.X, sCoords.RightTop.X, sCoords.LeftBot.Y, sCoords.RightTop.Y);
+			Coords coords = smwr.SCoords.GetCoords();
+			RectangleInt area = smwr.Area.GetRectangleInt();
+			SizeInt samplePoints = smwr.CanvasSize.GetSizeInt();
 
-			CanvasSize cs = smwr.CanvasSize;
-			SizeInt samplePoints = new SizeInt(cs.Width, cs.Height);
-
-			FJobRequest fJobRequest = new FJobRequest(jobId, coords, samplePoints, smwr.MaxIterations);
+			FJobRequest fJobRequest = new FJobRequest(jobId, smwr.Name, FJobRequestType.Generate, coords, area, samplePoints, (uint) smwr.MaxIterations);
 
 			return fJobRequest;
 		}

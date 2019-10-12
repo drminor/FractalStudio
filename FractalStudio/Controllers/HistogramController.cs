@@ -29,8 +29,7 @@ namespace FractalStudio.Controllers
     public IActionResult Post([FromBody] Histogram historgram)
     {
       int jobId = historgram.JobId;
-      IDictionary<int, int> hDictionary = _engine.GetHistogram(jobId);
-      Histogram result = new Histogram(jobId, hDictionary);
+      Histogram result = _engine.GetHistogram(jobId);
       return Ok(result);
     }
 

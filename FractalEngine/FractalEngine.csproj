@@ -66,6 +66,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="MqHistogram.cs" />
     <Compile Include="CoordsMath.cs" />
     <Compile Include="MqHelper.cs" />
     <Compile Include="BlockingCollectionExtensions.cs" />

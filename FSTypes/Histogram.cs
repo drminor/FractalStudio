@@ -29,6 +29,14 @@ namespace FSTypes
 				Occurances = new int[0];
 			}
 		}
+
+		[JsonConstructor]
+		public Histogram(int jobId, int[] values, int[] occurances)
+		{
+			JobId = jobId;
+			Values = values;
+			Occurances = occurances;
+		}
 	}
 
 }

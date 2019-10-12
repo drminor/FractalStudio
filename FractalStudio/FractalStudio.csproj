@@ -55,7 +55,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CountsRepo\CountsRepo.csproj" />
     <ProjectReference Include="..\FractalEngine\FractalEngine.csproj" />
     <ProjectReference Include="..\FSTypes\FSTypes.csproj" />
   </ItemGroup>

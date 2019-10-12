@@ -623,6 +623,10 @@ export class MMapDisplayComponent implements AfterViewInit {
       samplePoints = this._area.canvasSize;
     }
 
+    // Round the samplePoint up to the next whole blocksize.
+    samplePoints = samplePoints.getWholeUnits(JOB_BLOCK_SIZE);
+    samplePoints = samplePoints.mult(JOB_BLOCK_SIZE);
+
     let jobRequest: SMapWorkRequest = new SMapWorkRequest(this._mapInfo.name, this._mapInfo.sCoords, samplePoints, area, this._mapInfo.maxIterations);
 
     let cc = this.fService.submitJob(jobRequest);

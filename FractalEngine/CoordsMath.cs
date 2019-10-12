@@ -97,9 +97,8 @@ namespace FractalEngine
 
 			RectangleInt area = new RectangleInt(new PointInt(ms.SectionAnchor.X, ms.SectionAnchor.Y), new SizeInt(ms.CanvasSize.Width, ms.CanvasSize.Height));
 
-
-			FJobRequest fJobRequest = new FJobRequest(jobId, FJobRequestType.TransformCoords,
-				coords, samplePoints, area, 0, sCoordsWorkRequest.TransformType);
+			string name = "CoordsRequest";
+			FJobRequest fJobRequest = new FJobRequest(jobId, name, FJobRequestType.TransformCoords, coords, area, samplePoints, 0, sCoordsWorkRequest.TransformType);
 
 			return fJobRequest;
 		}

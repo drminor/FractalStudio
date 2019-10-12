@@ -9,28 +9,32 @@ namespace MqMessages
 		public int JobId { get; set; }
 		public RectangleInt Area { get; set; }
 		public string Counts { get; set; }
+		public bool IsFinalResult { get; set; }
 
-		public FJobResult() : this(-1, new RectangleInt(), (string) null) {	}
+		public FJobResult() : this(-1, new RectangleInt(), (string)null, false) { }
 
-		public FJobResult(int jobId, RectangleInt area, string counts)
+		public FJobResult(int jobId, RectangleInt area, string counts, bool isFinalResult)
 		{
 			JobId = jobId;
 			Area = area;
 			Counts = counts;
+			IsFinalResult = isFinalResult;
 		}
 
-		public FJobResult(int jobId, RectangleInt area, float[] values)
+		public FJobResult(int jobId, RectangleInt area, float[] values, bool isFinalResult)
 		{
 			JobId = jobId;
 			Area = area;
 			SetCountsF(values);
+			IsFinalResult = isFinalResult;
 		}
 
-		public FJobResult(int jobId, RectangleInt area, int[] values)
+		public FJobResult(int jobId, RectangleInt area, uint[] values, bool isFinalResult)
 		{
 			JobId = jobId;
 			Area = area;
 			SetCounts(values);
+			IsFinalResult = isFinalResult;
 		}
 
 		public void SetCountsF(float[] values)
@@ -51,7 +55,7 @@ namespace MqMessages
 			int len = Area.Size.W * Area.Size.H;
 
 			byte[] bytes = Convert.FromBase64String(Counts);
-			if(bytes.Length / 4 != len)
+			if (bytes.Length / 4 != len)
 			{
 				throw new InvalidOperationException("Our Counts string has the wrong length.");
 			}
@@ -65,7 +69,7 @@ namespace MqMessages
 			return result;
 		}
 
-		public void SetCounts(int[] values)
+		public void SetCounts(uint[] values)
 		{
 			int len = Area.Size.W * Area.Size.H;
 			if (values.Length != len)

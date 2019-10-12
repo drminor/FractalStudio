@@ -12,7 +12,6 @@ namespace FractalEngine
 		public JobBase(SMapWorkRequest sMapWorkRequest)
 		{
 			SMapWorkRequest = sMapWorkRequest ?? throw new ArgumentNullException(nameof(sMapWorkRequest));
-			RepoFilename = sMapWorkRequest.Name; // $"{sMapWorkRequest.Name}_repo";
 			_jobId = -1;
 
 			CancelRequested = false;
@@ -25,11 +24,11 @@ namespace FractalEngine
 
 		public SMapWorkRequest SMapWorkRequest { get; private set; }
 
-		public string RepoFilename { get; }
+		public string RepoFilename => SMapWorkRequest.Name;
 
 		public string ConnectionId => SMapWorkRequest.ConnectionId;
-
 		public int MaxIterations => SMapWorkRequest.MaxIterations;
+		public bool RequiresQuadPrecision() => SMapWorkRequest.RequiresQuadPrecision();
 
 		public bool CancelRequested { get; set; }
 		public bool IsCompleted { get; protected set; }
@@ -46,8 +45,6 @@ namespace FractalEngine
 				_jobId = value;
 			}
 		}
-
-		public bool RequiresQuadPrecision() => SMapWorkRequest.RequiresQuadPrecision();
 
 		#endregion
 	}

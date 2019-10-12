@@ -6,40 +6,37 @@ namespace MqMessages
 	public class FJobRequest
 	{
 		public int JobId { get; set; }
+		public string Name { get; set; }
 		public Coords Coords { get; set; }
 		public RectangleInt Area { get; set; }
 		public SizeInt SamplePoints { get; set; }
-		public int MaxIterations { get; set; }
+		public uint MaxIterations { get; set; }
 		public FJobRequestType RequestType { get; set; }
 		public TransformType? TransformType { get; set; }
 
 		public FJobRequest() { }
 
-		public FJobRequest(int jobId, Coords coords, SizeInt samplePoints, int maxIterations)
-			: this(jobId,
-				FJobRequestType.Generate,
-				coords,
-				samplePoints,
-				new RectangleInt(new PointInt(0, 0), new SizeInt(samplePoints.W, samplePoints.H)),
-				maxIterations
-				  )
-		{ }
-
-		public static FJobRequest CreateDeleteRequest(int jobId)
-		{
-			return new FJobRequest(jobId, FJobRequestType.Delete, null, null, null, 0);
-		}
-
-		public FJobRequest(int jobId, FJobRequestType requestType, Coords coords, SizeInt samplePoints,
-			RectangleInt area, int maxIterations, TransformType? transformType = null)
+		public FJobRequest(int jobId, string name, FJobRequestType requestType, Coords coords, RectangleInt area, SizeInt samplePoints, uint maxIterations, TransformType? transformType = null)
 		{
 			JobId = jobId;
+			Name = name;
 			Coords = coords;
-			SamplePoints = samplePoints;
 			Area = area;
+			SamplePoints = samplePoints;
 			MaxIterations = maxIterations;
 			RequestType = requestType;
-			TransformType = transformType;
+			TransformType = null;
+		}
+
+		public static FJobRequest CreateDeleteRequest(int jobId, bool deleteRepo)
+		{
+			string jobName = deleteRepo ? "deljob" : "cancel";
+			return new FJobRequest(jobId, jobName, FJobRequestType.Delete, null, null, null, 0);
+		}
+
+		public static FJobRequest CreateGetHistogramRequest(int jobId)
+		{
+			return new FJobRequest(jobId, "GetHistogram", FJobRequestType.GetHistogram, null, null, null, 0);
 		}
 	}
 }

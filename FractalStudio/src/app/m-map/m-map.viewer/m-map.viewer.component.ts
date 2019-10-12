@@ -117,6 +117,7 @@ export class MMapViewerComponent {
     }
 
     this._miwcm = copy;
+    //this._miwcm = null;
 
     let params = this.virtualMapParams;
     if (params !== null) {
