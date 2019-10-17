@@ -69,7 +69,7 @@ export class MMapDisplayComponent implements AfterViewInit {
   private zoomBox: IBox;
 
   private mapDataProcessor: RawMapDataProcessor;
-  private mapSectionResults: MapSectionResult[];
+  //private mapSectionResults: MapSectionResult[];
 
   private _repoMode: string;
   @Input('repoMode')
@@ -91,7 +91,8 @@ export class MMapDisplayComponent implements AfterViewInit {
       this._area = value;
       if (this._area !== null && this._mapInfo !== null && this.viewInitialized) {
         console.log('Building new map because of an area update.');
-        this.buildWorkingData();
+        let delRepo: boolean = true;
+        this.buildWorkingData(delRepo);
       }
     }
   }
@@ -182,7 +183,8 @@ export class MMapDisplayComponent implements AfterViewInit {
         this._colorMap = cm;
         this._mapInfo = mi;
         if (mi !== null && this.viewInitialized) {
-          this.buildWorkingData();
+          let delRepo: boolean = false;
+          this.buildWorkingData(delRepo);
         }
       }
       else {
@@ -208,7 +210,8 @@ export class MMapDisplayComponent implements AfterViewInit {
       this._colorMap = cm;
       this._mapInfo = mi;
       if (this.viewInitialized) {
-        this.buildWorkingData();
+        let delRepo: boolean = false;
+        this.buildWorkingData(delRepo);
       }
     }
     else {
@@ -237,17 +240,34 @@ export class MMapDisplayComponent implements AfterViewInit {
 
   private handleMiwcmChangesWebService(mi: IMapInfo, cm: ColorMapUI): void {
     if (!this._mapInfo.sCoords.isEqual(mi.sCoords)
-      || this._mapInfo.maxIterations != mi.maxIterations
-      || this._colorMap.serialNumber !== cm.serialNumber) {
+      || this._mapInfo.maxIterations > mi.maxIterations) {
+      // Decreasing the iteration count.
       this._colorMap = cm;
       this._mapInfo = mi;
       if (this.viewInitialized) {
-        this.buildWorkingData();
+        let delRepo: boolean = true;
+        this.buildWorkingData(delRepo);
       }
       return
     }
     else {
-      console.log('map-display found no change in the mapinfo or color map.');
+      if (this._mapInfo.maxIterations < mi.maxIterations) {
+        // Increasing the iteration count.
+        this._mapInfo.maxIterations = mi.maxIterations;
+        let delRepo: boolean = false;
+        this.buildWorkingData(delRepo);
+      }
+      else {
+        if (this._colorMap.serialNumber !== cm.serialNumber) {
+          //  Updating the color map.
+          let delRepo: boolean = false;
+          this._colorMap = cm;
+          this.buildWorkingData(delRepo);
+        }
+        else {
+          console.log('map-display found no change in the mapinfo or color map.');
+        }
+      }
     }
   }
 
@@ -529,13 +549,14 @@ export class MMapDisplayComponent implements AfterViewInit {
       // Now that we know the size of our canvas,
       console.log("The initial canvas size is W = " + this.canvasSize.width + " H = " + this.canvasSize.height);
       if (this._mapInfo !== null) {
-        this.buildWorkingData();
+        let delRepo: boolean = false;
+        this.buildWorkingData(delRepo);
       }
     }
   }
 
-  private buildWorkingData(): void {
-    console.log('Building Working Data at ' + this.getDiagTime());
+  private buildWorkingData(deleteRepo: boolean): void {
+    console.log('Building Working Data, deleteRepo = ' + deleteRepo + ' at ' + this.getDiagTime());
 
     this._buildingNewMap = true;
     this._histogram = null;
@@ -576,7 +597,7 @@ export class MMapDisplayComponent implements AfterViewInit {
       if (this._insideSubmitWebRequest) return;
 
       this._insideSubmitWebRequest = true;
-      let deleteRepo: boolean = this._repoMode === 'delete' ? true : false;
+      //let deleteRepo: boolean = this._repoMode === 'delete' ? true : false;
       let dc1 = this.fService.cancelJob(deleteRepo);
 
       if (dc1 != null) {
@@ -664,14 +685,14 @@ export class MMapDisplayComponent implements AfterViewInit {
     //this.mapSectionResults.push(ms);
     //console.log('About to draw map section for x:' + ms.mapSection.sectionAnchor.x + ' and y:' + ms.mapSection.sectionAnchor.y);
     this.draw(imageData, ms.mapSection);
-  }
 
-  private reUseMapSectionResult(ms: MapSectionResult, updateHist: boolean): void {
-    let pixelData = this.mapDataProcessor.getPixelData(ms.imageData, updateHist);
-    let imageData = new ImageData(pixelData, ms.mapSection.canvasSize.width, ms.mapSection.canvasSize.height);
+    let h = this.mapDataProcessor.Histogram;
 
-    //console.log('About to draw map section for x:' + ms.mapSection.sectionAnchor.x + ' and y:' + ms.mapSection.sectionAnchor.y);
-    this.draw(imageData, ms.mapSection);
+    console.log('The histogram has been assembled during useMapSectionResult.');
+    console.log('The historgram is ' + h + '.');
+    //console.log('The Escape Velocity historgram is ' + this.mapDataProcessor.EscVelHist + '.');
+
+    this.haveHistogram.emit(h);
   }
 
   private webServiceMapWorkDone(): void {
@@ -679,15 +700,14 @@ export class MMapDisplayComponent implements AfterViewInit {
 
     this._buildingNewMap = false;
     this.drawEndNote();
-    this._histogram = this.mapDataProcessor.Histogram;
+    let h = this.mapDataProcessor.Histogram;
 
-    //console.log('The histogram has been assembled.');
-    //console.log('The historgram is ' + this._histogram + '.');
-    //console.log('The Escape Velocity historgram is ' + this.mapDataProcessor.EscVelHist + '.');
+    console.log('The histogram has been assembled at webServiceMapWorkDone.');
+    console.log('The historgram is ' + h + '.');
+    console.log('The Escape Velocity historgram is ' + this.mapDataProcessor.EscVelHist + '.');
 
-    this.haveHistogram.emit(this._histogram);
+    this.haveHistogram.emit(h);
   }
-
 
   private subHistogramRequest() {
     if (this._insideSubmitWebRequest) return;
@@ -907,32 +927,6 @@ export class MMapDisplayComponent implements AfterViewInit {
       }
     }
   }
-
-  //private updateWebServiceColorMap(): void {
-  //  let regularColorMap = this._colorMap.getRegularColorMap();
-  //  let updateHist: boolean;
-  //  if (this.mapDataProcessor == null) {
-  //    this.mapDataProcessor = new RawMapDataProcessor(regularColorMap);
-  //    updateHist = true;
-  //  }
-  //  else {
-  //    this.mapDataProcessor.colorMap = regularColorMap;
-  //    updateHist = false;
-  //  }
-
-  //  let jobId = this.fService.JobId;
-
-  //  let ptr: number;
-  //  for (ptr = 0; ptr < this.mapSectionResults.length; ptr++) {
-  //    let msr = this.mapSectionResults[ptr];
-  //    if (msr.jobId === jobId) {
-  //      this.reUseMapSectionResult(msr, updateHist);
-  //    }
-  //    else {
-  //      console.log('Not using MapSectionResult to redraw during updateWebServiceColorMap because the jobId doesnt match.');
-  //    }
-  //  }
-  //}
 
   private progressively(): void {
     console.log('Doing progresslvy');

@@ -346,8 +346,14 @@ namespace CountsRepo
 			try
 			{
 				string dataPath = GetFilePaths(filename, out string indexPath);
-				File.Delete(dataPath);
-				File.Delete(indexPath);
+
+				string backupName = GetRepoBackupName(filename);
+				string buDataPath = GetFilePaths(backupName, out string buIndexPath);
+
+				//File.Delete(dataPath);
+				//File.Delete(indexPath);
+				File.Move(dataPath, buDataPath);
+				File.Move(indexPath, buIndexPath);
 				return true;
 			}
 			catch (Exception e)
@@ -355,6 +361,13 @@ namespace CountsRepo
 				Debug.WriteLine($"Received error while deleting the Repo: {filename}. The error is {e.Message}.");
 				return false;
 			}
+		}
+
+		public static string GetRepoBackupName(string filename)
+		{
+			string timeStamp = DateTime.Now.ToString("yyyyMMddTHHmmss");
+
+			return $"{filename}_{timeStamp}";
 		}
 
 		#region IDisposable Support
