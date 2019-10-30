@@ -45,7 +45,7 @@ export class MMapDisplayComponent implements AfterViewInit {
   private _histogram: Histogram;
 
   private viewInitialized: boolean;
-  private canvasSize: ICanvasSize;
+  public canvasSize: ICanvasSize;
 
   private workMethod: WorkMethod;
 
@@ -69,16 +69,6 @@ export class MMapDisplayComponent implements AfterViewInit {
   private zoomBox: IBox;
 
   private mapDataProcessor: RawMapDataProcessor;
-  //private mapSectionResults: MapSectionResult[];
-
-  private _repoMode: string;
-  @Input('repoMode')
-  set repoMode(value: string) {
-    this._repoMode = value;
-  }
-  get repoMode(): string {
-    return this._repoMode;
-  }
 
   private _area: MapSection;
   @Input('area')
@@ -90,8 +80,14 @@ export class MMapDisplayComponent implements AfterViewInit {
       console.log('Updating the area.');
       this._area = value;
       if (this._area !== null && this._mapInfo !== null && this.viewInitialized) {
-        console.log('Building new map because of an area update.');
-        let delRepo: boolean = true;
+        if (this._colorMap === null) {
+          console.log('map-display is rebuilding because of an area update. The color map is null.');
+        }
+        else {
+          console.log('map-display is rebuilding because of an area update. The color maps has ' + this._colorMap.ranges.length + ' ranges.');
+        }
+
+        let delRepo: boolean = false;
         this.buildWorkingData(delRepo);
       }
     }
@@ -177,9 +173,17 @@ export class MMapDisplayComponent implements AfterViewInit {
       console.log('The new interation count is ' + mi.maxIterations + '.');
 
       // The new mapInfo has a value.
-      // If we have existing map, or if we are using the Web Serivce, rebuild.
+      // If we have existing map, rebuild.
       if (this._mapInfo === null) {
         // We have no working map, initialize our values and build one.
+
+        if (cm === null) {
+          console.log('map-display is rebuilding because we are initializing. The color map is null.');
+        }
+        else {
+          console.log('map-display is rebuilding because we are initializing. The color maps has ' + cm.ranges.length + ' ranges.');
+        }
+
         this._colorMap = cm;
         this._mapInfo = mi;
         if (mi !== null && this.viewInitialized) {
@@ -245,6 +249,8 @@ export class MMapDisplayComponent implements AfterViewInit {
       this._colorMap = cm;
       this._mapInfo = mi;
       if (this.viewInitialized) {
+        console.log('map-display is rebuilding and deleting the Counts Repo, because we have new coords.');
+
         let delRepo: boolean = true;
         this.buildWorkingData(delRepo);
       }
@@ -253,16 +259,19 @@ export class MMapDisplayComponent implements AfterViewInit {
     else {
       if (this._mapInfo.maxIterations < mi.maxIterations) {
         // Increasing the iteration count.
+        console.log('map-display is rebuilding because we are increasing the iteration count.');
         this._mapInfo.maxIterations = mi.maxIterations;
+        this._colorMap = cm;
         let delRepo: boolean = false;
         this.buildWorkingData(delRepo);
       }
       else {
         if (this._colorMap.serialNumber !== cm.serialNumber) {
           //  Updating the color map.
-          let delRepo: boolean = false;
+          console.log('map-display is replaying because we have a new color map.');
+
           this._colorMap = cm;
-          this.buildWorkingData(delRepo);
+          this.submitMapReplayRequest();
         }
         else {
           console.log('map-display found no change in the mapinfo or color map.');
@@ -277,7 +286,8 @@ export class MMapDisplayComponent implements AfterViewInit {
   @Input('overLayBox')
   set overLayBox(value: IBox) {
     this._overLayBox = value;
-    this.drawOverLayBox(value);
+    if(this.viewInitialized)
+      this.drawOverLayBox(value);
   }
   get overLayBox(): IBox {
     return this._overLayBox;
@@ -291,7 +301,6 @@ export class MMapDisplayComponent implements AfterViewInit {
 
     this._mapInfo = null;
     this._area = null;
-    this._repoMode = 'delete';
     this._colorMap = null;
 
     this.workers = [];
@@ -430,6 +439,9 @@ export class MMapDisplayComponent implements AfterViewInit {
     if (oBox !== null) {
 
       let cce = this.canvasControlElement;
+      //if (cce === undefined)
+      //  return;
+
       let ctx: CanvasRenderingContext2D = cce.getContext('2d');
 
       ctx.lineWidth = 2;
@@ -546,9 +558,18 @@ export class MMapDisplayComponent implements AfterViewInit {
 
       this.registerZoomEventHandlers(this.canvasControlElement);
 
+      this.drawOverLayBox(this.overLayBox);
+
       // Now that we know the size of our canvas,
       console.log("The initial canvas size is W = " + this.canvasSize.width + " H = " + this.canvasSize.height);
       if (this._mapInfo !== null) {
+        if (this._colorMap === null) {
+          console.log('map-display is rebuilding in after view init. The color map is null.');
+        }
+        else {
+          console.log('map-display is rebuilding in after view init. The color maps has ' + this._colorMap.ranges.length + ' ranges.');
+        }
+
         let delRepo: boolean = false;
         this.buildWorkingData(delRepo);
       }
@@ -601,10 +622,6 @@ export class MMapDisplayComponent implements AfterViewInit {
       let dc1 = this.fService.cancelJob(deleteRepo);
 
       if (dc1 != null) {
-        //dc1.subscribe(
-        //  () => console.log('Cancel MapWorkRequestJob has been sent.'),
-        //  () => console.log('Received an error while cancelling a MapWorkRequest job.'),
-        //  () => this.afterDelRequestComplete());
         dc1.subscribe(resp => this.afterDelRequestComplete(resp));
       }
       else {
@@ -629,7 +646,6 @@ export class MMapDisplayComponent implements AfterViewInit {
 
     let regularColorMap = this._colorMap.getRegularColorMap();
 
-    //this.mapSectionResults = [];
     this.mapDataProcessor = new RawMapDataProcessor(regularColorMap);
 
     let area: MapSection;
@@ -660,16 +676,31 @@ export class MMapDisplayComponent implements AfterViewInit {
     this._insideSubmitWebRequest = false;
   }
 
-  //private getOurArea(curArea: MapSection, canvasSize: ICanvasSize): MapSection {
-  //  if (curArea !== null) {
-  //    return curArea;
-  //  }
-  //  else {
-  //    console.log('Building default area because the area is null.');
-  //    let result = new MapSection(new Point(0, 0), canvasSize.getWholeUnits(JOB_BLOCK_SIZE));
-  //    return result;
-  //  }
-  //}
+  private submitMapReplayRequest() {
+    console.log('Submitting replay request at ' + this.getDiagTime());
+
+    let regularColorMap = this._colorMap.getRegularColorMap();
+
+    if (this.mapDataProcessor === null) {
+      console.log('The MapDataProcessor is null on call to submit replay request.');
+      this.mapDataProcessor = new RawMapDataProcessor(regularColorMap);
+    }
+    else {
+      this.mapDataProcessor.colorMap = regularColorMap;
+    }
+
+    let area: MapSection;
+    let samplePoints: ICanvasSize;
+
+    let jobRequest: SMapWorkRequest = new SMapWorkRequest(this._mapInfo.name, this._mapInfo.sCoords, samplePoints, area, this._mapInfo.maxIterations);
+    jobRequest.connectionId = 'replay';
+
+    //this.clearTheCanvas();
+    let replayObs = this.fService.submitReplayJob(jobRequest);
+    if (replayObs !== null) {
+      replayObs.subscribe(() => this.clearTheCanvas());
+    }
+  }
 
   private getDiagTime(): string {
     let dt = new Date();
@@ -686,13 +717,17 @@ export class MMapDisplayComponent implements AfterViewInit {
     //console.log('About to draw map section for x:' + ms.mapSection.sectionAnchor.x + ' and y:' + ms.mapSection.sectionAnchor.y);
     this.draw(imageData, ms.mapSection);
 
-    let h = this.mapDataProcessor.Histogram;
+    if (ms.jobId < 0) {
+      this.webServiceMapWorkDone();
+    }
 
-    console.log('The histogram has been assembled during useMapSectionResult.');
-    console.log('The historgram is ' + h + '.');
+    //let h = this.mapDataProcessor.Histogram;
+
+    //console.log('The histogram has been assembled during useMapSectionResult.');
+    //console.log('The historgram is ' + h + '.');
     //console.log('The Escape Velocity historgram is ' + this.mapDataProcessor.EscVelHist + '.');
 
-    this.haveHistogram.emit(h);
+    //this.haveHistogram.emit(h);
   }
 
   private webServiceMapWorkDone(): void {
@@ -702,9 +737,9 @@ export class MMapDisplayComponent implements AfterViewInit {
     this.drawEndNote();
     let h = this.mapDataProcessor.Histogram;
 
-    console.log('The histogram has been assembled at webServiceMapWorkDone.');
-    console.log('The historgram is ' + h + '.');
-    console.log('The Escape Velocity historgram is ' + this.mapDataProcessor.EscVelHist + '.');
+    //console.log('The histogram has been assembled at webServiceMapWorkDone.');
+    //console.log('The historgram is ' + h + '.');
+    //console.log('The Escape Velocity historgram is ' + this.mapDataProcessor.EscVelHist + '.');
 
     this.haveHistogram.emit(h);
   }
@@ -1034,9 +1069,9 @@ export class MMapDisplayComponent implements AfterViewInit {
       console.log('The new zoom box has the wrong aspect ratio.');
     }
 
-    //console.log('Original Zoom Box: ' + box.toString());
-    //console.log('Normalized Zoom Box: ' + nBox.toString());
-    //console.log('Proportioned Zoom Box: ' + zBox.toString());
+    console.log('Original Zoom Box: ' + box.toString());
+    console.log('Normalized Zoom Box: ' + nBox.toString());
+    console.log('Proportioned Zoom Box: ' + zBox.toString());
 
     //console.log('Current MapInfo = ' + this.mapInfo.toString());
     //console.log('Canvas = w:' + this.canvasSize.width + ' h:' + this.canvasSize.height + '.');
@@ -1049,7 +1084,13 @@ export class MMapDisplayComponent implements AfterViewInit {
 
     let upSideDownCoords = this._mapInfo.sCoords.getUpSideDown();
 
-    this.requestZInCoords(upSideDownCoords, this.canvasSize, zBox);
+    // Round the canvas size up to the next whole blocksize.
+    let samplePoints = this.canvasSize.getWholeUnits(JOB_BLOCK_SIZE);
+    samplePoints = samplePoints.mult(JOB_BLOCK_SIZE);
+
+    this.requestZInCoords(upSideDownCoords, samplePoints, zBox);
+    //this.requestZInCoords(this._mapInfo.sCoords, this.canvasSize, zBox);
+
 
     ////TODO: sc.Use fService
     //let lcoords = Box.fromSCoords(this._mapInfo.coords);
@@ -1127,7 +1168,7 @@ export class MMapDisplayComponent implements AfterViewInit {
   private requestZInCoords(curCoords: SCoords, canvasSize: ICanvasSize, area: IBox) {
 
     let ms: MapSection = MapSection.fromBox(area);
-    let request: SCoordsWorkRequest = new SCoordsWorkRequest(TransformType.In, curCoords, this.canvasSize, ms);
+    let request: SCoordsWorkRequest = new SCoordsWorkRequest(TransformType.In, curCoords, canvasSize, ms);
     let cc: Observable<SCoordsWorkRequest> = this.fService.submitCoordsTransformRequest(request);
     cc.subscribe(
       v => this.newZoomInCoordsHandler(v),

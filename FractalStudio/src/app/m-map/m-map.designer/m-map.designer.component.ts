@@ -67,13 +67,11 @@ export class MMapDesignerComponent {
   private mapInfo: IMapInfo;
   private history: IMapInfo[] = [];
   private atHome: boolean;
-  private sectionCnt: number;
 
   public ColorMapSerialNumber: number;
 
   constructor() {
 
-    //this.doDivisionsTest();
     this.ColorMapSerialNumber = 0;
 
     let mi = this.buildMapInfo();
@@ -84,10 +82,9 @@ export class MMapDesignerComponent {
     this.histogram = null;
 
     this.atHome = true;
-    this.sectionCnt = 10;
 
-    this.mapDisplayWidth = '939px';
-    this.mapDisplayHeight = '626px';
+    this.mapDisplayWidth = '900px'; //'939px';
+    this.mapDisplayHeight = '600px'; //'626px';
 
     this.colorEditorOffSet = '946px'; // 7 pixels to accomodate border, margin and 1 pixel gap.
     this.colorEditorWidth = '385px';
@@ -112,7 +109,7 @@ export class MMapDesignerComponent {
   }
 
   onHaveHistogram(h: Histogram) {
-    console.log('We now have a histogram. It has ' + h.entriesMap.size + ' entries.');
+    //console.log('We now have a histogram. It has ' + h.entriesMap.size + ' entries.');
     this.histogram = h;
     this.isBuilding = false;
   }

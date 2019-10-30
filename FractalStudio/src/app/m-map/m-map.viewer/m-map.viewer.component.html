@@ -1,74 +1,78 @@
-<!--<div style="float:left; width:939px; margin-bottom:5px">-->
 
-<div style="margin-bottom:5px">
-  <h2 style="margin-bottom:5px  ">The Mandlebrodt Set Viewer</h2>
+<div class="title-and-main">
+  <h2 style="margin-bottom:5px">The Mandlebrodt Set Viewer</h2>
+  <div class="map-and-color">
+    <div class="map">
+      <div class="params-and-ov" style="margin-bottom:5px">
+        <div>
+          <app-m-map-viewer-params [virtualMapParams]="virtualMapParams"
+                                   [displaySize]="displaySize"
+                                   [isBuilding]="isBuilding"
+                                   (virtualMapParamsUpdated)="onVirtualMapParamsUpdated($event)"
+                                   (mapInfoLoaded)="onMapInfoLoaded($event)"
+                                   (mapPositionUpdated)="onMapPositionUpdated($event)"
+                                   (HistogramRequested)="onHistogramRequested()"
+                                   (surveyModeUpdated)="onSurveyModeUpdated($event)">
 
-  <app-m-map-viewer-params [virtualMapParams]="virtualMapParams"
-                            [isBuilding]="isBuilding"
-                            (virtualMapParamsUpdated)="onVirtualMapParamsUpdated($event)"
-                            (mapInfoLoaded)="onMapInfoLoaded($event)"
-                            (mapPositionUpdated)="onMapPositionUpdated($event)"
-                            (HistogramRequested)="onHistogramRequested()"
-                            (surveyModeUpdated)="onSurveyModeUpdated($event)">
- 
-  </app-m-map-viewer-params>
+          </app-m-map-viewer-params>
 
-  <button type="button" (click)="mapDisplay.getImageDataForExport()" style="margin: 10px 0px 0px 0px">Get Image Data</button>
-  <a #download href="" download="mandlebrodt.jpg" target="_blank" hidden="hidden">Download</a>
+          <button type="button" (click)="mapDisplay.getImageDataForExport()" style="margin: 10px 0px 0px 0px">Get Image Data</button>
+          <a #download href="" download="mandlebrodt.jpg" target="_blank" hidden="hidden">Download</a>
+        </div>
+
+        <div style="padding:3px 3px 3px 3px; border:2px solid black; height:202px; justify-content:flex-end; margin-left:10px">
+          <div style="position: relative; width: 300px; height:200px">
+
+            <app-m-map-display #mapOverView
+                               [mapInfoWithColorMap]="mapInfoWithColorMap"
+                               [allowZoom]="false"
+                               [overLayBox]="overLayBox">
+            </app-m-map-display>
+
+          </div>
+        </div>
+      </div>
+
+      <div [ngStyle]="{'float': 'left',
+                    'margin-bottom': '10px',
+                    'position': 'relative',
+                    'width': mapDisplayWidth || '904px',
+                    'height': mapDisplayHeight || '604px',
+                    'border': '2px solid black'
+              }">
+
+        <div [ngStyle]="{'position': 'relative',
+                    'width': mapDisplayWidth || '900px',
+                    'height': mapDisplayHeight || '600px'
+              }">
+
+
+          <app-m-map-display #mapDisplay
+                              [area]="curArea"
+                              [mapInfoWithColorMap]="curMapInfoWithColorMap"
+                              [allowZoom]="false"
+                              (haveImageData)="onHaveImageData($event)"
+                              (haveHistogram)="onHaveHistogram($event)"
+                              (haveHistogramForEntireArea)="onHaveHistogramForEntireArea($event)"
+                              (buildingComplete)="onBuildingComplete()">
+          </app-m-map-display>
+
+        </div>
+      </div>
+    </div>
+    <div class="color">
+      <div style="width: 385px; padding: 3px 3px 3px 3px; border: 2px solid black; height: 817px">
+        <app-color-map-editor [colorMap]="colorMap"
+                              [histogram]="histogram"
+                              (colorMapUpdated)="onColorMapUpdated($event)">
+        </app-color-map-editor>
+
+      </div>
+
+
+    </div>
+  </div>
 </div>
-
-<section>
-  <div [ngStyle]="{'float': 'left',
-                      'margin-bottom': '10px',
-                      'position': 'relative',
-                      'width': mapDisplayWidth || '939px',
-                      'height': mapDisplayHeight || '626px',
-                      'border': '2px solid black'
-                }">
-
-    <div [ngStyle]="{'position': 'relative',
-                      'width': mapDisplayWidth || '939px',
-                      'height': mapDisplayHeight || '626px'
-                }">
-
-
-      <app-m-map-display #mapDisplay
-                          [area]="curArea"
-                          [mapInfoWithColorMap]="curMapInfoWithColorMap"
-                          [allowZoom]="false"
-                          [repoMode]="repoMode"
-                          (haveImageData)="onHaveImageData($event)"
-                          (haveHistogram)="onHaveHistogram($event)"
-                          (haveHistogramForEntireArea)="onHaveHistogramForEntireArea($event)"
-                          (buildingComplete)="onBuildingComplete()">
-      </app-m-map-display>
-
-    </div>
-  </div>
-
-  <div [ngStyle]="{'margin-left': overViewOffSet || '946px',
-                      'width':  overViewWidth || '384px',
-                      'padding': '3px 3px 3px 3px',
-                      'border': '2px solid black',
-                      'height': '258px'
-                }">
-
-    <div [ngStyle]="{'position': 'relative',
-                      'width': overViewWidth || '384px',
-                      'height': overViewHeight || '256px'
-                }">
-
-
-      <app-m-map-display #mapOverView
-                          [mapInfoWithColorMap]="mapInfoWithColorMap"
-                          [allowZoom]="false"
-                          [overLayBox]="overLayBox">
-      </app-m-map-display>
-
-    </div>
-  </div>
-
- </section>
 
 
 

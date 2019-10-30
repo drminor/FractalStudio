@@ -1,5 +1,4 @@
 ﻿using Experimental.System.Messaging;
-using FractalServer;
 using FSTypes;
 using MqMessages;
 using System;
@@ -19,7 +18,7 @@ namespace FractalEngine
 
 		public const string OUTPUT_Q_PATH = @".\private$\FGenJobs";
 		public const string INPUT_Q_PATH = @".\private$\FGenResults";
-		public static TimeSpan DefaultWaitDuration = TimeSpan.FromSeconds(10);
+		public static TimeSpan DefaultWaitDuration = TimeSpan.FromSeconds(30);
 
 		private IClientConnector _clientConnector;
 
@@ -107,6 +106,28 @@ namespace FractalEngine
 			return result;
 		}
 
+		public void ReplayJob(int jobId)
+		{
+			IJob job = GetJob(jobId);
+			if (job != null)
+			{
+				if (job is Job localJob)
+				{
+					// TODO: Reset IsComplete
+					//_haveWork.Set();
+				}
+				else if (job is JobForMq mqJob)
+				{
+					mqJob.ResetSubJobsRemainingToBeSent();
+					SendReplayJobRequestToMq(mqJob);
+				}
+				else
+				{
+					throw new InvalidOperationException("The job is neither a local or mq job.");
+				}
+			}
+		}
+
 		//public void SubmitSubJob(SubJob subJob)
 		//{
 		//	IJob parentJob = subJob.ParentJob;
@@ -163,14 +184,10 @@ namespace FractalEngine
 
 				if (job is JobForMq jobForMq)
 				{
-					// Stop listening for responses.
-					StopListenerTask(jobForMq);
-
 					// Send Cancel message to MQ.
 					SendDeleteJobRequestToMq(jobForMq, deleteRepo);
 
-					// Remove "in transit" responses.
-					RemoveResponses(jobForMq.MqRequestCorrelationId);
+					jobForMq.MqImageResultListener.Stop();
 				}
 				else if(job is Job localJob) 
 				{
@@ -186,34 +203,8 @@ namespace FractalEngine
 			}
 		}
 
-		private void StopListenerTask(JobForMq jobForMq)
-		{
-			if (jobForMq.ListenerTask == null) return;
-
-			Task task = jobForMq.ListenerTask.Item1;
-			CancellationTokenSource cts = jobForMq.ListenerTask.Item2;
-
-			// Remove reference from the Job to ensure garbage collection.
-			jobForMq.ListenerTask = null;
-
-			cts.Cancel();
-
-			try
-			{
-				task.Wait(20 * 1000);
-				Debug.WriteLine($"The response listener for Job: {jobForMq.JobId} has completed.");
-			}
-			catch (Exception e)
-			{
-				Debug.WriteLine($"Received an exception while trying to stop the response listener for Job: {jobForMq.JobId}. Got exception: {e.Message}.");
-				throw;
-			}
-		}
-
 		private IJob RemoveJob(int jobId)
 		{
-			// TODO: consider keeping a list of removed jobs using WeakReferences.
-			// The job can be removed from the list of removedjobs once the last subjob is processed.
 			lock (_jobLock)
 			{
 				if (_jobs.TryGetValue(jobId, out IJob job))
@@ -345,9 +336,14 @@ namespace FractalEngine
 
 					CancellationTokenSource listenerCts = new CancellationTokenSource();
 					Debug.WriteLine($"Starting a new ImageResultListener for {jobForMq.JobId}.");
-					Task listenerTask = Task.Run(async () => await MqImageResultListenerAsync(jobForMq, _sendQueue, listenerCts.Token));
 
-					jobForMq.ListenerTask = new Tuple<Task, CancellationTokenSource>(listenerTask, listenerCts);
+					//Task listenerTask = Task.Run(async () => await MqImageResultListenerAsync(jobForMq, _sendQueue, listenerCts.Token));
+					//jobForMq.ListenerTask = new Tuple<Task, CancellationTokenSource>(listenerTask, listenerCts);
+
+					MqImageResultListener resultListener = new MqImageResultListener(jobForMq, INPUT_Q_PATH, _sendQueue, WaitDuration);
+					resultListener.Start();
+					jobForMq.MqImageResultListener = resultListener;
+
 					jobForMq.MarkAsCompleted();
 				}
 				else if (job is Job localJob)
@@ -373,12 +369,16 @@ namespace FractalEngine
 
 		private JobForMq GetJobForMqFromJob(IJob job)
 		{
-			if (!(job is JobForMq result))
+			if (job is JobForMq result)
 			{
-				result = new JobForMq(job.SMapWorkRequest);
+				return result;
 			}
-
-			return result;
+			else
+			{
+				//result = new JobForMq(job.SMapWorkRequest);
+				//return result;
+				throw new InvalidOperationException($"The job must be an instance of the JobForMq class. The job name is {job.SMapWorkRequest.Name}.");
+			}
 		}
 
 		private void SendProcessor(BlockingCollection<SubJob> sendQueue, CancellationToken ct)
@@ -391,16 +391,18 @@ namespace FractalEngine
 					{
 						if (!subJob.ParentJob.CancelRequested)
 						{
-							if (subJob.ParentJob is Job parentJob)
-								parentJob.DecrementSubJobsRemainingToBeSent();
+							//if (subJob.ParentJob is Job parentJob)
+							//	parentJob.DecrementSubJobsRemainingToBeSent();
 
+							subJob.ParentJob.DecrementSubJobsRemainingToBeSent();
 							bool isFinalSubJob = subJob.ParentJob.IsLastSubJob;
-							//Debug.WriteLine($"Sending subjob with x: {subJob.result.MapSection.SectionAnchor.X} " +
-							//	$"and y: {subJob.result.MapSection.SectionAnchor.Y}. " +
-							//	$"It has {subJob.result.ImageData.Length} count values.");
 
 							if (_clientConnector != null)
 							{
+								Debug.WriteLine($"Sending subjob with x: {subJob.MapSectionResult.MapSection.SectionAnchor.X} " +
+									$"and y: {subJob.MapSectionResult.MapSection.SectionAnchor.Y}. " +
+									$"with connId = {subJob.ConnectionId}. IsLastResult = {isFinalSubJob}.");
+									//$"It has {subJob.result.ImageData.Length} count values.");
 								_clientConnector.ReceiveImageData(subJob.ConnectionId, subJob.MapSectionResult, isFinalSubJob);
 							}
 						}
@@ -435,81 +437,6 @@ namespace FractalEngine
 
 		#region MQ Methods
 
-		// TODO: Need to create a class to hold the listener.
-		private async Task MqImageResultListenerAsync(JobForMq jobForMq, BlockingCollection<SubJob> sendQueue, CancellationToken cToken)
-		{
-			using (MessageQueue inQ = GetJobResponseQueue())
-			{
-				while (!cToken.IsCancellationRequested && !jobForMq.IsLastSubJob)
-				{
-					Message m = await MqHelper.ReceiveMessageByCorrelationIdAsync(inQ, jobForMq.MqRequestCorrelationId, WaitDuration);
-
-					if(m == null)
-					{
-						Debug.WriteLine("No FGenResult message present.");
-						continue;
-					}
-
-					Debug.WriteLine("Received a message.");
-					FJobResult jobResult = (FJobResult)m.Body;
-
-					PointInt pos = jobResult.Area.Point;
-					Debug.WriteLine($"Getting result from MQ. X:{pos.X}, Y:{pos.Y}.");
-
-					SubJob subJob = CreateSubJob(jobResult, jobForMq);
-
-					sendQueue.Add(subJob);
-				}
-
-				if(jobForMq.IsLastSubJob)
-				{
-					Debug.WriteLine($"The result listener for {jobForMq.JobId} is stopping. We have received the last result.");
-				}
-				else if(cToken.IsCancellationRequested)
-				{
-					Debug.WriteLine($"The result listener for {jobForMq.JobId} has been cancelled.");
-				}
-				else
-				{
-					Debug.WriteLine($"The result listener for {jobForMq.JobId} is stopping for unknown reason.");
-				}
-			}
-		}
-
-		private MessageQueue GetJobResponseQueue()
-		{
-			Type[] rTtypes = new Type[] { typeof(FJobResult) };
-
-			MessagePropertyFilter mpf = new MessagePropertyFilter
-			{
-				Body = true,
-				//Id = true,
-				CorrelationId = true
-			};
-
-			MessageQueue result = MqHelper.GetQ(INPUT_Q_PATH, QueueAccessMode.Receive, rTtypes, mpf);
-			return result;
-		}
-
-		private void RemoveResponses(string correlationId)
-		{
-			if(correlationId == null)
-			{
-				Debug.WriteLine("Attempting to remove responses with a null cor id. Not removing any responses.");
-				return;
-			}
-
-			using (MessageQueue inQ = GetJobResponseQueue())
-			{
-				Message m = null;
-				do
-				{
-					m = MqHelper.GetMessageByCorId(inQ, correlationId, TimeSpan.FromMilliseconds(10));
-				}
-				while (m != null);
-			}
-		}
-
 		private string SendJobToMq(JobForMq job)
 		{
 			using (MessageQueue outQ = MqHelper.GetQ(OUTPUT_Q_PATH, QueueAccessMode.Send, null, null))
@@ -536,41 +463,16 @@ namespace FractalEngine
 			}
 		}
 
-		private SubJob CreateSubJob(FJobResult jobResult, JobForMq parentJob)
+		private string SendReplayJobRequestToMq(JobForMq job)
 		{
-			MapSectionWorkResult workResult = CreateWorkResult(jobResult);
-
-			MapSectionWorkRequest workRequest = CreateMSWR(jobResult, parentJob.SMapWorkRequest.MaxIterations);
-			MapSectionResult msr = CreateMapSectionResult(parentJob.JobId, workRequest.MapSection, workResult);
-
-			SubJob subJob = new SubJob(parentJob, workRequest)
+			using (MessageQueue outQ = MqHelper.GetQ(OUTPUT_Q_PATH, QueueAccessMode.Send, null, null))
 			{
-				MapSectionResult = msr
-			};
+				FJobRequest fJobRequest = FJobRequest.CreateReplayRequest(job.JobId);
+				Message m = new Message(fJobRequest);
+				outQ.Send(m);
 
-			if (jobResult.IsFinalResult) parentJob.SetIsLastSubJob(true);
-
-			return subJob;
-		}
-
-		private MapSectionWorkRequest CreateMSWR(FJobResult jobResult, int maxIterations)
-		{
-			MapSection mapSection = new MapSection(jobResult.Area);
-			MapSectionWorkRequest result = new MapSectionWorkRequest(mapSection, maxIterations, 0, 0);
-			return result;
-		}
-
-		private MapSectionWorkResult CreateWorkResult(FJobResult fJobResult)
-		{
-			int[] counts = fJobResult.GetValues();
-			MapSectionWorkResult result = new MapSectionWorkResult(counts);
-			return result;
-		}
-
-		private MapSectionResult CreateMapSectionResult(int jobId, MapSection mapSection, MapSectionWorkResult workResult)
-		{
-			MapSectionResult result = new MapSectionResult(jobId, mapSection, workResult.Counts);
-			return result;
+				return m.Id;
+			}
 		}
 
 		private FJobRequest CreateFJobRequest(int jobId, SMapWorkRequest smwr)

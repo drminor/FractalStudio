@@ -167,16 +167,13 @@ export class MMapDesignerParamsComponent implements OnInit {
     let mife: IMapInfoForExport = MapInfoForExport.fromMapInfo(mapInfo);
     let miwcmfe = new MapInfoWithColorMapForExport(mife, colorMapForExport);
 
-    //let dump: string = JSON.stringify(miwcmfe, this.replacer, 2);
     let dump: string = JSON.stringify(miwcmfe, null, 2);
-
     let dataUri = "data:text/json;charset=utf-8," + encodeURIComponent(dump);
 
     let a = this.downloadRef.nativeElement as HTMLAnchorElement;
-    a.download = "MandlebrodtMapInfo.json";
+    a.download = mapInfo.name + ".json"; // "MandlebrodtMapInfo.json";
     a.href = dataUri;
     a.click();
-    //a.hidden = false;
 
     console.log('The MapInfoWithColorMap is |' + dump + '|');
   }

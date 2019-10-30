@@ -4,8 +4,9 @@ namespace MqMessages
 	public enum FJobRequestType
 	{
 		Generate,
-		GetHistogram,
+		Replay,
 		IncreaseInterations,
+		GetHistogram,
 		TransformCoords,
 		Delete
 	}

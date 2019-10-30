@@ -22,6 +22,8 @@ namespace FractalImageBuilder
             MapInfo = mapInfo;
             ColorMap = colorMap;
 
+			if (mapInfo == null) return;
+
             _xVals = BuildVals(CanvasSize.Width, MapInfo.LeftBot.X, MapInfo.RightTop.X);
 
             // Build the y values from top to bottom
@@ -68,27 +70,35 @@ namespace FractalImageBuilder
             }
         }
 
-		public void BuildPngImageLineSegment(int pixPtr, int[] counts, ImageLine iLine)
+		public static void BuildPngImageLineSegment(int pixPtr, int[] counts, ImageLine iLine, int maxIterations, ColorMap colorMap)
 		{
 			for (int xPtr = 0; xPtr < counts.Length; xPtr++)
 			{
 				double escapeVelocity = GetEscVel(counts[xPtr], out int cnt);
 
 				int[] cComps;
-				if (cnt == MapInfo.MaxIterations)
+				if (cnt == maxIterations)
 				{
-					cComps = ColorMap.HighColorEntry.StartColor.ColorComps;
+					cComps = colorMap.HighColorEntry.StartColor.ColorComps;
 				}
 				else
 				{
-					cComps = ColorMap.GetColor(cnt, escapeVelocity);
+					cComps = colorMap.GetColor(cnt, escapeVelocity);
 				}
 
 				ImageLineHelper.SetPixel(iLine, pixPtr++, cComps[0], cComps[1], cComps[2]);
 			}
 		}
 
-		private double GetEscVel(int rawCount, out int count)
+		public static void BuildBlankPngImageLineSegment(int pixPtr, int len, ImageLine iLine)
+		{
+			for (int xPtr = 0; xPtr < len; xPtr++)
+			{
+				ImageLineHelper.SetPixel(iLine, pixPtr++, 255, 255, 255);
+			}
+		}
+
+		private static double GetEscVel(int rawCount, out int count)
 		{
 			double result = rawCount / 10000d;
 			count = (int)Math.Truncate(result);

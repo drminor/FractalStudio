@@ -25,7 +25,7 @@ namespace MqMessages
 			SamplePoints = samplePoints;
 			MaxIterations = maxIterations;
 			RequestType = requestType;
-			TransformType = null;
+			TransformType = transformType;
 		}
 
 		public static FJobRequest CreateDeleteRequest(int jobId, bool deleteRepo)
@@ -37,6 +37,11 @@ namespace MqMessages
 		public static FJobRequest CreateGetHistogramRequest(int jobId)
 		{
 			return new FJobRequest(jobId, "GetHistogram", FJobRequestType.GetHistogram, null, null, null, 0);
+		}
+
+		public static FJobRequest CreateReplayRequest(int jobId)
+		{
+			return new FJobRequest(jobId, "Replay", FJobRequestType.Replay, null, null, null, 0);
 		}
 	}
 }

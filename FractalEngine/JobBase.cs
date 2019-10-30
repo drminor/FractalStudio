@@ -1,11 +1,13 @@
 ﻿using FSTypes;
 using System;
+using System.Threading;
 
 namespace FractalEngine
 {
 	public class JobBase : IJob
 	{
 		private int _jobId;
+		private int _numberOfSectionRemainingToSend;
 
 		#region Constructor
 
@@ -13,9 +15,8 @@ namespace FractalEngine
 		{
 			SMapWorkRequest = sMapWorkRequest ?? throw new ArgumentNullException(nameof(sMapWorkRequest));
 			_jobId = -1;
-
 			CancelRequested = false;
-			IsLastSubJob = false;
+			ResetSubJobsRemainingToBeSent();
 		}
 
 		#endregion
@@ -47,5 +48,23 @@ namespace FractalEngine
 		}
 
 		#endregion
+
+		/// <summary>
+		/// Sets IsLastSubJob = true, if the number of sections remining to send reaches 0.
+		/// </summary>
+		public void DecrementSubJobsRemainingToBeSent()
+		{
+			int newVal = Interlocked.Decrement(ref _numberOfSectionRemainingToSend);
+			if (newVal == 0)
+			{
+				IsLastSubJob = true;
+			}
+		}
+
+		public void ResetSubJobsRemainingToBeSent()
+		{
+			_numberOfSectionRemainingToSend = SMapWorkRequest.Area.CanvasSize.Width * SMapWorkRequest.Area.CanvasSize.Height;
+			IsLastSubJob = false;
+		}
 	}
 }

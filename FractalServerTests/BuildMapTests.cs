@@ -9,7 +9,6 @@ using PngImageBuilder;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Drawing;
 using System.IO;
 
 namespace FractalServerTests
@@ -17,46 +16,132 @@ namespace FractalServerTests
     [TestClass]
     public class BuildMapTests
     {
-        public const string BasePath = @"C:\Users\david_000\Documents\Mbrodts";
+		public const int BLOCK_SIZE = 100;
+        //public const string BasePath = @"C:\Users\david_000\Documents\Mbrodts";
+		public string BasePath = @"C:\Users\david_000\Documents\Mbrodts";
+
+		[TestMethod]
+		public void BuildMapFromFrdFileHiRez()
+		{
+			BasePath = Path.Combine(BasePath, "HiRez");
+
+			int blocksPerInch = 6;
+			int w = 21 * blocksPerInch;
+			int h = 14 * blocksPerInch;
+
+			CanvasSize imageSize = new CanvasSize(w * BLOCK_SIZE, h * BLOCK_SIZE);
+
+			string fn = "16";
+
+			string MapInfoFilename = $"MandlebrodtMapInfo ({fn})";
+			string Repofilename = $"HiRez{16}";
+			string imagePath = Path.Combine(BasePath, $"HiRez_MBB({fn})_{imageSize.Width}.png");
+
+			MapInfoWithColorMap miwcm = ReadFromJson(fn);
+			int maxIterations = miwcm.MapInfo.MaxIterations;
+			ColorMap colorMap = miwcm.ColorMap;
+			ValueRecords<KPoint, SubJobResult> countsRepo = new ValueRecords<KPoint, SubJobResult>(Repofilename, useHiRezFolder: true);
+
+			KPoint key = new KPoint(0,0);
+			SubJobResult workResult = SubJobResult.GetEmptySubJobResult(10000, "0", false);
+
+			using (PngImage pngImage = new PngImage(imagePath, imageSize.Width, imageSize.Height))
+			{
+				for (int vBPtr = 0; vBPtr < h; vBPtr++)
+				{
+					key.Y = vBPtr;// * BLOCK_SIZE;
+					for (int lPtr = 0; lPtr < 100; lPtr++)
+					{
+						ImageLine iLine = pngImage.ImageLine;
+						int linePtr = vBPtr * BLOCK_SIZE + lPtr;
+
+						for (int hBPtr = 0; hBPtr < w; hBPtr++)
+						{
+							key.X = hBPtr;// * BLOCK_SIZE;
+
+							if (countsRepo.ReadParts(key, workResult))
+							{
+								uint[] allCounts = workResult.Counts;
+								int[] countsForThisLine = GetOneLineFromCountsBlock(allCounts, lPtr);
+								MapWorkingData.BuildPngImageLineSegment(hBPtr * BLOCK_SIZE, countsForThisLine, iLine, maxIterations, colorMap);
+							}
+							else
+							{
+								MapWorkingData.BuildBlankPngImageLineSegment(hBPtr * BLOCK_SIZE, BLOCK_SIZE, iLine);
+							}
+
+						}
+
+						pngImage.WriteLine(iLine);
+					}
+				}
+			}
+		}
 
 		[TestMethod]
 		public void BuildMapFromFrdFile()
 		{
-			int w = 108; // blocks
-			int h = 72;
+			bool hiRez = true;
+			if (hiRez) BasePath = Path.Combine(BasePath, "HiRez");
 
-			CanvasSize imageSize = new CanvasSize(w * 100, h * 100);
+			int blocksPerInch = 6;
+			int w = 21 * blocksPerInch;
+			int h = 14 * blocksPerInch;
 
-			string fn = "17";
-			string filename = $"MandlebrodtMapInfo ({fn})";
-			string imagePath = Path.Combine(BasePath, $"MBB({fn})_{imageSize.Width}.png");
+			CanvasSize imageSize = new CanvasSize(w * BLOCK_SIZE, h * BLOCK_SIZE);
+
+			string fn = "16";
+
+			string MapInfoFilename;
+			string Repofilename;
+			string imagePath;
+			if (hiRez)
+			{
+				MapInfoFilename = $"MandlebrodtMapInfo ({fn})";
+				Repofilename = $"HiRez{16}";
+				imagePath = Path.Combine(BasePath, $"HiRez_MBB({fn})_{imageSize.Width}.png");
+			}
+			else
+			{
+				MapInfoFilename = $"MandlebrodtMapInfo ({fn})";
+				Repofilename = MapInfoFilename;
+				imagePath = Path.Combine(BasePath, $"MBB({fn})_{imageSize.Width}.png");
+			}
 
 			MapInfoWithColorMap miwcm = ReadFromJson(fn);
-			MapWorkingData mapWorkingData = new MapWorkingData(imageSize, miwcm.MapInfo, miwcm.ColorMap);
+			int maxIterations = miwcm.MapInfo.MaxIterations;
+			ColorMap colorMap = miwcm.ColorMap;
+			//MapWorkingData mapWorkingData = new MapWorkingData(imageSize, null, miwcm.ColorMap);
 
-			ValueRecords<RectangleInt, MapSectionWorkResult> countsRepo = new ValueRecords<RectangleInt, MapSectionWorkResult>(filename);
+			ValueRecords<RectangleInt, MapSectionWorkResult> countsRepo = new ValueRecords<RectangleInt, MapSectionWorkResult>(Repofilename, useHiRezFolder: hiRez);
 
-			RectangleInt key = new RectangleInt(new PointInt(0, 0), new SizeInt(100, 100));
+			RectangleInt key = new RectangleInt(new PointInt(0, 0), new SizeInt(BLOCK_SIZE, BLOCK_SIZE));
 			MapSectionWorkResult workResult = new MapSectionWorkResult(10000, true, false);
 
 			using (PngImage pngImage = new PngImage(imagePath, imageSize.Width, imageSize.Height))
 			{
 				for (int vBPtr = 0; vBPtr < h; vBPtr++)
 				{
-					key.Point.Y = vBPtr * 100;
+					key.Point.Y = vBPtr * BLOCK_SIZE;
 					for (int lPtr = 0; lPtr < 100; lPtr++)
 					{
 						ImageLine iLine = pngImage.ImageLine;
-						int linePtr = vBPtr * 100 + lPtr;
+						int linePtr = vBPtr * BLOCK_SIZE + lPtr;
 
 						for (int hBPtr = 0; hBPtr < w; hBPtr++)
 						{
-							key.Point.X = hBPtr * 100;
-							countsRepo.ReadParts(key, workResult);
-							int[] allCounts = workResult.Counts;
-							int[] countsForThisLine = GetOneLineFromCountsBlock(allCounts, lPtr);
+							key.Point.X = hBPtr * BLOCK_SIZE;
 
-							mapWorkingData.BuildPngImageLineSegment(hBPtr * 100, countsForThisLine, iLine);
+							if(countsRepo.ReadParts(key, workResult))
+							{
+								int[] allCounts = workResult.Counts;
+								int[] countsForThisLine = GetOneLineFromCountsBlock(allCounts, lPtr);
+								MapWorkingData.BuildPngImageLineSegment(hBPtr * BLOCK_SIZE, countsForThisLine, iLine, maxIterations, colorMap);
+							}
+							else
+							{
+								MapWorkingData.BuildBlankPngImageLineSegment(hBPtr * BLOCK_SIZE, BLOCK_SIZE, iLine);
+							}
 						}
 
 						pngImage.WriteLine(iLine);
@@ -79,7 +164,7 @@ namespace FractalServerTests
 
 			IDictionary<int, int> hist = new Dictionary<int, int>();
 
-			ValueRecords<RectangleInt, MapSectionWorkResult> countsRepo = new ValueRecords<RectangleInt, MapSectionWorkResult>(filename);
+			ValueRecords<RectangleInt, MapSectionWorkResult> countsRepo = new ValueRecords<RectangleInt, MapSectionWorkResult>(filename, useHiRezFolder: false);
 
 			RectangleInt key = new RectangleInt(new PointInt(0, 0), new SizeInt(100, 100));
 			MapSectionWorkResult workResult = new MapSectionWorkResult(10000, true, false);
@@ -113,9 +198,20 @@ namespace FractalServerTests
 
 		private int[] GetOneLineFromCountsBlock(int[] counts, int lPtr)
 		{
-			int[] result = new int[100];
+			int[] result = new int[BLOCK_SIZE];
 
-			Array.Copy(counts, lPtr * 100, result, 0, 100);
+			Array.Copy(counts, lPtr * BLOCK_SIZE, result, 0, BLOCK_SIZE);
+			return result;
+		}
+
+		private int[] GetOneLineFromCountsBlock(uint[] counts, int lPtr)
+		{
+			int[] result = new int[BLOCK_SIZE];
+			int srcPtr = lPtr * BLOCK_SIZE;
+
+			for (int i = 0; i < result.Length; i++)
+				result[i] = (int)counts[srcPtr++];
+
 			return result;
 		}
 

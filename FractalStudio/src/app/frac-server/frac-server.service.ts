@@ -78,6 +78,20 @@ export class FracServerService {
     return res;
   }
 
+  public submitReplayJob(request: SMapWorkRequest): Observable<SMapWorkRequest> {
+    console.log('Submitting a SMapWorkRequst for replay.');
+    if (this.imageDataSubject === null) {
+      console.log('The imageDataSubject is null');
+      return null;
+    }
+    else {
+      request.jobId = this.jobId;
+      let res: Observable<SMapWorkRequest> = this.http.post<SMapWorkRequest>(this.baseUrl + this.controllerPath, request);
+
+      return res;
+    }
+  }
+
   // -- Transform Request
   public submitCoordsTransformRequest(cRequest: SCoordsWorkRequest): Observable<SCoordsWorkRequest> {
     console.log('Submitting a Transform Request with type: ' + cRequest.transformType + '.');
@@ -173,7 +187,6 @@ export class FracServerService {
     this.hubConnection.on("ImageData", (mapSectionResult: MapSectionResult, isFinalSection: boolean) => {
       if (this.imageDataSubject !== null) {
         let fixed = this.fixMapSectionResult(mapSectionResult);
-        this.imageDataSubject.next(fixed);
 
         if (isFinalSection) {
           console.log('Received the final section.');
@@ -183,8 +196,8 @@ export class FracServerService {
           else {
             if (fixed.jobId === this.jobId) {
               console.log('Handling final job for this request.');
-
-              this.imageDataSubject.complete();
+              fixed.jobId = fixed.jobId * -1;
+              //this.imageDataSubject.complete();
               //this.jobId = -1;
             }
             else {
@@ -192,6 +205,11 @@ export class FracServerService {
             }
           }
         }
+
+        this.imageDataSubject.next(fixed);
+      }
+      else {
+        console.log('The observable is null.');
       }
     });
 

@@ -49,15 +49,18 @@ namespace FractalStudio.Controllers
       {
         bool deleteRepo = sMapWorkRequest.Name == "delJobAndRepo" ? true : false;
         _engine.CancelJob(sMapWorkRequest.JobId, deleteRepo);
-        return Ok(sMapWorkRequest);
+      }
+      else if(sMapWorkRequest.ConnectionId.ToLower() == "replay")
+      {
+        _engine.ReplayJob(sMapWorkRequest.JobId);
       }
       else
       {
         IJob job = new JobFactory().CreateJob(sMapWorkRequest);
         int jobId = _engine.SubmitJob(job);
         sMapWorkRequest.JobId = jobId;
-        return Ok(sMapWorkRequest);
       }
+      return Ok(sMapWorkRequest);
     }
 
     // PUT: api/MRender/5

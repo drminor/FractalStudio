@@ -15,7 +15,7 @@ namespace FractalServerTests
 		{
 			string filename = "Center1";
 
-			using (ValueRecords<RectangleInt, MapSectionWorkResult> repo = new ValueRecords<RectangleInt, MapSectionWorkResult>(filename))
+			using (ValueRecords<RectangleInt, MapSectionWorkResult> repo = new ValueRecords<RectangleInt, MapSectionWorkResult>(filename, useHiRezFolder: false))
 			{
 				RectangleInt key = new RectangleInt(new PointInt(0, 0), new SizeInt(100, 100));
 				MapSectionWorkResult val = BuildMSWR(100 * 100);
@@ -26,7 +26,7 @@ namespace FractalServerTests
 				repo.ReadParts(key, val2);
 			}
 
-			using (ValueRecords<RectangleInt, MapSectionWorkResult> repo = new ValueRecords<RectangleInt, MapSectionWorkResult>(filename))
+			using (ValueRecords<RectangleInt, MapSectionWorkResult> repo = new ValueRecords<RectangleInt, MapSectionWorkResult>(filename, useHiRezFolder: false))
 			{
 				RectangleInt key = new RectangleInt(new PointInt(0, 0), new SizeInt(100, 100));
 				MapSectionWorkResult val2 = new MapSectionWorkResult(100 * 100, haveZValues: true, includeZValuesOnRead: true);

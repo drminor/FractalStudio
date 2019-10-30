@@ -13,5 +13,9 @@ namespace FractalEngine
 		bool IsLastSubJob { get; } // When the result for this subjob is sent, the client should be notified that there will be no more results.
 
 		bool RequiresQuadPrecision();
+
+		void DecrementSubJobsRemainingToBeSent();
+		void ResetSubJobsRemainingToBeSent();
+
 	}
 }

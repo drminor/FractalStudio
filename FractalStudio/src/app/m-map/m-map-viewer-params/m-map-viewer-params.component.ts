@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Output, Input, ViewChild, ElementRef, OnInit } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 
-import { Point, CanvasSize } from '../m-map-common';
+import { Point, ICanvasSize, CanvasSize } from '../m-map-common';
 import { IVirtualMapParams, VirtualMapParams } from '../m-map-viewer-state';
 
 import { MapInfoWithColorMap, MapInfoWithColorMapForExport } from '../m-map-common-ui';
@@ -21,12 +21,27 @@ export class MMapViewerParamsComponent implements OnInit {
 
   private _surveyMode: boolean = false;
 
-  private _virtualMapParams;
+  private _displaySize: ICanvasSize = null;
+  @Input('displaySize')
+  set displaySize(value: ICanvasSize) {
+    this._displaySize = value;
+    if (this._virtualMapParams !== null) {
+      this._virtualMapParams.viewSize = value;
+      this.updateForm(this._virtualMapParams);
+    }
+    this.updateViewSizeLabel(this.virtualMapParams, this._displaySize);
+  }
+  get displaySize(): ICanvasSize {
+    return this._displaySize;
+  }
+
+  private _virtualMapParams: IVirtualMapParams = null;
   @Input('virtualMapParams')
   set virtualMapParams(value: IVirtualMapParams) {
     console.log('Viewer params is having its params value set.');
     this._virtualMapParams = value;
     this.updateForm(this._virtualMapParams);
+    this.updateViewSizeLabel(this._virtualMapParams, this.displaySize);
   }
   get virtualMapParams(): IVirtualMapParams {
     return this._virtualMapParams;
@@ -36,7 +51,7 @@ export class MMapViewerParamsComponent implements OnInit {
   set isBuilding(value: boolean) {
     let appButton = this.applyButton.nativeElement as HTMLButtonElement;
     if (value) {
-      appButton.disabled = true;
+      appButton.disabled = false;
     }
     else {
       appButton.disabled = false;
@@ -60,27 +75,20 @@ export class MMapViewerParamsComponent implements OnInit {
   private buildMainForm(): FormGroup {
 
     let result = new FormGroup({
-      jobName: new FormControl(),
+      jobName: new FormControl(''),
+      iterations: new FormControl(''),
 
-      imageWidth: new FormControl(36),
-      imageHeight: new FormControl(24),
+      imageWidth: new FormControl('36'),
+      imageHeight: new FormControl('24'),
 
-      printDensity: new FormControl(300),
+      printDensity: new FormControl('300'),
 
-      imageWidthPx: new FormControl(10800),
-      imageHeightPx: new FormControl(7200),
+      imageWidthPx: new FormControl('10800'),
+      imageHeightPx: new FormControl('7200'),
 
-      zoomFactor: new FormControl(11.14551),
-      left: new FormControl(0),
-      top: new FormControl(0),
+      left: new FormControl('0'),
+      top: new FormControl('0'),
 
-      //viewWidthPx: new FormControl(21600),
-      //viewHeightPx: new FormControl(14400),
-
-      //viewWidth: new FormControl(72),
-      //viewHeight: new FormControl(48),
-
-      screenToPrintPixRatio: new FormControl(1),
     });
 
     return result;
@@ -89,6 +97,8 @@ export class MMapViewerParamsComponent implements OnInit {
   private updateForm(params: IVirtualMapParams): void {
 
     this.mapViewForm.controls.jobName.setValue(params.name);
+    this.mapViewForm.controls.iterations.setValue(params.iterations);
+    this.mapViewForm.controls.printDensity.setValue(params.printDensity);
 
     // Width of print output in inches.
     this.mapViewForm.controls.imageWidth.setValue(params.imageSizeInInches.width);
@@ -97,34 +107,24 @@ export class MMapViewerParamsComponent implements OnInit {
     this.mapViewForm.controls.imageWidthPx.setValue(params.imageSize.width);
     this.mapViewForm.controls.imageHeightPx.setValue(params.imageSize.height);
 
-    //// Number of print output pixels currently displayed.
-    //this.mapViewForm.controls.viewWidthPx.setValue(params.viewSize.width);
-    //this.mapViewForm.controls.viewHeightPx.setValue(params.viewSize.height);
-
-    //// Number of print output inches currently displayed.
-    //this.mapViewForm.controls.viewWidth.setValue(params.viewSizeInInches.width);
-    //this.mapViewForm.controls.viewHeight.setValue(params.viewSizeInInches.height);
-
-    //this.mapViewForm.controls.screenToPrintPixRatio.setValue(params.scrToPrnPixRat);
-    //this.mapViewForm.controls.screenToPrintPixRatio.setValue(1);
-
     this.mapViewForm.controls.left.setValue(params.position.x);
     this.mapViewForm.controls.top.setValue(params.position.y);
 
-    ////let zoomFactor = params.imageSize.width / params.viewSize.width;
-    //let zoomFactor = params.zoomFactor;
-    //this.mapViewForm.controls.zoomFactor.setValue(zoomFactor.width);
-
-    this.viewSize = params.viewSizeInInches.width + ' x ' + params.viewSizeInInches.height + ' inches (' + params.viewSize.width + ' x ' + params.viewSize.height + ' pixels)';
+    //this.viewSize = params.viewSizeInInches.width + ' x ' + params.viewSizeInInches.height + ' inches (' + params.viewSize.width + ' x ' + params.viewSize.height + ' pixels)';
     this.printSize = params.imageSize.width + ' x ' + params.imageSize.height + ' pixels';
+  }
 
-    //let maxZoomFactor = this.getMaxZoomFactor(imageWidthPx, this.displaySize.width);
-    //console.log('User pressed apply. The zoom factor is ' + zoomFactor + ' max zf is ' + maxZoomFactor + ' cw: ' + this.displaySize.width + ' ch: ' + this.displaySize.height + '.');
+  private updateViewSizeLabel(params: IVirtualMapParams, displaySize: ICanvasSize): void {
+    if (params === null || displaySize === null)
+      return;
+
+    this.viewSize = params.viewSizeInInches.width + ' x ' + params.viewSizeInInches.height + ' inches (' + this.displaySize.width + ' x ' + this.displaySize.height + ' pixels)';
   }
 
   onSubmit() {
 
     let name = this.mapViewForm.controls.jobName.value;
+    let iterations = this.mapViewForm.controls.iterations.value;
 
     let widthInches = this.mapViewForm.controls.imageWidth.value;
     let heigthInches = Math.trunc(widthInches / 1.5);
@@ -133,12 +133,10 @@ export class MMapViewerParamsComponent implements OnInit {
 
     let printDensity = this.mapViewForm.controls.printDensity.value;
 
-    //let screenToPrintPixRat = parseInt(this.mapViewForm.controls.screenToPrintPixRatio.value);
-
     let left = parseFloat(this.mapViewForm.controls.left.value);
     let top = parseFloat(this.mapViewForm.controls.top.value);
 
-    let params = new VirtualMapParams(name, imageSize, printDensity, new Point(left, top));
+    let params = new VirtualMapParams(name, iterations, imageSize, printDensity, this.displaySize, new Point(left, top));
     console.log('Viewer Params is emitting a Params Update.');
     this.virtualMapParamsUpdated.emit(params);
   }
@@ -162,10 +160,10 @@ export class MMapViewerParamsComponent implements OnInit {
   private getFactorFromKeyState(evt: KeyboardEvent, forHoriz: boolean): number {
     let result: number;
     if (forHoriz) {
-      result = evt.shiftKey ? 20 : evt.ctrlKey ? 1 : 10;
+      result = evt.shiftKey ? 18 : evt.ctrlKey ? 1 : 9;
     }
     else {
-      result = evt.shiftKey ? 14 : evt.ctrlKey ? 1 : 7;
+      result = evt.shiftKey ? 12 : evt.ctrlKey ? 1 : 6;
     }
     return result;
   }

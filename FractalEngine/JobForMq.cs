@@ -1,11 +1,8 @@
 ﻿using FSTypes;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace FractalEngine
 {
-	public class JobForMq : JobBase
+	internal class JobForMq : JobBase
 	{
 		public JobForMq(SMapWorkRequest sMapWorkRequest) : base(sMapWorkRequest)
 		{
@@ -13,7 +10,7 @@ namespace FractalEngine
 
 		public string MqRequestCorrelationId { get; set; }
 
-		public Tuple<Task, CancellationTokenSource> ListenerTask { get; set; }
+		public MqImageResultListener MqImageResultListener { get; set; }
 
 		public void MarkAsCompleted()
 		{

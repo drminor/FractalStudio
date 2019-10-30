@@ -19,7 +19,7 @@ namespace FractalEngine
 
 		private int _hSectionPtr;
 		private int _vSectionPtr;
-		private int _numberOfSectionRemainingToSend;
+		//private int _numberOfSectionRemainingToSend;
 
 		private ValueRecords<RectangleInt, MapSectionWorkResult> _countsRepo;
 		private readonly PointInt _position;
@@ -33,11 +33,11 @@ namespace FractalEngine
 			_vSectionPtr = 0;
 
 			IsCompleted = false;
-			_numberOfSectionRemainingToSend = SamplePoints.NumberOfHSections * SamplePoints.NumberOfVSections;
+			//_numberOfSectionRemainingToSend = SamplePoints.NumberOfHSections * SamplePoints.NumberOfVSections;
 
 			string filename = RepoFilename;
 			Debug.WriteLine($"Creating new Repo. Name: {filename}, JobId: {JobId}.");
-			_countsRepo = new ValueRecords<RectangleInt, MapSectionWorkResult>(filename);
+			_countsRepo = new ValueRecords<RectangleInt, MapSectionWorkResult>(filename, useHiRezFolder: false);
 
 			//Debug.WriteLine($"Starting to get histogram for {RepoFilename} at {DateTime.Now.ToString(DiagTimeFormat)}.");
 			//Dictionary<int, int> h = GetHistogram();
@@ -72,18 +72,6 @@ namespace FractalEngine
 			SubJob result = new SubJob(this, mswr);
 
 			return result;
-		}
-
-		/// <summary>
-		/// Sets IsLastSubJob = true, if the number of sections remining to send reaches 0.
-		/// </summary>
-		public void DecrementSubJobsRemainingToBeSent()
-		{
-			int newVal = Interlocked.Decrement(ref _numberOfSectionRemainingToSend);
-			if (newVal == 0)
-			{
-				IsLastSubJob = true;
-			}
 		}
 
 		public void WriteWorkResult(MapSection key, MapSectionWorkResult val, bool overwriteResults)

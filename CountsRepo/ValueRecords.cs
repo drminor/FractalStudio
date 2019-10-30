@@ -137,18 +137,22 @@ namespace CountsRepo
     public class ValueRecords<K,V> : IDisposable where K: IEqualityComparer<K> where V: IPartsBin
 	{
 		public const string WORKING_DIR = @"C:\_FractalFiles";
+		public const string HI_REZ_WORKING_FOLDER = "HiRez";
+
 		public const string DATA_FILE_EXT = "frd";
 		public const string INDEX_FILE_EXT = "frx";
 
-		private static readonly string TEMP_FILE_NAME = Path.Combine(WORKING_DIR, @"tempdata.frd");
-		private static readonly string BAK_FILE_NAME = Path.Combine(WORKING_DIR, @"tempdata.bak");
+		//private static readonly string TEMP_FILE_NAME = Path.Combine(WORKING_DIR, @"tempdata.frd");
+		//private static readonly string BAK_FILE_NAME = Path.Combine(WORKING_DIR, @"tempdata.bak");
 
 		private IndexKeys<K> _indices;
         private FileStream _fs;
+		public readonly bool UseHiRezFolder;
 
-        public ValueRecords(string filename)
+        public ValueRecords(string filename, bool useHiRezFolder)
         {
-			TextFilename = GetFilePaths(filename, out string indexFilePath);
+			UseHiRezFolder = useHiRezFolder;
+			TextFilename = GetFilePaths(filename, UseHiRezFolder, out string indexFilePath);
 			_indices = new IndexKeys<K>(indexFilePath);
 			_fs = new FileStream(TextFilename, FileMode.OpenOrCreate);
 		}
@@ -323,32 +327,34 @@ namespace CountsRepo
 			return true;
 		}
 
-		public static string GetFilePaths(string fn, out string indexPath)
+		public static string GetFilePaths(string fn, bool useHiRezFolder, out string indexPath)
 		{
-			string dataPath = Path.ChangeExtension(Path.Combine(WORKING_DIR, fn), DATA_FILE_EXT);
-			indexPath = Path.ChangeExtension(Path.Combine(WORKING_DIR, fn), INDEX_FILE_EXT);
+			string basePath = useHiRezFolder ? Path.Combine(WORKING_DIR, HI_REZ_WORKING_FOLDER) : WORKING_DIR;
+
+			string dataPath = Path.ChangeExtension(Path.Combine(basePath, fn), DATA_FILE_EXT);
+			indexPath = Path.ChangeExtension(Path.Combine(basePath, fn), INDEX_FILE_EXT);
 
 			return dataPath;
 		}
 
-		public static bool RepoExists(string filename)
+		public static bool RepoExists(string filename, bool useHiRezFolder = false)
 		{
-			string dataPath = GetFilePaths(filename, out string indexPath);
+			string dataPath = GetFilePaths(filename, useHiRezFolder, out string indexPath);
 
 			bool result = File.Exists(dataPath);
 			return result;
 		}
 
-		public static bool DeleteRepo(string filename)
+		public static bool DeleteRepo(string filename, bool useHiRezFolder = false)
 		{
 			Debug.WriteLine($"Deleting the Repo: {filename}.");
 
 			try
 			{
-				string dataPath = GetFilePaths(filename, out string indexPath);
+				string dataPath = GetFilePaths(filename, useHiRezFolder, out string indexPath);
 
 				string backupName = GetRepoBackupName(filename);
-				string buDataPath = GetFilePaths(backupName, out string buIndexPath);
+				string buDataPath = GetFilePaths(backupName, useHiRezFolder, out string buIndexPath);
 
 				//File.Delete(dataPath);
 				//File.Delete(indexPath);

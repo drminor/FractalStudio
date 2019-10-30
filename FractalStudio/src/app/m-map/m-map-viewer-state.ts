@@ -2,13 +2,12 @@ import { IPoint, Point, IBox, Box, ICanvasSize, CanvasSize, JOB_BLOCK_SIZE} from
 
 export interface IVirtualMapParams {
   name: string;
+  iterations: number;
   imageSizeInInches: ICanvasSize;
 
   printDensity: number;
 
   position: IPoint;
-  //left: number,
-  //top: number,
 
   imageSize: ICanvasSize;
   viewSize: ICanvasSize;
@@ -20,11 +19,14 @@ export interface IVirtualMap {
   imageSize: ICanvasSize;
   displaySize: ICanvasSize;
 
+  workStartPos: IPoint;
+
   getCurCoords(pos: IPoint): IPoint;
   getOverLayBox(pos: IPoint): IBox;
   scaleFactor: ICanvasSize;
 
   getNextCoords(pos: IPoint): IPoint;
+  getNextWorkCoords(pos: IPoint): IPoint;
 }
 
 export class VirtualMapParams implements IVirtualMapParams {
@@ -39,16 +41,15 @@ export class VirtualMapParams implements IVirtualMapParams {
     this._viewSize = value;
     if (value !== null) {
       this._zoomFactor = this.getZoomFactor(this.imageSize, value);
-
-      this._viewSizeInInches = new CanvasSize(this.imageSizeInInches.width / this._zoomFactor.width, this.imageSizeInInches.height * this._zoomFactor.height);
+      this._viewSizeInInches = new CanvasSize(this.imageSizeInInches.width / this._zoomFactor.width, this.imageSizeInInches.height / this._zoomFactor.height);
+    }
+    else {
+      this._zoomFactor = null;
+      this._viewSizeInInches = null;
     }
   }
   public get viewSize(): ICanvasSize {
     return this._viewSize;
-  }
-
-  public get haveViewSize(): boolean {
-    return this._viewSize !== null;
   }
 
   private _zoomFactor: ICanvasSize;
@@ -62,13 +63,14 @@ export class VirtualMapParams implements IVirtualMapParams {
   }
 
   // imageSize is the size of the image in inches
-  constructor(public name: string, public imageSizeInInches: ICanvasSize, public printDensity: number,
-    public position: IPoint) {
+  constructor(public name: string, public iterations: number, public imageSizeInInches: ICanvasSize, public printDensity: number,
+    displaySize: ICanvasSize, public position: IPoint) {
     this._imageSize = new CanvasSize(imageSizeInInches.width * printDensity, imageSizeInInches.height * printDensity);
 
-    this.viewSize = null;
-    this._viewSizeInInches = null;
-    this._zoomFactor = null;
+    this.viewSize = displaySize;
+    //this.viewSize = null;
+    //this._viewSizeInInches = null;
+    //this._zoomFactor = null;
   }
 
   private getZoomFactor(imageSize: ICanvasSize, viewSize: ICanvasSize): ICanvasSize {
@@ -104,6 +106,14 @@ export class VirtualMap implements IVirtualMap {
     return this._maxTop;
   }
 
+  private _workStartPos: IPoint = new Point(36, 18);
+  public get workStartPos(): IPoint {
+    return this._workStartPos;
+  }
+
+  private _workMaxLeft = 93;
+  private _workMaxTop = 65;
+  
   constructor(public imageSize: ICanvasSize, public displaySize: ICanvasSize) {
 
     //let vScaleFactor = displaySize.width / this.imageSize.width;
@@ -163,10 +173,30 @@ export class VirtualMap implements IVirtualMap {
 
     if (pos.x >= this.maxLeft) {
       nLeft = 0;
-      nTop = pos.y + 7;
+      nTop = pos.y + this.displaySizeInBlocks.height;
     }
     else {
-      nLeft = pos.x + 10;
+      nLeft = pos.x + this.displaySizeInBlocks.width;
+      nTop = pos.y;
+    }
+
+    return new Point(nLeft, nTop);
+  }
+
+  public getNextWorkCoords(pos: IPoint): IPoint {
+    let nLeft: number;
+    let nTop: number;
+
+    if (pos.x >= this._workMaxLeft && pos.y >= this._workMaxTop) {
+      return null;
+    }
+
+    if (pos.x >= this._workMaxLeft) {
+      nLeft = this.workStartPos.x;
+      nTop = pos.y + this.displaySizeInBlocks.height;
+    }
+    else {
+      nLeft = pos.x + this.displaySizeInBlocks.width;
       nTop = pos.y;
     }
 

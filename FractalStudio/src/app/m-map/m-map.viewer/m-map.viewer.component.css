@@ -1,0 +1,24 @@
+.title-and-main {
+  display: flex;
+  flex-direction: column;
+}
+
+.map-and-color {
+  display: flex;
+  flex-direction: row;
+}
+
+.map {
+  display: flex;
+  flex-direction: column;
+}
+
+.color {
+  display: flex;
+  flex-direction: column;
+}
+
+.params-and-ov {
+  display: flex;
+  flex-direction: row;
+}
