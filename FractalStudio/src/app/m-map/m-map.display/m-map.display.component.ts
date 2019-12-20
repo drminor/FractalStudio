@@ -256,28 +256,36 @@ export class MMapDisplayComponent implements AfterViewInit {
       }
       return
     }
-    else {
-      if (this._mapInfo.maxIterations < mi.maxIterations) {
-        // Increasing the iteration count.
-        console.log('map-display is rebuilding because we are increasing the iteration count.');
-        this._mapInfo.maxIterations = mi.maxIterations;
-        this._colorMap = cm;
-        let delRepo: boolean = false;
-        this.buildWorkingData(delRepo);
-      }
-      else {
-        if (this._colorMap.serialNumber !== cm.serialNumber) {
-          //  Updating the color map.
-          console.log('map-display is replaying because we have a new color map.');
 
-          this._colorMap = cm;
-          this.submitMapReplayRequest();
-        }
-        else {
-          console.log('map-display found no change in the mapinfo or color map.');
-        }
-      }
+    if (this._mapInfo.maxIterations > mi.maxIterations) {
+      // Decreasing the iteration count.
+      console.log('map-display is rebuilding because we are decreasing the iteration count.');
+      this._mapInfo.maxIterations = mi.maxIterations;
+      this._colorMap = cm;
+      let delRepo: boolean = true;
+      this.buildWorkingData(delRepo);
+      return;
     }
+
+    if (this._mapInfo.maxIterations < mi.maxIterations) {
+      // Increasing the iteration count.
+      console.log('map-display is replaying because we are increasing the iteration count.');
+      this._mapInfo.maxIterations = mi.maxIterations;
+      this._colorMap = cm;
+      this.submitMapReplayRequest(true);
+      return;
+    }
+
+    if (this._colorMap.serialNumber !== cm.serialNumber) {
+      // Updating the color map.
+      console.log('map-display is replaying because we have a new color map.');
+
+      this._colorMap = cm;
+      this.submitMapReplayRequest(false);
+      return;
+    }
+    
+    console.log('map-display found no change in the mapinfo or color map.');
   }
 
   @Input('allowZoom') allowZoom: boolean;
@@ -676,7 +684,7 @@ export class MMapDisplayComponent implements AfterViewInit {
     this._insideSubmitWebRequest = false;
   }
 
-  private submitMapReplayRequest() {
+  private submitMapReplayRequest(resetCounts: boolean) {
     console.log('Submitting replay request at ' + this.getDiagTime());
 
     let regularColorMap = this._colorMap.getRegularColorMap();
@@ -686,7 +694,13 @@ export class MMapDisplayComponent implements AfterViewInit {
       this.mapDataProcessor = new RawMapDataProcessor(regularColorMap);
     }
     else {
-      this.mapDataProcessor.colorMap = regularColorMap;
+      if (resetCounts) {
+        console.log('Creating a new MapDataProcessor on call to submit replay request because we are reseting the counts.');
+        this.mapDataProcessor = new RawMapDataProcessor(regularColorMap);
+      }
+      else {
+        this.mapDataProcessor.colorMap = regularColorMap;
+      }
     }
 
     let area: MapSection;

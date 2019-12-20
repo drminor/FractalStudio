@@ -14,7 +14,7 @@ import { MapInfoWithColorMap, MapInfoWithColorMapForExport } from '../m-map-comm
 })
 export class MMapViewerParamsComponent implements OnInit {
 
-  public mapViewForm: FormGroup;
+  mapViewForm: FormGroup;
 
   public viewSize: string;
   public printSize: string;
@@ -69,30 +69,57 @@ export class MMapViewerParamsComponent implements OnInit {
   @ViewChild('fileSelector') fileSelectorRef: ElementRef;
 
   constructor() {
-    this.mapViewForm = this.buildMainForm();
-  }
-
-  private buildMainForm(): FormGroup {
-
-    let result = new FormGroup({
+    //this.mapViewForm = this.buildMainForm();
+    this.mapViewForm = new FormGroup({
       jobName: new FormControl(''),
       iterations: new FormControl(''),
 
-      imageWidth: new FormControl('36'),
-      imageHeight: new FormControl('24'),
+      imageWidth: new FormControl(''),
+      imageHeight: new FormControl(''),
 
-      printDensity: new FormControl('300'),
+      printDensity: new FormControl(''),
 
-      imageWidthPx: new FormControl('10800'),
-      imageHeightPx: new FormControl('7200'),
+      imageWidthPx: new FormControl(''),
+      imageHeightPx: new FormControl(''),
 
-      left: new FormControl('0'),
-      top: new FormControl('0'),
+      left: new FormControl(''),
+      top: new FormControl('')
 
     });
 
-    return result;
+    this.mapViewForm.controls.imageWidth.setValue(36);
+    this.mapViewForm.controls.imageHeight.setValue(24);
+
+    this.mapViewForm.controls.printDensity.setValue(300);
+
+    this.mapViewForm.controls.imageWidthPx.setValue(10800);
+    this.mapViewForm.controls.imageHeightPx.setValue(7200);
+    this.mapViewForm.controls.left.setValue(0);
+    this.mapViewForm.controls.top.setValue(0);
+
   }
+
+  //private buildMainForm(): FormGroup {
+
+  //  let result = new FormGroup({
+  //    jobName: new FormControl(''),
+  //    iterations: new FormControl(''),
+
+  //    imageWidth: new FormControl('36'),
+  //    imageHeight: new FormControl('24'),
+
+  //    printDensity: new FormControl('300'),
+
+  //    imageWidthPx: new FormControl('10800'),
+  //    imageHeightPx: new FormControl('7200'),
+
+  //    left: new FormControl('0'),
+  //    top: new FormControl('0'),
+
+  //  });
+
+  //  return result;
+  //}
 
   private updateForm(params: IVirtualMapParams): void {
 

@@ -52,7 +52,7 @@ namespace FractalStudio.Controllers
       }
       else if(sMapWorkRequest.ConnectionId.ToLower() == "replay")
       {
-        _engine.ReplayJob(sMapWorkRequest.JobId);
+        _engine.ReplayJob(sMapWorkRequest.JobId, sMapWorkRequest.MaxIterations);
       }
       else
       {
