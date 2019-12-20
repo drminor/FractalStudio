@@ -11,6 +11,7 @@ namespace FractalEngineRunner
 		static CoordsMath _coordsMath;
 
 		static SCoords _curCoords;
+		static int _curJobId;
 		static readonly CanvasSize _samplePoints = new CanvasSize(100, 100);
 
 		static void Main(string[] args)
@@ -43,7 +44,8 @@ namespace FractalEngineRunner
 				com = Console.ReadLine();
 			}
 
-			Console.WriteLine("Quitting, press any key to exit.");
+			Console.WriteLine("Quitting, press return key to exit.");
+			_engine.Stop();
 
 			Console.Read();
 		}
@@ -57,13 +59,14 @@ namespace FractalEngineRunner
 				case FJobRequestType.Generate:
 					Console.WriteLine($"Submitting Generate Job with JobId {jobId}.");
 					IJob job = GetJobRequest(jobId);
-					_engine.SubmitJob(job);
+					_curJobId = _engine.SubmitJob(job);
 					break;
 
 				case FJobRequestType.IncreaseInterations:
-					Console.WriteLine($"Resetting the current coordinates.");
-					_curCoords = GetInitialCoords();
-					WriteCoords(_curCoords);
+					_engine.ReplayJob(_curJobId, 200);
+					//Console.WriteLine($"Resetting the current coordinates.");
+					//_curCoords = GetInitialCoords();
+					//WriteCoords(_curCoords);
 					break;
 
 				case FJobRequestType.TransformCoords:
@@ -135,7 +138,8 @@ namespace FractalEngineRunner
 		{
 			SMapWorkRequest sMapRequest = CreateWorkRequest(jobId);
 
-			IJob result = new JobForMq(sMapRequest);
+			//IJob result = new JobForMq(sMapRequest);
+			IJob result = new Job(sMapRequest);
 			return result;
 		}
 
@@ -169,6 +173,7 @@ namespace FractalEngineRunner
 			if(!int.TryParse(parts[1], out int jobId))
 			{
 				// Cannot parse the JobId.
+				Console.WriteLine("Must include jobId as second parameter.");
 				return null;
 			}
 
@@ -236,7 +241,7 @@ namespace FractalEngineRunner
 
 		static SMapWorkRequest CreateWorkRequest(int jobId)
 		{
-			CanvasSize canvasSize = new CanvasSize(188, 125);
+			CanvasSize canvasSize = new CanvasSize(300, 200);
 			DPoint leftBot = new DPoint(-2, -1);
 			DPoint rightTop = new DPoint(1, 1);
 			SCoords coords = new SCoords(new SPoint(leftBot), new SPoint(rightTop));

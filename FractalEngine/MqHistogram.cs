@@ -10,7 +10,7 @@ namespace FractalEngine
 	{
 		public const string OUTPUT_Q_PATH = @".\private$\FGenJobs";
 		public const string INPUT_COORDS_Q_PATH = @".\private$\FHistResults";
-		public static TimeSpan DefaultWaitDuration = TimeSpan.FromSeconds(10);
+		public static TimeSpan DefaultWaitDuration = TimeSpan.FromSeconds(30);
 
 		public MqHistogram()
 		{

@@ -17,29 +17,43 @@ namespace FractalServer
 			CheckCurrentValues(width * height, currentValues);
 
 			MPointWork mPointWork = new MPointWork(maxIterations);
+			DPoint c = new DPoint(0, 0);
 			int ptr = 0;
 			for (int yPtr = 0; yPtr < height; yPtr++)
 			{
-				DPoint c = new DPoint(0, YValues[yPtr]);
+				c.Y = YValues[yPtr];
 
 				for (int xPtr = 0; xPtr < width; xPtr++)
 				{
-					if (currentValues.DoneFlags[ptr]) continue;
+					//if(ptr == 7382)
+					//{
+					//	int a = 0;
+					//}
 
-					DPoint z = currentValues.ZValues[ptr];
-					int cnt = currentValues.Counts[ptr];
-					cnt /= 10000;
+					if (currentValues.DoneFlags[ptr])
+					{
+						ptr++;
+						continue;
+					}
 
 					c.X = XValues[xPtr];
+					DPoint z = currentValues.ZValues[ptr]; //DPoint z = new DPoint(0, 0);
+					int cnt = currentValues.Counts[ptr]; //int cnt = 0; //
+					cnt /= 10000;
 
-					double escapeVelocity = mPointWork.Iterate(c, ref z, ref cnt, out bool done);
+					double escapeVelocity = mPointWork.Iterate(c, z, ref cnt, out bool done);
+
+					//if(!done)
+					//{
+					//	int b = 0;
+					//}
 
 					double cAndE = cnt + escapeVelocity;
 					cAndE *= 10000;
 					cAndE = Math.Truncate(cAndE);
 
 					currentValues.Counts[ptr] = (int)(cAndE);
-					currentValues.ZValues[ptr] = z;
+					//currentValues.ZValues[ptr] = z;
 					currentValues.DoneFlags[ptr] = done;
 					ptr++;
 				}
@@ -71,7 +85,7 @@ namespace FractalServer
 
 					// Reset the input values for each map point.
 					z.X = 0; z.Y = 0; cntr = 0;
-					double escapeVelocity = mPointWork.Iterate(c, ref z, ref cntr, done: out bool notUsed);
+					double escapeVelocity = mPointWork.Iterate(c, z, ref cntr, done: out bool notUsed);
 
 					double cAndE = cntr + escapeVelocity;
 					cAndE *= 10000;

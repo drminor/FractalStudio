@@ -106,19 +106,22 @@ namespace FractalEngine
 			return result;
 		}
 
-		public void ReplayJob(int jobId)
+		public void ReplayJob(int jobId, int targetIterations)
 		{
 			IJob job = GetJob(jobId);
 			if (job != null)
 			{
+				job.SMapWorkRequest.MaxIterations = targetIterations;
+				job.ResetSubJobsRemainingToBeSent();
 				if (job is Job localJob)
 				{
 					// TODO: Reset IsComplete
-					//_haveWork.Set();
+					localJob.Reset();
+					_haveWork.Set();
 				}
 				else if (job is JobForMq mqJob)
 				{
-					mqJob.ResetSubJobsRemainingToBeSent();
+					//mqJob.ResetSubJobsRemainingToBeSent();
 					SendReplayJobRequestToMq(mqJob);
 				}
 				else
@@ -151,24 +154,24 @@ namespace FractalEngine
 		//	}
 		//}
 
-		private void ReplayResults(Job localJob)
-		{
-			Task.Run(() => {
-				Thread.Sleep(1000);
+		//private void ReplayResults(Job localJob)
+		//{
+		//	Task.Run(() => {
+		//		Thread.Sleep(1000);
 
-				IEnumerable<Tuple<MapSectionResult, bool>> results = localJob.ReplayResults();
-				foreach (Tuple<MapSectionResult, bool> resultAndFinalFlag in results)
-				{
-					SendReplayResultToClient(resultAndFinalFlag.Item1, resultAndFinalFlag.Item2, localJob.ConnectionId);
-				}
-			});
-		}
+		//		IEnumerable<Tuple<MapSectionResult, bool>> results = localJob.ReplayResults();
+		//		foreach (Tuple<MapSectionResult, bool> resultAndFinalFlag in results)
+		//		{
+		//			SendReplayResultToClient(resultAndFinalFlag.Item1, resultAndFinalFlag.Item2, localJob.ConnectionId);
+		//		}
+		//	});
+		//}
 
-		private void SendReplayResultToClient(MapSectionResult msr, bool isFinalSection, string connectionId)
-		{
-			Debug.WriteLine($"The msr size = {msr.MapSection.CanvasSize.Width * msr.MapSection.CanvasSize.Height}, The counts length is {msr.ImageData.Length}.");
-			_clientConnector.ReceiveImageData(connectionId, msr, isFinalSection);
-		}
+		//private void SendReplayResultToClient(MapSectionResult msr, bool isFinalSection, string connectionId)
+		//{
+		//	Debug.WriteLine($"The msr size = {msr.MapSection.CanvasSize.Width * msr.MapSection.CanvasSize.Height}, The counts length is {msr.ImageData.Length}.");
+		//	_clientConnector.ReceiveImageData(connectionId, msr, isFinalSection);
+		//}
 
 		public void CancelJob(int jobId, bool deleteRepo)
 		{
@@ -301,8 +304,8 @@ namespace FractalEngine
 
 			Task.Run(() => SendProcessor(_sendQueue, _cts.Token), _cts.Token);
 
-			_subJobProcessors = new SubJobProcessor[4];
-			for(int wpCntr = 0; wpCntr < 4; wpCntr++)
+			_subJobProcessors = new SubJobProcessor[1];
+			for(int wpCntr = 0; wpCntr < 1; wpCntr++)
 			{
 				_subJobProcessors[wpCntr] = new SubJobProcessor(_workQueue, _sendQueue);
 				_subJobProcessors[wpCntr].Start();
@@ -334,12 +337,7 @@ namespace FractalEngine
 					JobForMq jobForMq = GetJobForMqFromJob(job);
 					jobForMq.MqRequestCorrelationId = SendJobToMq(jobForMq);
 
-					CancellationTokenSource listenerCts = new CancellationTokenSource();
 					Debug.WriteLine($"Starting a new ImageResultListener for {jobForMq.JobId}.");
-
-					//Task listenerTask = Task.Run(async () => await MqImageResultListenerAsync(jobForMq, _sendQueue, listenerCts.Token));
-					//jobForMq.ListenerTask = new Tuple<Task, CancellationTokenSource>(listenerTask, listenerCts);
-
 					MqImageResultListener resultListener = new MqImageResultListener(jobForMq, INPUT_Q_PATH, _sendQueue, WaitDuration);
 					resultListener.Start();
 					jobForMq.MqImageResultListener = resultListener;
@@ -391,9 +389,6 @@ namespace FractalEngine
 					{
 						if (!subJob.ParentJob.CancelRequested)
 						{
-							//if (subJob.ParentJob is Job parentJob)
-							//	parentJob.DecrementSubJobsRemainingToBeSent();
-
 							subJob.ParentJob.DecrementSubJobsRemainingToBeSent();
 							bool isFinalSubJob = subJob.ParentJob.IsLastSubJob;
 
@@ -404,6 +399,12 @@ namespace FractalEngine
 									$"with connId = {subJob.ConnectionId}. IsLastResult = {isFinalSubJob}.");
 									//$"It has {subJob.result.ImageData.Length} count values.");
 								_clientConnector.ReceiveImageData(subJob.ConnectionId, subJob.MapSectionResult, isFinalSubJob);
+
+
+								if(subJob.ParentJob is Job localJob)
+								{
+									Debug.WriteLine($"Results written: {localJob.WorkResultWriteCount}, Results re-written: {localJob.WorkResultReWriteCount}.");
+								}
 							}
 						}
 					}
@@ -412,12 +413,12 @@ namespace FractalEngine
 			catch (OperationCanceledException)
 			{
 				Debug.WriteLine("Send Queue Consuming Enumerable canceled.");
-				throw;
+				//throw;
 			}
 			catch (InvalidOperationException)
 			{
 				Debug.WriteLine("Send Queue Consuming Enumerable completed.");
-				throw;
+				//throw;
 			}
 		}
 

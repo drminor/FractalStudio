@@ -17,7 +17,6 @@ namespace FractalServerTests
     public class BuildMapTests
     {
 		public const int BLOCK_SIZE = 100;
-        //public const string BasePath = @"C:\Users\david_000\Documents\Mbrodts";
 		public string BasePath = @"C:\Users\david_000\Documents\Mbrodts";
 
 		[TestMethod]
@@ -49,7 +48,7 @@ namespace FractalServerTests
 			{
 				for (int vBPtr = 0; vBPtr < h; vBPtr++)
 				{
-					key.Y = vBPtr;// * BLOCK_SIZE;
+					key.Y = vBPtr;
 					for (int lPtr = 0; lPtr < 100; lPtr++)
 					{
 						ImageLine iLine = pngImage.ImageLine;
@@ -57,7 +56,7 @@ namespace FractalServerTests
 
 						for (int hBPtr = 0; hBPtr < w; hBPtr++)
 						{
-							key.X = hBPtr;// * BLOCK_SIZE;
+							key.X = hBPtr;
 
 							if (countsRepo.ReadParts(key, workResult))
 							{

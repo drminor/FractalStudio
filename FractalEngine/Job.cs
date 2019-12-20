@@ -19,21 +19,20 @@ namespace FractalEngine
 
 		private int _hSectionPtr;
 		private int _vSectionPtr;
-		//private int _numberOfSectionRemainingToSend;
 
 		private ValueRecords<RectangleInt, MapSectionWorkResult> _countsRepo;
 		private readonly PointInt _position;
 		private readonly object _repoLock = new object();
 
+		public int WorkResultWriteCount = 0;
+		public int WorkResultReWriteCount = 0;
+
+
 		public Job(SMapWorkRequest sMapWorkRequest) : base(sMapWorkRequest)
 		{
 			_position = new PointInt(sMapWorkRequest.Area.SectionAnchor.X * SECTION_WIDTH, sMapWorkRequest.Area.SectionAnchor.Y * SECTION_HEIGHT);
 			SamplePoints = GetSamplePoints(sMapWorkRequest);
-			_hSectionPtr = 0;
-			_vSectionPtr = 0;
-
-			IsCompleted = false;
-			//_numberOfSectionRemainingToSend = SamplePoints.NumberOfHSections * SamplePoints.NumberOfVSections;
+			Reset();
 
 			string filename = RepoFilename;
 			Debug.WriteLine($"Creating new Repo. Name: {filename}, JobId: {JobId}.");
@@ -44,8 +43,14 @@ namespace FractalEngine
 			//Debug.WriteLine($"Histogram complete for {RepoFilename} at {DateTime.Now.ToString(DiagTimeFormat)}.");
 		}
 
-		public readonly SamplePoints<double> SamplePoints;
+		public void Reset()
+		{
+			_hSectionPtr = 0;
+			_vSectionPtr = 0;
+			IsCompleted = false;
+		}
 
+		public readonly SamplePoints<double> SamplePoints;
 
 		public SubJob GetNextSubJob()
 		{
@@ -88,10 +93,12 @@ namespace FractalEngine
 					if(overwriteResults)
 					{
 						_countsRepo.Change(transKey, val);
+						WorkResultReWriteCount++;
 					}
 					else
 					{
 						_countsRepo.Add(transKey, val, saveOnWrite: false);
+						WorkResultWriteCount++;
 					}
 				}
 			}
@@ -113,32 +120,32 @@ namespace FractalEngine
 			}
 		}
 
-		public IEnumerable<Tuple<MapSectionResult, bool>> ReplayResults()
-		{
-			SubJob subJob = GetNextSubJob();
+		//public IEnumerable<Tuple<MapSectionResult, bool>> ReplayResults()
+		//{
+		//	SubJob subJob = GetNextSubJob();
 
-			while (subJob != null)
-			{
-				MapSection ms = subJob.MapSectionWorkRequest.MapSection;
-				RectangleInt riKey = ms.GetRectangleInt();
-				MapSectionWorkResult workResult = GetEmptyResult(riKey);
+		//	while (subJob != null)
+		//	{
+		//		MapSection ms = subJob.MapSectionWorkRequest.MapSection;
+		//		RectangleInt riKey = ms.GetRectangleInt();
+		//		MapSectionWorkResult workResult = GetEmptyResult(riKey);
 
-				if (RetrieveWorkResultFromRepo(riKey, workResult))
-				{
-					MapSectionResult msr = new MapSectionResult(JobId, ms, workResult.Counts);
+		//		if (RetrieveWorkResultFromRepo(riKey, workResult))
+		//		{
+		//			MapSectionResult msr = new MapSectionResult(JobId, ms, workResult.Counts);
 
-					Tuple<MapSectionResult, bool> item = new Tuple<MapSectionResult, bool>(msr, IsLastSubJob);
-					DecrementSubJobsRemainingToBeSent();
+		//			Tuple<MapSectionResult, bool> item = new Tuple<MapSectionResult, bool>(msr, IsLastSubJob);
+		//			DecrementSubJobsRemainingToBeSent();
 
-					subJob = GetNextSubJob();
-					yield return item;
-				}
-				else
-				{
-					yield return null;
-				}
-			}
-		}
+		//			subJob = GetNextSubJob();
+		//			yield return item;
+		//		}
+		//		else
+		//		{
+		//			yield return null;
+		//		}
+		//	}
+		//}
 
 		public void DeleteCountsRepo()
 		{

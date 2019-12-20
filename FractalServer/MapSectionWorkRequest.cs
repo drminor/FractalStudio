@@ -6,7 +6,7 @@ namespace FractalServer
 	public class MapSectionWorkRequest
 	{
 		public readonly MapSection MapSection;
-		public readonly int MaxIterations;
+		public int MaxIterations;
 
 		public readonly int HPtr;
 		public readonly int VPtr;

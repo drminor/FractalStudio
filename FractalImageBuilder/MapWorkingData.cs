@@ -54,7 +54,7 @@ namespace FractalImageBuilder
 
 				DPoint z = new DPoint(0, 0);
 				int cnt = 0;
-				double escapeVelocity = _mPointWork.Iterate(c, ref z, ref cnt, done: out bool notUsed);
+				double escapeVelocity = _mPointWork.Iterate(c, z, ref cnt, done: out bool notUsed);
 
 				int[] cComps;
                 if (cnt == MapInfo.MaxIterations)

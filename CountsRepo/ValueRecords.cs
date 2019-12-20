@@ -194,11 +194,13 @@ namespace CountsRepo
 				_indices.AddIndex(offset, valueLength, key);
 			}
 
-			if (saveOnWrite)
-            {
-                _indices.Save();
-            }
-        }
+			_fs.Flush();
+			//if (saveOnWrite)
+			//         {
+			//             _indices.Save();
+			//         }
+			_indices.Save();
+		}
 
         // Change Record, update index
         public void Change(K key, V value)
@@ -214,21 +216,21 @@ namespace CountsRepo
 				// Write new value at the end of the file.
                 _fs.Seek(0, SeekOrigin.End);            
                 record.Offset = (uint)_fs.Position;
-            }       
-            else
+				record.ValueLength = value.TotalBytesToWrite;
+			}
+			else
             {
 				// Write the new data at the original offset.
 				_fs.Seek(record.Offset, SeekOrigin.Begin);
             }
 
-			record.ValueLength = value.TotalBytesToWrite;
-
             using (var bw = new BinaryWriter(_fs, Encoding.UTF8, true))
             {
 				WriteParts(bw, value);
             }
-
-            _indices.IsDirty = true; // Makes sure Indices are rewritten
+			_fs.Flush();
+			//_indices.Save();
+			//_indices.IsDirty = true; // Makes sure Indices are rewritten
         }
 
         public void Update()
