@@ -80,7 +80,7 @@ namespace FractalServerTests
 		[TestMethod]
 		public void BuildMapFromFrdFile()
 		{
-			bool hiRez = true;
+			bool hiRez = false;
 			if (hiRez) BasePath = Path.Combine(BasePath, "HiRez");
 
 			int blocksPerInch = 6;
@@ -89,7 +89,8 @@ namespace FractalServerTests
 
 			CanvasSize imageSize = new CanvasSize(w * BLOCK_SIZE, h * BLOCK_SIZE);
 
-			string fn = "16";
+
+			string fn = "1";
 
 			string MapInfoFilename;
 			string Repofilename;
@@ -103,7 +104,7 @@ namespace FractalServerTests
 			else
 			{
 				MapInfoFilename = $"MandlebrodtMapInfo ({fn})";
-				Repofilename = MapInfoFilename;
+				Repofilename = "DMapInfo3E"; // MapInfoFilename;
 				imagePath = Path.Combine(BasePath, $"MBB({fn})_{imageSize.Width}.png");
 			}
 

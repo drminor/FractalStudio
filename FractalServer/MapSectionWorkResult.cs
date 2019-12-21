@@ -123,7 +123,7 @@ namespace FractalServer
 					LoadBytesFromCounts(Counts, buf);
 					break;
 				case 1:
-					Array.Copy(BitConverter.GetBytes(IterationCount), buf, 1);
+					Array.Copy(BitConverter.GetBytes(IterationCount), buf, 4);
 					break;
 				case 2:
 					LoadBytesFromZValues(ZValues, buf);

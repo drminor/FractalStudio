@@ -3,7 +3,6 @@ using FSTypes;
 using MqMessages;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,9 +18,6 @@ namespace FractalEngine
 
 		private readonly CancellationTokenSource _cts;
 		private Task _task;
-
-		//private List<DPoint[]> SavedDPoints = new List<DPoint[]>();
-		//private int SavedDPointsPtr = 0;
 
 		public SubJobProcessor(BlockingCollection<SubJob> workQueue, BlockingCollection<SubJob> sendQueue)
 		{
@@ -90,18 +86,6 @@ namespace FractalEngine
 			if (workResult == null)
 			{
 				result = CalculateMapValues(subJob, localJob, ref workResult);
-				//double test = workResult.ZValues[7383].X;
-
-				//SavedDPoints.Add(workResult.ZValues);
-
-				//MapSectionWorkResult workResult4 = null;
-				//MapSectionResult result4 = CalculateMapValues(subJob, localJob, ref workResult4);
-
-				//if (!CompareZResults(workResult.ZValues, workResult4.ZValues))
-				//{
-				//	throw new Exception("Zvalues are not equal.");
-				//}
-
 			}
 			else
 			{
@@ -115,34 +99,9 @@ namespace FractalEngine
 					// Fetch the entire WorkResult with ZValues
 					workResult = RetrieveWorkResultFromRepo(ms, localJob, readZValues: true);
 
-					//if (!CompareZResults(workResult.ZValues, SavedDPoints[SavedDPointsPtr++]))
-					//{
-					//	throw new Exception("Zvalues are not equal.");
-					//}
-
-					//MapSectionWorkResult workResult3 = null;
-					//subJob.ParentJob.SMapWorkRequest.MaxIterations = 100;
-					//subJob.MapSectionWorkRequest.MaxIterations = 100;
-					//MapSectionResult result3 = CalculateMapValues(subJob, localJob, ref workResult3);
-					//subJob.ParentJob.SMapWorkRequest.MaxIterations = 200;
-					//subJob.MapSectionWorkRequest.MaxIterations = 200;
-
-					//if (!CompareZResults(workResult.ZValues, workResult3.ZValues))
-					//{
-					//	throw new Exception("Zvalues are not equal.");
-					//}
-
-
 					// Use the current work results to continue calculations to create
 					// a result with the target iteration count.
 					result = CalculateMapValues(subJob, localJob, ref workResult);
-
-					//MapSectionWorkResult workResult2 = null;
-					//MapSectionResult result2 = CalculateMapValues(subJob, localJob, ref workResult2);
-					//if (!CompareZResults(workResult.ZValues, workResult2.ZValues))
-					//{
-					//	throw new Exception("Zvalues are not equal.");
-					//}
 				}
 				else
 				{
@@ -164,10 +123,6 @@ namespace FractalEngine
 					Debug.WriteLine($"Zvals at index:{i} are {x} and {x2}.");
 					//return false;
 				}
-				//if (zVals1[i].Y != zVals2[i].Y)
-				//{
-				//	return false;
-				//}
 			}
 
 			return true;
