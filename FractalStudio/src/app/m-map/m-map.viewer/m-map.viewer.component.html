@@ -5,7 +5,8 @@
     <div class="map">
       <div class="params-and-ov" style="margin-bottom:5px">
         <div>
-          <app-m-map-viewer-params [virtualMapParams]="virtualMapParams"
+          <app-m-map-viewer-params [mapInfoWithColorMap]="curMapInfoWithColorMap"
+                                   [virtualMapParams]="virtualMapParams"
                                    [displaySize]="displaySize"
                                    [isBuilding]="isBuilding"
                                    (virtualMapParamsUpdated)="onVirtualMapParamsUpdated($event)"

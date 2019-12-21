@@ -7,7 +7,7 @@ import {
   ColorMapEntryBlendStyle, IMapInfo, MapInfo, Histogram
 } from '../../m-map/m-map-common';
 
-import { ColorMapUI, ColorMapUIEntry, MapInfoWithColorMap } from '../m-map-common-ui';
+import { ColorMapUI, ColorMapUIEntry, MapInfoWithColorMap, MapMoveRequest } from '../m-map-common-ui';
 
 import { MMapDisplayComponent } from '../../m-map/m-map.display/m-map.display.component';
 
@@ -155,6 +155,26 @@ export class MMapDesignerComponent {
 
   onZoomed(mapCoords: SCoords) {
     console.log('Received the updated mapinfo from zoom ' + mapCoords.botLeft.x + '.');
+    this.history.push(this.mapInfo);
+    this.updateDownloadLinkVisibility(false);
+
+    //this.mapInfo = new MapInfo(mapCoords, this.mapInfo.maxIterations, this.mapInfo.iterationsPerStep, this.mapInfo.upsideDown);
+
+    // Build a new MapInfo using the existing Max Iterations and IterationsPerStep
+    let mi = new MapInfo(this.mapInfo.name, mapCoords, this.mapInfo.maxIterations, this.mapInfo.threshold, this.mapInfo.iterationsPerStep);
+
+    // Update the MapInfo, keeping the existing Color Map.
+    this.mapInfoWithColorMap = new MapInfoWithColorMap(mi, this.colorMap);
+
+    this.atHome = false;
+  }
+
+  onMoveRequested(moveReq: MapMoveRequest) {
+    this.mapDisplayComponent.requestNewMapCoords(moveReq);
+  }
+
+  onMapMoved(mapCoords: SCoords) {
+    console.log('Received the updated mapinfo from moveMap ' + mapCoords.botLeft.x + '.');
     this.history.push(this.mapInfo);
     this.updateDownloadLinkVisibility(false);
 

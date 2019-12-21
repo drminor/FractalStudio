@@ -1,10 +1,10 @@
 import { Component, EventEmitter, Output, Input, ViewChild, ElementRef, OnInit } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 
-import { Point, ICanvasSize, CanvasSize } from '../m-map-common';
+import { Point, ICanvasSize, CanvasSize, IMapInfoForExport, MapInfoForExport } from '../m-map-common';
 import { IVirtualMapParams, VirtualMapParams } from '../m-map-viewer-state';
 
-import { MapInfoWithColorMap, MapInfoWithColorMapForExport } from '../m-map-common-ui';
+import { ColorMapForExport, MapInfoWithColorMap, MapInfoWithColorMapForExport, MapMoveRequest } from '../m-map-common-ui';
 
 
 @Component({
@@ -58,6 +58,16 @@ export class MMapViewerParamsComponent implements OnInit {
     }
   }
 
+  private _miwcm: MapInfoWithColorMap;
+  @Input('mapInfoWithColorMap')
+
+  set mapInfoWithColorMap(value: MapInfoWithColorMap) {
+    this._miwcm = value;
+  }
+  //get mapInfoWithColorMap(): MapInfoWithColorMap {
+  //  return this._miwcm;
+  //}
+
   @Output() mapInfoLoaded = new EventEmitter<MapInfoWithColorMap>();
   @Output() virtualMapParamsUpdated = new EventEmitter<IVirtualMapParams>();
   @Output() mapPositionUpdated = new EventEmitter<string>();
@@ -67,6 +77,7 @@ export class MMapViewerParamsComponent implements OnInit {
 
   @ViewChild('applyButton') applyButton: ElementRef;
   @ViewChild('fileSelector') fileSelectorRef: ElementRef;
+  @ViewChild('download') downloadRef: ElementRef;
 
   constructor() {
     //this.mapViewForm = this.buildMainForm();
@@ -269,4 +280,24 @@ export class MMapViewerParamsComponent implements OnInit {
     }
   }
 
+  onSave() {
+    let colorMapForExport = ColorMapForExport.FromColorMap(this._miwcm.colorMapUi);
+    let mapInfo = this._miwcm.mapInfo;
+    let mife: IMapInfoForExport = MapInfoForExport.fromMapInfo(mapInfo);
+    let miwcmfe = new MapInfoWithColorMapForExport(mife, colorMapForExport);
+
+    let dump: string = JSON.stringify(miwcmfe, null, 2);
+    let dataUri = "data:text/json;charset=utf-8," + encodeURIComponent(dump);
+
+    let a = this.downloadRef.nativeElement as HTMLAnchorElement;
+    a.download = mapInfo.name + ".json"; // "MandlebrodtMapInfo.json";
+    a.href = dataUri;
+    a.click();
+
+    console.log('The MapInfoWithColorMap is |' + dump + '|');
+  }
+
+  onCreatePng() {
+    alert('Will create PNG here.');
+  }
 }

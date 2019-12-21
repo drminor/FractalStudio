@@ -76,9 +76,13 @@
     <button id="mUp" type="button" (click)="onMoveU($event)" style="margin-left:15px">Up</button>
     <button id="mDown" type="button" (click)="onMoveD($event)" style="margin-left:15px">Down</button>
 
+    <button id="save" type="button" (click)="onSave()" style="margin-left:15px">Save</button>
+    <a #download href="#" hidden="hidden">Download</a>
+
     <button id="setSurveyMode" type="button" (click)="onSetSurveyMode($event)" style="margin-left:15px">Survey</button>
 
     <button id="getHistogramEntire" type="button" (click)="onRequestHistogramEntire($event)" style="margin-left:15px">Request Entire Histogram</button>
+    <button id="createPng" type="button" (click)="onCreatePng()" style="margin-left:15px">Create PNG</button>
 
   </div>
 

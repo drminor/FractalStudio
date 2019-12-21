@@ -3,7 +3,7 @@ import { FormControl, FormGroup } from '@angular/forms';
 
 import { IMapInfo, MapInfo, SPoint, SCoords, MapInfoForExport, IMapInfoForExport } from '../m-map-common';
 
-import { ColorMapForExport, MapInfoWithColorMap, MapInfoWithColorMapForExport } from '../m-map-common-ui';
+import { ColorMapForExport, MapInfoWithColorMap, MapInfoWithColorMapForExport, MapMoveRequest } from '../m-map-common-ui';
 
 
 @Component({
@@ -16,6 +16,7 @@ export class MMapDesignerParamsComponent implements OnInit {
   @Output() mapInfoUpdated = new EventEmitter<IMapInfo>();
   @Output() mapInfoLoaded = new EventEmitter<MapInfoWithColorMap>();
   @Output() goBack = new EventEmitter<number>();
+  @Output() moveRequested = new EventEmitter<MapMoveRequest>();
 
   private _miwcm: MapInfoWithColorMap;
   @Input('mapInfoWithColorMap')
@@ -126,21 +127,22 @@ export class MMapDesignerParamsComponent implements OnInit {
     return result;
   }
 
-  private moveMap(dir: string, percent: number) {
-    let newCoords: SCoords;
+  private moveMap(dir: string, percentage: number) {
+    //let newCoords: SCoords;
 
-    let mi = this.mapInfoWithColorMap.mapInfo;
+    //let mi = this.mapInfoWithColorMap.mapInfo;
 
-    if (dir === 'o') {
-      newCoords = this.getZoomOutCoords(mi.sCoords, percent);
-    }
-    else {
-      newCoords = this.getShiftedCoords(mi.sCoords, dir, percent);
-    }
+    //if (dir === 'o') {
+    //  newCoords = this.getZoomOutCoords(mi.sCoords, percent);
+    //}
+    //else {
+    //  newCoords = this.getShiftedCoords(mi.sCoords, dir, percent);
+    //}
 
-    let newMapInfo = new MapInfo(mi.name, newCoords, mi.maxIterations, mi.threshold, mi.iterationsPerStep);
+    //let newMapInfo = new MapInfo(mi.name, newCoords, mi.maxIterations, mi.threshold, mi.iterationsPerStep);
 
-    this.mapInfoUpdated.emit(newMapInfo);
+    //this.mapInfoUpdated.emit(newMapInfo);
+    this.moveRequested.emit(new MapMoveRequest(dir, percentage));
   }
 
   private getZoomOutCoords(curCoords: SCoords, percent: number): SCoords {

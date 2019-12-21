@@ -357,3 +357,7 @@ export class MapInfoWithColorMapForExport {
 
   constructor(public mapInfo: IMapInfoForExport, public colorMap: ColorMapForExport) { }
 }
+
+export class MapMoveRequest {
+  constructor(public direction: string,  public percentage: number) { }
+}

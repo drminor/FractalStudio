@@ -5,6 +5,7 @@
                     [isBuilding]="isBuilding"
                     (mapInfoUpdated)="onMapInfoUpdated($event)"
                     (mapInfoLoaded)="onMapInfoLoaded($event)"
+                             (moveRequested)="onMoveRequested($event)"
                     (goBack)="onGoBack($event)">
   </app-m-map-designer-params>
 
@@ -28,6 +29,7 @@
       <app-m-map-display #mapDisplay
                          [mapInfoWithColorMap]="mapInfoWithColorMap"
                          (zoomed)="onZoomed($event)"
+                         (mapMoved)="onMapMoved($event)"
                          (haveImageData)="onHaveImageData($event)"
                          (haveHistogram)="onHaveHistogram($event)"
                          (buildingComplete)="onBuildingComplete()">

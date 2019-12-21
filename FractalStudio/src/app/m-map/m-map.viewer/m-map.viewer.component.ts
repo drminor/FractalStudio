@@ -172,7 +172,7 @@ export class MMapViewerComponent implements AfterViewInit {
   public ColorMapSerialNumber: number;
   public overLayBox: IBox = null;
 
-  constructor(private fService: FracServerService) {
+  constructor() {
     this.viewInitialized = false;
     this.curArea = null;
     this.curMapInfoWithColorMap = null;
@@ -290,8 +290,8 @@ export class MMapViewerComponent implements AfterViewInit {
     let params = this.virtualMapParams;
 
     if (params !== null) {
-      //let newPos = this._virtualMap.getNextCoords(params.position);
-      let newPos = this._virtualMap.getNextWorkCoords(params.position);
+      let newPos = this._virtualMap.getNextCoords(params.position);
+      //let newPos = this._virtualMap.getNextWorkCoords(params.position);
 
       if (newPos !== null)
         this.updateMapPos(params, newPos);
@@ -317,8 +317,17 @@ export class MMapViewerComponent implements AfterViewInit {
     else {
       mi = this.curMapInfoWithColorMap.mapInfo;
     }
-    
-    this.mapInfoWithColorMap = new MapInfoWithColorMap(mi, colorMap);
+
+    this.curMapInfoWithColorMap = new MapInfoWithColorMap(mi, colorMap);
+
+    if (this._miwcm === null) {
+      mi = null;
+    }
+    else {
+      mi = this._miwcm.mapInfo;
+    }
+
+    this._miwcm = new MapInfoWithColorMap(mi, colorMap);
   }
 
   onHaveHistogram(h: Histogram) {

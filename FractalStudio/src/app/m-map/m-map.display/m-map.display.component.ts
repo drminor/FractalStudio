@@ -10,7 +10,7 @@ import {
   HistArrayPair,  RawMapDataProcessor, SCoords, SPoint, JOB_BLOCK_SIZE
 } from '../m-map-common';
 
-import { ColorMapUI, MapInfoWithColorMap } from '../m-map-common-ui';
+import { ColorMapUI, MapInfoWithColorMap, MapMoveRequest } from '../m-map-common-ui';
 
 import { MapSection, MapSectionResult, SMapWorkRequest, SCoordsWorkRequest, TransformType, HistogramRequest } from '../../m-map/m-map-common-server';
 import { FracServerService } from '../../frac-server/frac-server.service';
@@ -34,6 +34,7 @@ export class MMapDisplayComponent implements AfterViewInit {
   @ViewChild('myHiddenCanvas') canvasHiddenRef: ElementRef;
 
   @Output() zoomed = new EventEmitter<SCoords>();
+  @Output() mapMoved = new EventEmitter<SCoords>();
   @Output() haveImageData = new EventEmitter<Blob>();
   @Output() haveHistogram = new EventEmitter<Histogram>();
   @Output() buildingComplete = new EventEmitter();
@@ -364,6 +365,12 @@ export class MMapDisplayComponent implements AfterViewInit {
       throw new Error('getHistogram is only supported when the workMethod is WebService.');
     }
     this.subHistogramRequest();
+  }
+
+  public requestNewMapCoords(moveRequest: MapMoveRequest) {
+
+    let curCoords = this._mapInfo.sCoords;
+    this.requestZMoveCoords(moveRequest.direction, curCoords, this.canvasSize, moveRequest.percentage); 
   }
 
   private getHistogramWebWorker(): void {
@@ -1219,6 +1226,65 @@ export class MMapDisplayComponent implements AfterViewInit {
     }
     else {
       console.log('The new coords is null on handle ZOut results.');
+    }
+  }
+
+  // The amount should be > 0 and <= 100.
+  private requestZMoveCoords(dir:string, curCoords: SCoords, canvasSize: ICanvasSize, amount: number) {
+
+    if (amount == 0) {
+      console.log('getNewCoords(move) received an amount = 0, returning original coords with no transform.');
+      return curCoords;
+    }
+
+    if (amount < 0 || amount > 100) {
+      console.log('getNewCoords(move) received an amount < 0 or > 100, using 50.');
+      amount = 0.5;
+    }
+
+    let scaledIntAmount = Math.round(amount * 100);
+
+    let opType: TransformType;
+    switch (dir) {
+      case 'l':
+        opType = TransformType.Left;
+        break;
+      case 'r':
+        opType = TransformType.Right;
+        break;
+      case 'u':
+        opType = TransformType.Up;
+        break;
+      case 'd':
+        opType = TransformType.Down;
+        break;
+      default:
+        console.log('getNewCoords(move) received dir of ' + dir + 'returning original coords with no transform.');
+        return curCoords;
+    }
+
+    let ms: MapSection = new MapSection(new Point(scaledIntAmount, 0), new CanvasSize(10, 10));
+    let request: SCoordsWorkRequest = new SCoordsWorkRequest(opType, curCoords, this.canvasSize, ms);
+    let cc: Observable<SCoordsWorkRequest> = this.fService.submitCoordsTransformRequest(request);
+    cc.subscribe(
+      v => this.newMoveCoordsHandler(v),
+      err => console.log('Received error while getting new ZMove coords. The error is ' + err + '.'),
+      () => console.log('Request new ZMove Coords is complete.')
+    );
+  }
+
+  private newMoveCoordsHandler(coordsResult: SCoordsWorkRequest) {
+    if (coordsResult !== null) {
+      let newCoords = SCoords.clone(coordsResult.coords);
+      console.log('The new ZMove coords has an sx = ' + newCoords.botLeft.x.toString() + '.');
+      console.log('The new ZMove coords has an ex = ' + newCoords.topRight.x.toString() + '.');
+      console.log('The new ZMove coords has an sy = ' + newCoords.botLeft.y.toString() + '.');
+      console.log('The new ZMove coords has an ey = ' + newCoords.topRight.y.toString() + '.');
+
+      this.mapMoved.emit(newCoords);
+    }
+    else {
+      console.log('The new coords is null on handle ZMove results.');
     }
   }
 

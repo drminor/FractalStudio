@@ -106,7 +106,7 @@ export class VirtualMap implements IVirtualMap {
     return this._maxTop;
   }
 
-  private _workStartPos: IPoint = new Point(36, 18);
+  private _workStartPos: IPoint = new Point(0, 0); //new Point(36, 18);
   public get workStartPos(): IPoint {
     return this._workStartPos;
   }
