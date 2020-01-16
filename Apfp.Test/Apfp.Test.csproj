@@ -5,11 +5,11 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{2D14B5BE-1263-4591-8F07-FB05EA29D307}</ProjectGuid>
+    <ProjectGuid>{3C54CEAA-7357-4291-9E77-6DB1DB620492}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>FractalServerTests</RootNamespace>
-    <AssemblyName>FractalServerTests</AssemblyName>
+    <RootNamespace>Apfp.Test</RootNamespace>
+    <AssemblyName>Apfp.Test</AssemblyName>
     <TargetFrameworkVersion>v4.7</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{3AC096D0-A1C2-E12C-1390-A8335801FDAB};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
@@ -20,7 +20,6 @@
     <TestProjectType>UnitTest</TestProjectType>
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
-    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -39,24 +38,6 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
-    <DebugSymbols>true</DebugSymbols>
-    <OutputPath>bin\x86\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <DebugType>full</DebugType>
-    <PlatformTarget>x86</PlatformTarget>
-    <ErrorReport>prompt</ErrorReport>
-    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
-    <OutputPath>bin\x86\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <Optimize>true</Optimize>
-    <DebugType>pdbonly</DebugType>
-    <PlatformTarget>x86</PlatformTarget>
-    <ErrorReport>prompt</ErrorReport>
-    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-  </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.VisualStudio.TestPlatform.TestFramework, Version=14.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\MSTest.TestFramework.1.3.2\lib\net45\Microsoft.VisualStudio.TestPlatform.TestFramework.dll</HintPath>
@@ -64,55 +45,20 @@
     <Reference Include="Microsoft.VisualStudio.TestPlatform.TestFramework.Extensions, Version=14.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\MSTest.TestFramework.1.3.2\lib\net45\Microsoft.VisualStudio.TestPlatform.TestFramework.Extensions.dll</HintPath>
     </Reference>
-    <Reference Include="Newtonsoft.Json, Version=12.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\packages\Newtonsoft.Json.12.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <Reference Include="System.Drawing" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="OrangeGradiant.cs" />
-    <Compile Include="FractalEngineTests.cs" />
-    <Compile Include="BuildMapTests.cs" />
+    <Compile Include="UnitTest1.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="CountsRepoTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\CountsRepo\CountsRepo.csproj">
-      <Project>{ea81508d-ffa1-4b28-8f05-15bbaa2bf8b0}</Project>
-      <Name>CountsRepo</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\FractalEngine\FractalEngine.csproj">
-      <Project>{b09271e9-bd16-44b9-a738-1d2d22a04655}</Project>
-      <Name>FractalEngine</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\FractalImageBuilder\FractalImageBuilder.csproj">
-      <Project>{97744968-DB7C-45CA-8429-E90647F59886}</Project>
-      <Name>FractalImageBuilder</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\FractalServer\FractalServer.csproj">
-      <Project>{8efe2d37-974c-4979-af9a-e2c080bdd7e4}</Project>
-      <Name>FractalServer</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\FSTypes\FSTypes.csproj">
-      <Project>{6e598e37-990b-4456-a5e0-df0092b78418}</Project>
-      <Name>FSTypes</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Hjg.Pngcs\Hjg.Pngcs.csproj">
-      <Project>{fd3b0d50-46b3-4a83-9a6d-c641569142cf}</Project>
-      <Name>Hjg.Pngcs</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\MqMessages\MqMessages.csproj">
-      <Project>{7E22EEE8-9D53-4561-8909-BDBC4741D8A8}</Project>
-      <Name>MqMessages</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\PngImageBuilder\PngImageBuilder.csproj">
-      <Project>{c9f8e097-bf85-442e-b942-2fa9d6c28ddb}</Project>
-      <Name>PngImageBuilder</Name>
+    <ProjectReference Include="..\Apfp\Apfp.csproj">
+      <Project>{60070414-b71a-4641-8d5c-4a84bb881167}</Project>
+      <Name>Apfp</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VSToolsPath)\TeamTest\Microsoft.TestTools.targets" Condition="Exists('$(VSToolsPath)\TeamTest\Microsoft.TestTools.targets')" />

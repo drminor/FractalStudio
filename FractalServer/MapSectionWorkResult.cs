@@ -7,6 +7,7 @@ namespace FractalServer
 {
 	public class MapSectionWorkResult : IPartsBin
 	{
+		public bool IsHiRez { get; private set; }
 		public int[] Counts { get; private set; }
 		public bool[] DoneFlags { get; private set; }
 		public DPoint[] ZValues { get; private set; }
@@ -18,15 +19,15 @@ namespace FractalServer
 		{
 		}
 
-		public MapSectionWorkResult(int[] counts, int iterationCount, DPoint[] zValues, bool[] doneFlags) : this(counts, iterationCount, zValues, doneFlags, counts.Length, true, true)
+		public MapSectionWorkResult(int[] counts, int iterationCount, DPoint[] zValues, bool[] doneFlags) : this(counts, iterationCount, zValues, doneFlags, counts.Length, false, true)
 		{
 		}
 
-		public MapSectionWorkResult(int size, bool haveZValues, bool includeZValuesOnRead) : this(null, 0, null, null, size, haveZValues, includeZValuesOnRead)
+		public MapSectionWorkResult(int size, bool hiRez, bool includeZValuesOnRead) : this(null, 0, null, null, size, hiRez, includeZValuesOnRead)
 		{
 		}
 
-		private MapSectionWorkResult(int[] counts, int iterationCount, DPoint[] zValues, bool[] doneFlags, int size, bool haveZValues, bool includeZValuesOnRead)
+		private MapSectionWorkResult(int[] counts, int iterationCount, DPoint[] zValues, bool[] doneFlags, int size, bool hiRez, bool includeZValuesOnRead)
 		{
 			_size = size;
 
@@ -35,54 +36,27 @@ namespace FractalServer
 			IterationCount = iterationCount;
 			ZValues = zValues;
 
-			PartDetails = BuildPartDetails(_size, haveZValues, includeZValuesOnRead, out uint totalBytes);
+			PartDetails = BuildPartDetails(_size, hiRez, includeZValuesOnRead, out uint totalBytes);
 			TotalBytesToWrite = totalBytes;
 		}
 
-		private List<PartDetail> BuildPartDetails(int size, bool haveZValues, bool includeZValuesOnRead, out uint totalBytesToWrite)
+		private List<PartDetail> BuildPartDetails(int size, bool hiRez, bool includeZValuesOnRead, out uint totalBytesToWrite)
 		{
+			int zValuesLength = hiRez ? 32 : 16;
 			List<PartDetail> partDetails;
 
-			if(haveZValues)
+			partDetails = new List<PartDetail>
 			{
-				partDetails = new List<PartDetail>
-				{
-					new PartDetail(size * 4, true), // Counts
-					new PartDetail(4, true), // IterationCount
-					new PartDetail(size * 16, includeZValuesOnRead), // ZValues
-					new PartDetail(size, includeZValuesOnRead) // DoneFlags
-				};
+				new PartDetail(size * 4, true), // Counts
+				new PartDetail(4, true), // IterationCount
+				new PartDetail(size * zValuesLength, includeZValuesOnRead), // ZValues
+				new PartDetail(size, includeZValuesOnRead) // DoneFlags
+			};
 
-				totalBytesToWrite = 4 + (uint) size * 21;
-			}
-			else
-			{
-				partDetails = new List<PartDetail>
-				{
-					new PartDetail(size * 4, true),
-				};
-
-				totalBytesToWrite = (uint)size * 4;
-			}
+			totalBytesToWrite = (uint) (4 + size * (4 + zValuesLength + 1));
 
 			return partDetails;
 		}
-
-		//public bool IncludeZValuesOnRead
-		//{
-		//	get
-		//	{
-		//		return PartDetails[1].IncludeOnRead;
-		//	}
-		//	set
-		//	{
-		//		PartDetail curValue = PartDetails[1];
-		//		if(value != curValue.IncludeOnRead)
-		//		{
-		//			PartDetails[1] = new PartDetail(curValue.PartLength, value);
-		//		}
-		//	}
-		//}
 
 		public int PartCount => PartDetails.Count;
 

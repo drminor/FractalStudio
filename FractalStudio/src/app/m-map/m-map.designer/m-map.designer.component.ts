@@ -111,7 +111,7 @@ export class MMapDesignerComponent {
   onHaveHistogram(h: Histogram) {
     //console.log('We now have a histogram. It has ' + h.entriesMap.size + ' entries.');
     this.histogram = h;
-    this.isBuilding = false;
+    //this.isBuilding = false;
   }
 
   onHaveImageData(imageBlob: Blob) {

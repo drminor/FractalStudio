@@ -3,6 +3,7 @@ using FSTypes;
 using MqMessages;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -78,10 +79,12 @@ namespace FractalEngine
 			}
 
 
-			MapSectionResult result;
-			MapSection ms = subJob.MapSectionWorkRequest.MapSection;
+			MapSectionWorkRequest mswr = subJob.MapSectionWorkRequest;
 
-			MapSectionWorkResult workResult = RetrieveWorkResultFromRepo(ms, localJob, readZValues: false);
+			KPoint key = new KPoint(mswr.HPtr, mswr.VPtr);
+			MapSectionWorkResult workResult = RetrieveWorkResultFromRepo(key, localJob, readZValues: false);
+
+			MapSectionResult result;
 
 			if (workResult == null)
 			{
@@ -89,15 +92,15 @@ namespace FractalEngine
 			}
 			else
 			{
-				if(workResult.IterationCount == 0 || workResult.IterationCount == subJob.MapSectionWorkRequest.MaxIterations)
+				if(workResult.IterationCount == 0 || workResult.IterationCount == mswr.MaxIterations)
 				{
 					// The WorkResult read from file has the correct iteration count. (Or we are not tracking the interation count.)
-					result = new MapSectionResult(localJob.JobId, ms, workResult.Counts);
+					result = new MapSectionResult(localJob.JobId, mswr.MapSection, workResult.Counts);
 				}
-				else if (workResult.IterationCount < subJob.MapSectionWorkRequest.MaxIterations)
+				else if (workResult.IterationCount < mswr.MaxIterations)
 				{
 					// Fetch the entire WorkResult with ZValues
-					workResult = RetrieveWorkResultFromRepo(ms, localJob, readZValues: true);
+					workResult = RetrieveWorkResultFromRepo(key, localJob, readZValues: true);
 
 					// Use the current work results to continue calculations to create
 					// a result with the target iteration count.
@@ -143,22 +146,84 @@ namespace FractalEngine
 				overwriteResults = true;
 			}
 
-			double[] xValues = localJob.SamplePoints.XValueSections[subJob.MapSectionWorkRequest.HPtr];
-			double[] yValues = localJob.SamplePoints.YValueSections[subJob.MapSectionWorkRequest.VPtr];
+			double[] xValues = localJob.SamplePoints.XValueSections[mswr.HPtr];
+			double[] yValues = localJob.SamplePoints.YValueSections[mswr.VPtr];
 
-			workResult = _mapCalculator.GetWorkingValues(xValues, yValues, subJob.MapSectionWorkRequest.MaxIterations, workResult);
-			localJob.WriteWorkResult(mswr.MapSection, workResult, overwriteResults);
+			//DateTime t0 = DateTime.Now;
+			//workResult = _mapCalculator.GetWorkingValues(xValues, yValues, mswr.MaxIterations, workResult);
+			//DateTime t1 = DateTime.Now;
+
+			//int[] testCounts = new int[10000];
+			//DateTime t2 = DateTime.Now;
+
+			//_mapCalculator.ComputeApprox(xValues, yValues, mswr.MaxIterations, testCounts);
+			//List<int> misMatcheIndexes = GetMismatchCount(workResult.Counts, testCounts, out double avgGap);
+			//DateTime t3 = DateTime.Now;
+
+			//Debug.WriteLine($"Block: v={mswr.VPtr}, h={mswr.HPtr} has {misMatcheIndexes.Count} mis matches, avgGap={avgGap} and avg {GetAverageCntValue(workResult.Counts)}.");
+			//Debug.WriteLine($"Standard: {GetElaspedTime(t0, t1)}, Approx: {GetElaspedTime(t2, t3)}.");
+
+			//_mapCalculator.ComputeApprox(xValues, yValues, mswr.MaxIterations, workResult.Counts);
+			workResult = _mapCalculator.GetWorkingValues(xValues, yValues, mswr.MaxIterations, workResult);
+
+			KPoint key = new KPoint(mswr.HPtr, mswr.VPtr);
+			localJob.WriteWorkResult(key, workResult, overwriteResults);
 
 			MapSectionResult msr = new MapSectionResult(localJob.JobId, mswr.MapSection, workResult.Counts);
+
 			return msr;
 		}
 
-		private MapSectionWorkResult RetrieveWorkResultFromRepo(MapSection ms, Job localJob, bool readZValues)
+		private string GetElaspedTime(DateTime start, DateTime end)
 		{
-			RectangleInt riKey = ms.GetRectangleInt();
-			MapSectionWorkResult workResult = GetEmptyResult(riKey, readZValues, Job.SECTION_WIDTH, Job.SECTION_HEIGHT);
+			TimeSpan x = end - start;
+			string et = x.ToString(@"mm\:ss\.ff");
+			return et;
+		}
 
-			if (localJob.RetrieveWorkResultFromRepo(riKey, workResult))
+		private List<int> GetMismatchCount(int[] a, int[] b, out double avgGap)
+		{
+			double tGap = 0;
+			avgGap = 0;
+			List<int> result = new List<int>();
+
+			int i = 0;
+			for (int yPtr = 0; yPtr < 99; yPtr++)
+			{
+				for (int xPtr = 0; xPtr < 99; xPtr++)
+				{
+					int af = a[i] / 10000;
+					if (af != b[i])
+					{
+						result.Add(i);
+						tGap += Math.Abs(af - b[i]);
+					}
+					i++;
+				}
+				i++; // skip over the last column of each row.
+ 			}
+
+			avgGap = tGap / (i - 1);
+
+			return result;
+		}
+
+		private double GetAverageCntValue(int[] cnts)
+		{
+			double acc = 0;
+			for(int i = 0; i < cnts.Length; i++)
+			{
+				acc += cnts[i] / 10000;
+			}
+
+			return acc / cnts.Length;
+		}
+
+		private MapSectionWorkResult RetrieveWorkResultFromRepo(KPoint key, Job localJob, bool readZValues)
+		{
+			MapSectionWorkResult workResult = GetEmptyResult(readZValues, Job.SECTION_WIDTH, Job.SECTION_HEIGHT);
+
+			if (localJob.RetrieveWorkResultFromRepo(key, workResult))
 			{
 				return workResult;
 			}
@@ -171,18 +236,18 @@ namespace FractalEngine
 		private MapSectionWorkResult _emptyResult = null;
 		private MapSectionWorkResult _emptyResultWithZValues = null;
 
-		private MapSectionWorkResult GetEmptyResult(RectangleInt area, bool readZValues, int jobSectionWidth, int jobSectionHeight)
+		private MapSectionWorkResult GetEmptyResult(bool readZValues, int jobSectionWidth, int jobSectionHeight)
 		{
-			if (area.Size.W != jobSectionWidth || area.Size.H != jobSectionHeight)
-			{
-				Debug.WriteLine("Wrong Area.");
-			}
+			//if (area.Size.W != jobSectionWidth || area.Size.H != jobSectionHeight)
+			//{
+			//	Debug.WriteLine("Wrong Area.");
+			//}
 
 			if(readZValues)
 			{
 				if (_emptyResultWithZValues == null)
 				{
-					_emptyResultWithZValues = new MapSectionWorkResult(area.Size.W * area.Size.H, true, true);
+					_emptyResultWithZValues = new MapSectionWorkResult(jobSectionWidth * jobSectionHeight, hiRez: false, includeZValuesOnRead: true);
 				}
 				return _emptyResultWithZValues;
 			}
@@ -190,7 +255,7 @@ namespace FractalEngine
 			{
 				if (_emptyResult == null)
 				{
-					_emptyResult = new MapSectionWorkResult(area.Size.W * area.Size.H, true, false);
+					_emptyResult = new MapSectionWorkResult(jobSectionWidth * jobSectionHeight, hiRez: false, includeZValuesOnRead: false);
 				}
 				return _emptyResult;
 			}

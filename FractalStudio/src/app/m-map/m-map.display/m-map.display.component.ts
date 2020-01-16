@@ -98,6 +98,20 @@ export class MMapDisplayComponent implements AfterViewInit {
     return this._area;
   }
 
+  //get Histogram(): Histogram {
+  //  if (this.workMethod === WorkMethod.WebService) {
+  //    if (this.mapDataProcessor === null) {
+  //      return null;
+  //    }
+  //    else {
+  //      return this.mapDataProcessor.Histogram;
+  //    }
+  //  }
+  //  else {
+  //    return this._histogram;
+  //  }
+  //}
+
   private formatArea(ms1: MapSection): string {
     if (ms1 === null) {
       return 'null';
@@ -738,6 +752,8 @@ export class MMapDisplayComponent implements AfterViewInit {
     //console.log('About to draw map section for x:' + ms.mapSection.sectionAnchor.x + ' and y:' + ms.mapSection.sectionAnchor.y);
     this.draw(imageData, ms.mapSection);
 
+    this.haveHistogram.emit(this.mapDataProcessor.Histogram);
+
     if (ms.jobId < 0) {
       this.webServiceMapWorkDone();
     }
@@ -754,15 +770,18 @@ export class MMapDisplayComponent implements AfterViewInit {
   private webServiceMapWorkDone(): void {
     console.log("Web Service Map Work Request is complete.");
 
-    this._buildingNewMap = false;
-    this.drawEndNote();
-    let h = this.mapDataProcessor.Histogram;
+
+    //let h = this.mapDataProcessor.Histogram;
 
     //console.log('The histogram has been assembled at webServiceMapWorkDone.');
     //console.log('The historgram is ' + h + '.');
     //console.log('The Escape Velocity historgram is ' + this.mapDataProcessor.EscVelHist + '.');
 
-    this.haveHistogram.emit(h);
+    //this.haveHistogram.emit(this.mapDataProcessor.Histogram);
+
+
+    this._buildingNewMap = false;
+    this.drawEndNote();
   }
 
   private subHistogramRequest() {

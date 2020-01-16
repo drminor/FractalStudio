@@ -6,6 +6,7 @@ namespace FractalServer
 {
     public class MPointWork
 	{
+		public const int THRESHOLD = 256;
 		private static readonly double Log2 = Math.Log10(2);
 		private readonly int _maxIterations;
 
@@ -50,7 +51,8 @@ namespace FractalServer
 					done = true;
 					z.X = _zx;
 					z.Y = _zy;
-                    escapeVelocity = GetEscapeVelocity(z, c, _xSquared, _ySquared);
+					escapeVelocity = GetEscapeVelocity(z, c, _xSquared, _ySquared);
+					//escapeVelocity = GetEscapeVelocity(_xSquared + _ySquared);
                     break;
                 }
             }
@@ -65,16 +67,26 @@ namespace FractalServer
 			_z2.X = z.X;
 			_z2.Y = z.Y;
 
-			for (_cntr2 = 0; _cntr2 < 2; _cntr2++)
+			for (_cntr2 = 0; _cntr2 < 25; _cntr2++)
 			{
 				_z2.Y = 2 * _z2.X * _z2.Y + c.Y;
 				_z2.X = xSquared - ySquared + c.X;
 
 				xSquared = _z2.X * _z2.X;
 				ySquared = _z2.Y * _z2.Y;
+
+				if ((xSquared + ySquared) > THRESHOLD)
+				{
+					return GetEscapeVelocity(xSquared + ySquared);
+				}
 			}
 
-			double modulus = Math.Log10(xSquared + ySquared) / 2;
+			return 0;
+		}
+
+		private double GetEscapeVelocity(double sumOfSquares)
+		{
+			double modulus = Math.Log10(sumOfSquares) / 2;
 			double nu = Math.Log10(modulus / Log2) / Log2;
 			nu /= 4;
 
@@ -84,8 +96,12 @@ namespace FractalServer
 				nu = 1;
 			}
 
-            double result = 1 - nu / 4;
-            return result;
-        }
-    }
+			double result = 1 - nu;
+			return result;
+		}
+
+		// Mandelbrot calculations can be done using three squaring operations rather than two squares and a multiply.
+		// https://randomascii.wordpress.com/2011/08/13/faster-fractals-through-algebra/
+	}
 }
+

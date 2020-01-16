@@ -202,8 +202,8 @@ export class MMapViewerComponent implements AfterViewInit {
   private buildVirtualMapParams(): IVirtualMapParams {
     let name = 'VMapInfo';
     let iterations = 0;
-    let imageSize = new CanvasSize(21, 14);
-    let printDensity = 600;
+    let imageSize = new CanvasSize(27, 18); //new CanvasSize(12, 8); //new CanvasSize(21, 14);
+    let printDensity = 600; //400; //600;
     let displaySize = new CanvasSize(900, 600);
     let position = new Point(0, 0);
     let result = new VirtualMapParams(name, iterations, imageSize, printDensity, displaySize, position);
@@ -338,7 +338,7 @@ export class MMapViewerComponent implements AfterViewInit {
     else {
       console.log('Ignoring local histogam -- we are using the histogram for the entire area.');
     }
-    this.isBuilding = false;
+    //this.isBuilding = false;
   }
 
   onHistogramRequested() {

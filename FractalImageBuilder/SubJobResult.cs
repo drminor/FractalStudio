@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
-namespace FractalServerTests
+namespace FractalImageBuilder
 {
 	internal class SubJobResult : IPartsBin
 	{

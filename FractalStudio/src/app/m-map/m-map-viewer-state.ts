@@ -127,8 +127,8 @@ export class VirtualMap implements IVirtualMap {
     let hScaleFactor = this._displaySizeInBlocks.height / this._imageSizeInBlocks.height;
     this._scaleFactor = new CanvasSize(vScaleFactor, hScaleFactor);
 
-    this._maxLeft = -1 + this._imageSizeInBlocks.width - this._displaySizeInBlocks.width;
-    this._maxTop = -1 + this._imageSizeInBlocks.height - this._displaySizeInBlocks.height;
+    this._maxLeft = this._imageSizeInBlocks.width - this._displaySizeInBlocks.width;
+    this._maxTop = this._imageSizeInBlocks.height - this._displaySizeInBlocks.height;
   }
 
   // Top is the distance measured from the top of the image to the top of the section being displayed.

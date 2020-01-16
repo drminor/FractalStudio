@@ -4,17 +4,16 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{8176D67A-734F-4217-A947-DA08732A2734}</ProjectGuid>
-    <OutputType>Exe</OutputType>
-    <RootNamespace>FractalEngineRunner</RootNamespace>
-    <AssemblyName>FractalEngineRunner</AssemblyName>
+    <ProjectGuid>{60070414-B71A-4641-8D5C-4A84BB881167}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Apfp</RootNamespace>
+    <AssemblyName>Apfp</AssemblyName>
     <TargetFrameworkVersion>v4.7</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
@@ -24,7 +23,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
@@ -43,30 +41,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Program.cs" />
+    <Compile Include="DComponents.cs" />
+    <Compile Include="DMathUtil.cs" />
+    <Compile Include="Fp.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Request.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="App.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Apfp\Apfp.csproj">
-      <Project>{60070414-b71a-4641-8d5c-4a84bb881167}</Project>
-      <Name>Apfp</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\FractalEngine\FractalEngine.csproj">
-      <Project>{b09271e9-bd16-44b9-a738-1d2d22a04655}</Project>
-      <Name>FractalEngine</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\FSTypes\FSTypes.csproj">
-      <Project>{6E598E37-990B-4456-A5E0-DF0092B78418}</Project>
-      <Name>FSTypes</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\MqMessages\MqMessages.csproj">
-      <Project>{7E22EEE8-9D53-4561-8909-BDBC4741D8A8}</Project>
-      <Name>MqMessages</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

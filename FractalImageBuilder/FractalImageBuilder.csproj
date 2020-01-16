@@ -50,17 +50,24 @@
     <Compile Include="ColorMapEntry.cs" />
     <Compile Include="ColorMapEntryForExport.cs" />
     <Compile Include="ColorMapForExport.cs" />
+    <Compile Include="CountsRepoReader.cs" />
     <Compile Include="JsonReader.cs" />
     <Compile Include="MapInfo.cs" />
     <Compile Include="MapInfoWithColorMap.cs" />
     <Compile Include="MapInfoWithColorMapForExport.cs" />
-    <Compile Include="MapWorkingData.cs" />
+    <Compile Include="SubJobResult.cs" />
+    <None Include="MapWorkingData.cs" />
+    <Compile Include="PngBuilder.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\CountsRepo\CountsRepo.csproj">
+      <Project>{EA81508D-FFA1-4B28-8F05-15BBAA2BF8B0}</Project>
+      <Name>CountsRepo</Name>
+    </ProjectReference>
     <ProjectReference Include="..\FractalServer\FractalServer.csproj">
       <Project>{8efe2d37-974c-4979-af9a-e2c080bdd7e4}</Project>
       <Name>FractalServer</Name>

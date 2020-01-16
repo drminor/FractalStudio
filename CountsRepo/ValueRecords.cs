@@ -160,6 +160,11 @@ namespace CountsRepo
 		public readonly string TextFilename;
 		public string IndexFilename => _indices.IndexFilePath;
 
+		public bool ContainsKey(K key)
+		{
+			return _indices.ContainsKey(key);
+		}
+
 		public IEnumerable<V> GetValues(Func<K, V> emptyValueProvider) 
 		{
 			IReadOnlyCollection<IndexEntry<K>> keys = _indices.IndexEntries;

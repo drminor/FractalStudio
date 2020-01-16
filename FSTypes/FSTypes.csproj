@@ -49,6 +49,7 @@
     <Compile Include="DPoint.cs" />
     <Compile Include="Histogram.cs" />
     <Compile Include="IPartsBin.cs" />
+    <Compile Include="KPoint.cs" />
     <Compile Include="MapSection.cs" />
     <Compile Include="MapSectionResult.cs" />
     <Compile Include="Point.cs" />

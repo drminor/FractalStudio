@@ -1,8 +1,7 @@
-﻿//using qdDotNet;
-using System;
+﻿using System;
 using System.Collections.Generic;
 
-namespace FractalServerTests
+namespace FSTypes
 {
 	[Serializable]
 	public struct KPoint : IEquatable<KPoint>, IEqualityComparer<KPoint>

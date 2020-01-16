@@ -45,6 +45,8 @@ export class ColorMapEditorComponent implements OnInit {
     return this._colorMap;
   }
 
+  private _updatePercentagesIsPending: boolean = false;
+
   @Input('histogram')
   set histogram(h: Histogram) {
     if (h === null) {
@@ -55,11 +57,20 @@ export class ColorMapEditorComponent implements OnInit {
     }
     this._histogram = h;
 
-    if (this._histogram !== null) {
-      // Update the live form's actual percentage values base on the new offsets.
-      this.updatePercentages();
+    if (this._updatePercentagesIsPending === false) {
+      this._updatePercentagesIsPending = true;
+
+      setTimeout(() => {
+        this._updatePercentagesIsPending = false;
+        if (this._histogram !== null) {
+          // Update the live form's actual percentage values base on the new offsets.
+          this.updatePercentages();
+        }
+      }, 500);
+
     }
   }
+
 
   @Output() colorMapUpdated = new EventEmitter<ColorMapUI>();
 
@@ -135,7 +146,14 @@ export class ColorMapEditorComponent implements OnInit {
 
   onSubmit() {
     let colorMap = this.getColorMap();
-    console.log('The color map editor is handling form submit.'); 
+    console.log('The color map editor is handling form submit.');
+    if (this._histogram === null) {
+      console.log('The histogram is null on submit.');
+    }
+    else {
+      console.log('The histogram is ' + this._histogram.toString());
+      console.log('The lowest hist value is ' + this._histogram.minVal + ', the highest hist value is ' + this._histogram.maxVal + '.');
+    }
     this.colorMapUpdated.emit(colorMap);
   }
 
@@ -365,7 +383,7 @@ export class ColorMapEditorComponent implements OnInit {
 
     // Set the form's highColor value.
     this.colorMapForm.controls.highColor.setValue(colorMap.highColorCss);
-    this.colorMapForm.controls.sectionEnd.setValue(colorMap.ranges.length - 1);
+    this.colorMapForm.controls.sectionEnd.setValue(colorMap.ranges.length);
   }
 
   private getColorMap(): ColorMapUI{

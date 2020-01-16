@@ -65,11 +65,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ApCell.cs" />
+    <Compile Include="ApCoeffs.cs" />
+    <Compile Include="ApDetail.cs" />
     <Compile Include="MapCalculator.cs" />
     <Compile Include="MapSectionWorkResult.cs" />
     <Compile Include="MapSectionWorkRequest.cs" />
     <Compile Include="MPointWork.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RingBuf.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\FSTypes\FSTypes.csproj">

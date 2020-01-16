@@ -11,12 +11,12 @@ namespace FractalImageBuilder
 
         public ColorMap(ColorMapEntry[] colorMapEntries, string highColor)
         {
-            _colorMapEntries = colorMapEntries;
+			HighColorEntry = new ColorMapEntry(-1, highColor, ColorMapBlendStyle.None, highColor);
+
+			_colorMapEntries = colorMapEntries;
             CutOffs = BuildCutOffs(colorMapEntries);
             SetBucketWidths(colorMapEntries);
             SetEndColors(colorMapEntries);
-
-            HighColorEntry = new ColorMapEntry(-1, highColor, ColorMapBlendStyle.None, highColor);
         }
 
         public int[] GetColor(int countVal, double escapeVelocity)
@@ -37,27 +37,30 @@ namespace FractalImageBuilder
 
             int botBucketVal = cme.PrevCutOff;
 
-            int[] cStart;
+   //         int[] cStart;
 
-            if (countVal == botBucketVal)
-            {
-                cStart = cme.StartColor.ColorComps;
-            }
-            else
-            {
-                double stepFactor = (-1 + countVal - botBucketVal) / (double)cme.BucketWidth;
-                cStart = Interpolate(cme.StartColor.ColorComps, cme.StartColor.ColorComps, cme.EndColor.ColorComps, stepFactor);
-            }
+   //         if (countVal == botBucketVal)
+   //         {
+   //             cStart = cme.StartColor.ColorComps;
+   //         }
+   //         else
+   //         {
+			//	double stepFactor = (-1 + countVal - botBucketVal) / (double)cme.BucketWidth;
+			//	cStart = Interpolate(cme.StartColor.ColorComps, cme.StartColor.ColorComps, cme.EndColor.ColorComps, stepFactor);
+			//}
 
-            //double stepFactor = (countVal - botBucketVal) / (double)cme.BucketWidth;
-            //cStart = Interpolate(cme.StartColor.ColorComps, cme.StartColor.ColorComps, cme.EndColor.ColorComps, stepFactor);
+			////double stepFactor = (countVal - botBucketVal) / (double)cme.BucketWidth;
+			////cStart = Interpolate(cme.StartColor.ColorComps, cme.StartColor.ColorComps, cme.EndColor.ColorComps, stepFactor);
+
+			//double intraStepFactor = escapeVelocity / cme.BucketWidth;
+
+			//result = Interpolate(cStart, cme.StartColor.ColorComps, cme.EndColor.ColorComps, intraStepFactor);
+
+			double stepFactor = (countVal + escapeVelocity - botBucketVal) / (double)cme.BucketWidth;
+			result = Interpolate(cme.StartColor.ColorComps, cme.StartColor.ColorComps, cme.EndColor.ColorComps, stepFactor);
 
 
-            double intraStepFactor = escapeVelocity / cme.BucketWidth;
-
-            result = Interpolate(cStart, cme.StartColor.ColorComps, cme.EndColor.ColorComps, intraStepFactor);
-
-            return result;
+			return result;
         }
 
         private int[] Interpolate(int[] cStart, int[] c1, int[] c2, double factor)
@@ -109,6 +112,10 @@ namespace FractalImageBuilder
             {
                 newIndex = ~newIndex;
             }
+			else
+			{
+				newIndex++;
+			}
 
             if (newIndex > CutOffs.Length - 1)
             {
@@ -148,16 +155,23 @@ namespace FractalImageBuilder
                 prevCutOff = colorMapEntries[ptr].CutOff;
             }
 
-            colorMapEntries[colorMapEntries.Length - 1].PrevCutOff = prevCutOff;
+            //colorMapEntries[colorMapEntries.Length - 1].PrevCutOff = prevCutOff;
         }
 
         private void SetEndColors(ColorMapEntry[] colorMapEntries)
         {
-            for (int ptr = 0; ptr < colorMapEntries.Length - 1; ptr++)
+            for (int ptr = 0; ptr < colorMapEntries.Length; ptr++)
             {
                 if(colorMapEntries[ptr].BlendStyle == ColorMapBlendStyle.Next)
                 {
-                    colorMapEntries[ptr].EndColor = new ColorMapColor(colorMapEntries[ptr + 1].StartColor.ColorComps);
+					if (ptr == colorMapEntries.Length - 1)
+					{
+						colorMapEntries[ptr].EndColor = new ColorMapColor(HighColorEntry.StartColor.ColorComps);
+					}
+					else
+					{
+						colorMapEntries[ptr].EndColor = new ColorMapColor(colorMapEntries[ptr + 1].StartColor.ColorComps);
+					}
                 }
             }
         }

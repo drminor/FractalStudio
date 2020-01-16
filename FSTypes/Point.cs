@@ -27,5 +27,10 @@ namespace FSTypes
 		{
 			return new PointInt(X, Y);
 		}
+
+		public KPoint GetKPoint()
+		{
+			return new KPoint(X, Y);
+		}
 	}
 }

@@ -14,7 +14,8 @@ namespace FractalEngine
 {
 	public class Engine
 	{
-		public const int BLOCK_SIZE = 100; 
+		public const int BLOCK_SIZE = 100;
+		public const int NUMBER_OF_SUB_PROCESSORS = 4;
 
 		public const string OUTPUT_Q_PATH = @".\private$\FGenJobs";
 		public const string INPUT_Q_PATH = @".\private$\FGenResults";
@@ -60,18 +61,6 @@ namespace FractalEngine
 			{
 				jobId = NextJobId;
 				job.JobId = jobId;
-
-				//if (job is Job localJob && localJob.CanReplayResults())
-				//{
-				//	// This is just temporary for testing.
-				//	ReplayResults(localJob);
-				//}
-				//else
-				//{
-				//	Debug.WriteLine("Adding job to queue.");
-				//	_jobs.Add(jobId, job);
-				//	HaveWork.Set();
-				//}
 
 				Debug.WriteLine("Adding job to queue.");
 				_jobs.Add(jobId, job);
@@ -130,48 +119,6 @@ namespace FractalEngine
 				}
 			}
 		}
-
-		//public void SubmitSubJob(SubJob subJob)
-		//{
-		//	IJob parentJob = subJob.ParentJob;
-
-		//	if(parentJob is Job localJob)
-		//	{
-		//		MapSectionResult msr = localJob.RetrieveWorkResultFromRepo(subJob);
-		//		if (msr != null)
-		//		{
-		//			// TODO: Nothing is managing the IsLastSubJob here.
-		//			SendReplayResultToClient(msr, parentJob.IsLastSubJob, localJob.ConnectionId);
-		//		}
-		//		else
-		//		{
-		//			ProcessSubJob(subJob);
-		//		}
-		//	}
-		//	else
-		//	{
-		//		throw new InvalidOperationException("Only subjobs of local jobs can be submitted.");
-		//	}
-		//}
-
-		//private void ReplayResults(Job localJob)
-		//{
-		//	Task.Run(() => {
-		//		Thread.Sleep(1000);
-
-		//		IEnumerable<Tuple<MapSectionResult, bool>> results = localJob.ReplayResults();
-		//		foreach (Tuple<MapSectionResult, bool> resultAndFinalFlag in results)
-		//		{
-		//			SendReplayResultToClient(resultAndFinalFlag.Item1, resultAndFinalFlag.Item2, localJob.ConnectionId);
-		//		}
-		//	});
-		//}
-
-		//private void SendReplayResultToClient(MapSectionResult msr, bool isFinalSection, string connectionId)
-		//{
-		//	Debug.WriteLine($"The msr size = {msr.MapSection.CanvasSize.Width * msr.MapSection.CanvasSize.Height}, The counts length is {msr.ImageData.Length}.");
-		//	_clientConnector.ReceiveImageData(connectionId, msr, isFinalSection);
-		//}
 
 		public void CancelJob(int jobId, bool deleteRepo)
 		{
@@ -304,8 +251,8 @@ namespace FractalEngine
 
 			Task.Run(() => SendProcessor(_sendQueue, _cts.Token), _cts.Token);
 
-			_subJobProcessors = new SubJobProcessor[1];
-			for(int wpCntr = 0; wpCntr < 1; wpCntr++)
+			_subJobProcessors = new SubJobProcessor[NUMBER_OF_SUB_PROCESSORS];
+			for(int wpCntr = 0; wpCntr < NUMBER_OF_SUB_PROCESSORS; wpCntr++)
 			{
 				_subJobProcessors[wpCntr] = new SubJobProcessor(_workQueue, _sendQueue);
 				_subJobProcessors[wpCntr].Start();
@@ -401,10 +348,10 @@ namespace FractalEngine
 								_clientConnector.ReceiveImageData(subJob.ConnectionId, subJob.MapSectionResult, isFinalSubJob);
 
 
-								if(subJob.ParentJob is Job localJob)
-								{
-									Debug.WriteLine($"Results written: {localJob.WorkResultWriteCount}, Results re-written: {localJob.WorkResultReWriteCount}.");
-								}
+								//if(subJob.ParentJob is Job localJob)
+								//{
+								//	Debug.WriteLine($"Results written: {localJob.WorkResultWriteCount}, Results re-written: {localJob.WorkResultReWriteCount}.");
+								//}
 							}
 						}
 					}

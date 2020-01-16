@@ -20,23 +20,23 @@ namespace FractalEngine
 		private int _hSectionPtr;
 		private int _vSectionPtr;
 
-		private ValueRecords<RectangleInt, MapSectionWorkResult> _countsRepo;
-		private readonly PointInt _position;
+		private ValueRecords<KPoint, MapSectionWorkResult> _countsRepo;
+		private readonly KPoint _position;
 		private readonly object _repoLock = new object();
 
-		public int WorkResultWriteCount = 0;
-		public int WorkResultReWriteCount = 0;
+		//public int WorkResultWriteCount = 0;
+		//public int WorkResultReWriteCount = 0;
 
 
 		public Job(SMapWorkRequest sMapWorkRequest) : base(sMapWorkRequest)
 		{
-			_position = new PointInt(sMapWorkRequest.Area.SectionAnchor.X * SECTION_WIDTH, sMapWorkRequest.Area.SectionAnchor.Y * SECTION_HEIGHT);
+			_position = new KPoint(sMapWorkRequest.Area.SectionAnchor.X, sMapWorkRequest.Area.SectionAnchor.Y);
 			SamplePoints = GetSamplePoints(sMapWorkRequest);
 			Reset();
 
 			string filename = RepoFilename;
 			Debug.WriteLine($"Creating new Repo. Name: {filename}, JobId: {JobId}.");
-			_countsRepo = new ValueRecords<RectangleInt, MapSectionWorkResult>(filename, useHiRezFolder: false);
+			_countsRepo = new ValueRecords<KPoint, MapSectionWorkResult>(filename, useHiRezFolder: false);
 
 			//Debug.WriteLine($"Starting to get histogram for {RepoFilename} at {DateTime.Now.ToString(DiagTimeFormat)}.");
 			//Dictionary<int, int> h = GetHistogram();
@@ -79,12 +79,10 @@ namespace FractalEngine
 			return result;
 		}
 
-		public void WriteWorkResult(MapSection key, MapSectionWorkResult val, bool overwriteResults)
+		public void WriteWorkResult(KPoint key, MapSectionWorkResult val, bool overwriteResults)
 		{
-			RectangleInt riKey = key.GetRectangleInt();
-
 			// When writing include the Area's offset.
-			RectangleInt transKey = riKey.Translate(_position);
+			KPoint transKey = key.ToGlobal(_position);
 
 			try
 			{
@@ -93,25 +91,25 @@ namespace FractalEngine
 					if(overwriteResults)
 					{
 						_countsRepo.Change(transKey, val);
-						WorkResultReWriteCount++;
+						//WorkResultReWriteCount++;
 					}
 					else
 					{
 						_countsRepo.Add(transKey, val, saveOnWrite: false);
-						WorkResultWriteCount++;
+						//WorkResultWriteCount++;
 					}
 				}
 			}
 			catch
 			{
-				Debug.WriteLine($"Could not write data for x: {riKey.Point.X} and y: {riKey.Point.Y}.");
+				Debug.WriteLine($"Could not write data for x: {transKey.X} and y: {transKey.Y}.");
 			}
 		}
 
-		public bool RetrieveWorkResultFromRepo(RectangleInt riKey, MapSectionWorkResult workResult)
+		public bool RetrieveWorkResultFromRepo(KPoint key, MapSectionWorkResult workResult)
 		{
 			// When writing include the Area's offset.
-			RectangleInt transKey = riKey.Translate(_position);
+			KPoint transKey = key.ToGlobal(_position);
 
 			lock (_repoLock)
 			{
@@ -119,33 +117,6 @@ namespace FractalEngine
 				return result;
 			}
 		}
-
-		//public IEnumerable<Tuple<MapSectionResult, bool>> ReplayResults()
-		//{
-		//	SubJob subJob = GetNextSubJob();
-
-		//	while (subJob != null)
-		//	{
-		//		MapSection ms = subJob.MapSectionWorkRequest.MapSection;
-		//		RectangleInt riKey = ms.GetRectangleInt();
-		//		MapSectionWorkResult workResult = GetEmptyResult(riKey);
-
-		//		if (RetrieveWorkResultFromRepo(riKey, workResult))
-		//		{
-		//			MapSectionResult msr = new MapSectionResult(JobId, ms, workResult.Counts);
-
-		//			Tuple<MapSectionResult, bool> item = new Tuple<MapSectionResult, bool>(msr, IsLastSubJob);
-		//			DecrementSubJobsRemainingToBeSent();
-
-		//			subJob = GetNextSubJob();
-		//			yield return item;
-		//		}
-		//		else
-		//		{
-		//			yield return null;
-		//		}
-		//	}
-		//}
 
 		public void DeleteCountsRepo()
 		{
@@ -185,16 +156,16 @@ namespace FractalEngine
 		}
 
 		private MapSectionWorkResult _emptyResult = null;
-		private MapSectionWorkResult GetEmptyResult(RectangleInt area)
+		private MapSectionWorkResult GetEmptyResult(KPoint key)
 		{
-			if(area.Size.W != SECTION_WIDTH || area.Size.H != SECTION_HEIGHT)
-			{
-				Debug.WriteLine("Wrong Area.");
-			}
+			//if(area.Size.W != SECTION_WIDTH || area.Size.H != SECTION_HEIGHT)
+			//{
+			//	Debug.WriteLine("Wrong Area.");
+			//}
 
 			if (_emptyResult == null)
 			{
-				_emptyResult = new MapSectionWorkResult(area.Size.W * area.Size.H, true, false);
+				_emptyResult = new MapSectionWorkResult(SECTION_WIDTH * SECTION_HEIGHT, hiRez: false, includeZValuesOnRead: false);
 			}
 
 			return _emptyResult;
@@ -202,7 +173,6 @@ namespace FractalEngine
 
 		private SamplePoints<double> GetSamplePoints(SMapWorkRequest sMapWorkRequest)
 		{
-
 			if (Coords.TryGetFromSCoords(sMapWorkRequest.SCoords, out Coords coords))
 			{
 				double[][] xValueSections = BuildValueSections(coords.LeftBot.X, coords.RightTop.X,

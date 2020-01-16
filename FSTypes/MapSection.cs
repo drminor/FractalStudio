@@ -33,5 +33,10 @@ namespace FSTypes
 		{
 			return new RectangleInt(SectionAnchor.GetPointInt(), CanvasSize.GetSizeInt());
 		}
+
+		public KPoint GetKPoint()
+		{
+			return SectionAnchor.GetKPoint();
+		}
 	}
 }

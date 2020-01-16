@@ -766,6 +766,17 @@ export class Histogram {
     return this._maxVal;
   }
 
+  private _minVal: number = -1;
+
+  public get minVal(): number {
+    if (this._minVal === -1) {
+      // The getHistEntries method also sets the value of _maxVal.
+      this.getHistEntries();
+    }
+
+    return this._minVal;
+  }
+
   constructor() {
     this.entriesMap = new Map<number, number>();
   }
@@ -1034,6 +1045,7 @@ export class Histogram {
     result.sort((a, b) => a.val - b.val);
 
     // Set our maxVal, while since we have gone to the trouble of getting sorting our map.
+    this._minVal = result[0].val;
     this._maxVal = result[result.length - 1].val;
     return result;
   }
@@ -1238,6 +1250,7 @@ export class RawMapDataProcessor {
     // Address the image data buffer as Int32's
     let pixelData = new Uint32Array(imgData.buffer);
 
+    let errorCnt: number = 0;
     let ptr: number;
     for (ptr = 0; ptr < elementCount; ptr++) {
       let wv = iterCounts[ptr];
@@ -1251,12 +1264,16 @@ export class RawMapDataProcessor {
         this.EscVelHist.addVal(escVel);
       }
 
+      let err = new EMessage("");
       let cNum: number = 0;
       try {
-        cNum = this.colorMap.getColor(cnt, escapeVal);
+        cNum = this.colorMap.getColor(cnt, escapeVal, err);
       }
       catch (e) {
-        console.log("Color Map Error, the escapVal = " + escapeVal + ".");
+        if (errorCnt < 10) {
+          errorCnt++;
+          console.log("Color Map Error: pixPtr=" + ptr + ", the cnt=" + cnt + ", the escapVal=" + escapeVal + ", at " + e);
+        }
       }
       pixelData[ptr] = cNum;
     }
@@ -1504,11 +1521,12 @@ export class MapWorkingData implements IMapWorkingData {
     // Address the image data buffer as Int32's
     let pixelData = new Uint32Array(imgData.buffer);
 
+    let err: EMessage = new EMessage("");
     let ptr: number;
     for (ptr = 0; ptr < this.elementCount; ptr++) {
       let wv = this.workingVals[ptr];
 
-      let cNum = this.colorMap.getColor(wv.cnt, wv.escapeVel);
+      let cNum = this.colorMap.getColor(wv.cnt, wv.escapeVel, err);
       pixelData[ptr] = cNum;
     }
 
@@ -1648,7 +1666,8 @@ export class ColorMap {
     this.setBucketWidths();
   }
 
-  public getColor(countValue: number, escapeVel: number): number {
+  public getColor(countValue: number, escapeVel: number, err: EMessage): number {
+    err.msg = "";
     let result: number;
     let index = this.searchInsert(countValue);
 
@@ -1682,30 +1701,45 @@ export class ColorMap {
     //result = this.blend(cme.prevCutOff, cme.bucketWidth, countValue, cNum1, cNum2, escapeVel);
 
     let idx = countValue + escapeVel - cme.prevCutOff;
-    result = ColorNumbers.getColorFromComps(this.blend2(idx, cme.cStart, cme.sFactor));
+
+    let bCNums = this.blend2(idx, cme.cStart, cme.sFactor, err);
+
+    if (err.msg === "") {
+      try {
+        result = ColorNumbers.getColorFromComps(bCNums);
+      }
+      catch (e) {
+        err.msg = bCNums[0] + " " + bCNums[1] + " " + bCNums[2] + " is invalid, the colormap entry idx=" + index;;
+      }
+    }
+    else {
+      err.msg = err.msg + " the colormap entry idx=" + index;
+      result = ColorNumbers.white;
+    }
 
     return result;
   }
 
-  // Returns the index of the range entry that either
-  // 1. matches the given countVal
-  // or
-  // 2. contains the first entry with a cutOff value greater than the given countVal.
+  // Returns the index of the range entry that contains the
+  // first entry with a cutOff value greater than the given countVal.
   private searchInsert(countVal: number): number {
-
-    let index: number;
 
     if (countVal > this.ranges[this.ranges.length - 1].cutOff) {
       // The target is beyond the end of this array.
-      index = this.ranges.length;
-      return index;
+      return this.ranges.length;
     }
 
     if (countVal === 0) {
       return 0;
     }
 
+    return this.searchIndexCore1(countVal);
+    //return this.searchIndexCore2(countVal, 0);
+  }
+
+  private searchIndexCore1(countVal: number): number {
     // Start in middle, divide and conquer.
+    let index: number;
 
     let start = 0;
     let end = this.ranges.length - 1;
@@ -1721,7 +1755,7 @@ export class ColorMap {
       if (value === countVal) {
         // Found our target, set the index to point to the bucket just after the found entry.
         index++;
-        break;
+        return index;
       }
       else if (countVal < value) {
         // Target is lower in array, move the index halfway down.
@@ -1736,18 +1770,34 @@ export class ColorMap {
       //index = Math.floor((end - start) / 2) + start;
     }
 
-    if (!(start < end)) {
-      index = Math.floor((end - start) / 2) + start;
-      value = this.ranges[index].cutOff;
-      if (countVal > value) {
-        throw new Error("SearchIndex is returning bad value.");
+    end = end - 2;
+    if (end < 0) end = 0;
+    return this.searchIndexCore2(countVal, end);
+
+    //if (!(start < end)) {
+    //  index = Math.floor((end - start) / 2) + start;
+    //  value = this.ranges[index].cutOff;
+    //  if (countVal > value) {
+    //    throw new Error("SearchIndex is returning bad value.");
+    //  }
+    //}
+
+    //return index;
+  }
+  private searchIndexCore2(countVal: number, index:number): number {
+
+    let i: number;
+
+    for (i = index; i < this.ranges.length; i++) {
+      if (countVal < this.ranges[i].cutOff) {
+        return i;
       }
     }
 
-    return index;
+    return i;
   }
 
-  private blend2(idx: number, cStart: number[], sFactor: number[]): number[] {
+  private blend2(idx: number, cStart: number[], sFactor: number[], err:EMessage): number[] {
     let result = new Array<number>(3);
 
     let ptr: number;
@@ -1755,7 +1805,8 @@ export class ColorMap {
       let newCC = cStart[ptr] + idx * sFactor[ptr];
 
       if (0 > newCC || newCC > 255) {
-        throw new Error("The color component " + ptr + " is out of range.");
+        err.msg = "The color component " + ptr + " is out of range. The intra-bucket ptr=" + idx;
+        //throw new Error("The color component " + ptr + " is out of range.");
       }
 
       result[ptr] = newCC;
@@ -1768,14 +1819,16 @@ export class ColorMap {
     let ptr: number;
 
     if (this.ranges[0].cutOff === 0) {
-      throw new Error("The first cutoff cannot be zero.");
+      //throw new Error("The first cutoff cannot be zero.");
+      this.ranges[0].cutOff = 1;
     }
 
-    let cme = this.ranges[0];
-    cme.bucketWidth = this.ranges[0].cutOff;
+    let cme: ColorMapEntry = this.ranges[0];
+    cme.bucketWidth = cme.cutOff;
+    this.setCStartAndStepFactor(cme, 1);
     cme.prevCutOff = 0;
 
-    let prevCutOff = this.ranges[0].cutOff;
+    let prevCutOff = cme.cutOff;
 
     for (ptr = 1; ptr < this.ranges.length; ptr++) {
       cme = this.ranges[ptr];
@@ -1785,31 +1838,33 @@ export class ColorMap {
         throw new Error("The bucket width for item " + ptr + "is <= 0.");
       }
       cme.bucketWidth = bw;
-
-      if (cme.blendStyle === ColorMapEntryBlendStyle.next || cme.blendStyle === ColorMapEntryBlendStyle.endColor) {
-        let endColorNum: number;
-
-        if (cme.blendStyle === ColorMapEntryBlendStyle.next) {
-          if (ptr + 1 === this.ranges.length) {
-            endColorNum = this.highColor;
-          }
-          else {
-            endColorNum = this.ranges[ptr + 1].colorNum;
-          }
-        }
-        else {
-          endColorNum = cme.endColorNum;
-        }
-
-        cme.cStart = ColorNumbers.getColorComponents(cme.colorNum);
-        let cEnd = ColorNumbers.getColorComponents(endColorNum);
-        cme.sFactor = this.getBlendStepFactor(cme.cStart, cEnd, cme.bucketWidth);
-      }
-
+      this.setCStartAndStepFactor(cme, ptr + 1);
       prevCutOff = cme.cutOff;
     }
 
     //this.ranges[this.ranges.length - 1].prevCutOff = prevCutOff;
+  }
+
+  private setCStartAndStepFactor(cme: ColorMapEntry, ptrToNext: number): void {
+    if (cme.blendStyle === ColorMapEntryBlendStyle.next || cme.blendStyle === ColorMapEntryBlendStyle.endColor) {
+      let endColorNum: number;
+
+      if (cme.blendStyle === ColorMapEntryBlendStyle.next) {
+        if (ptrToNext === this.ranges.length) {
+          endColorNum = this.highColor;
+        }
+        else {
+          endColorNum = this.ranges[ptrToNext].colorNum;
+        }
+      }
+      else {
+        endColorNum = cme.endColorNum;
+      }
+
+      cme.cStart = ColorNumbers.getColorComponents(cme.colorNum);
+      let cEnd = ColorNumbers.getColorComponents(endColorNum);
+      cme.sFactor = this.getBlendStepFactor(cme.cStart, cEnd, cme.bucketWidth);
+    }
   }
 
   private getBlendStepFactor(cStart: number[], cEnd: number[], bw: number): number[] {
@@ -1934,6 +1989,10 @@ export class ColorMap {
   //  return result;
   //}
 
+}
+
+class EMessage {
+  constructor(public msg: string) { }
 }
 
 // ---- WebWorker Message Interfaces ----

@@ -1,4 +1,5 @@
-﻿using FractalEngine;
+﻿using Apfp;
+using FractalEngine;
 using FSTypes;
 using MqMessages;
 using System;
@@ -136,7 +137,8 @@ namespace FractalEngineRunner
 
 		static IJob GetJobRequest(int jobId)
 		{
-			SMapWorkRequest sMapRequest = CreateWorkRequest(jobId);
+			//SMapWorkRequest sMapRequest = CreateWorkRequest(jobId);
+			SMapWorkRequest sMapRequest = CreateWorkRequestForApprox(jobId);
 
 			//IJob result = new JobForMq(sMapRequest);
 			IJob result = new Job(sMapRequest);
@@ -248,6 +250,34 @@ namespace FractalEngineRunner
 			MapSection area = new MapSection(new Point(0, 0), canvasSize.GetWholeUnits(Engine.BLOCK_SIZE));
 
 			int maxIterations = 100;
+			string connectionId = "dummy";
+
+			SMapWorkRequest mapWorkRequest = new SMapWorkRequest("FEngRunner", coords, canvasSize, area, maxIterations, connectionId)
+			{
+				JobId = jobId
+			};
+
+			return mapWorkRequest;
+		}
+
+		static SMapWorkRequest CreateWorkRequestForApprox(int jobId)
+		{
+			CanvasSize canvasSize = new CanvasSize(1500, 1000);
+
+			string sx = "-7.77919999999999943236517196964994e-01";
+			string ex = "7.50666666666666623738043047827275e-01";
+
+			string sy = "8.90133333333333821328163063905458e-02";
+			string ey = "1.07306666666666713248664185205901e-01";
+			SCoords coords = new SCoords(
+				new SPoint(sx, sy),
+				new SPoint(ex, ey)
+				);
+
+
+			MapSection area = new MapSection(new Point(0, 0), canvasSize.GetWholeUnits(Engine.BLOCK_SIZE));
+
+			int maxIterations = 2000;
 			string connectionId = "dummy";
 
 			SMapWorkRequest mapWorkRequest = new SMapWorkRequest("FEngRunner", coords, canvasSize, area, maxIterations, connectionId)
