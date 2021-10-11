@@ -5,7 +5,8 @@
     <TypeScriptCompileBlocked>false</TypeScriptCompileBlocked> 
     <PostBuildEvent>ng build --aot</PostBuildEvent> 
     <TypeScriptToolsVersion>3.1</TypeScriptToolsVersion> 
-    <Platforms>AnyCPU;x86</Platforms>
+    <Platforms>AnyCPU;x86</Platforms> 
+    <StartupObject>FractalStudio.Program</StartupObject>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -48,8 +49,13 @@
   <ItemGroup>
     <PackageReference Include="Experimental.System.Messaging" Version="1.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.AspNetCore.Hosting.WindowsServices" Version="2.1.1" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Core" Version="1.0.4" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack" Version="1.0.4" />
+    <PackageReference Include="Microsoft.TypeScript.MSBuild" Version="3.1.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="2.1.1" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
   </ItemGroup>
